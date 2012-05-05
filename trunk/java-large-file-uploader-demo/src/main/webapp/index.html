@@ -1,0 +1,110 @@
+<html>
+<head>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
+<script src="./js/javafileuploadermanager.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+	
+	//call the initializing function
+	initializeFileUploader(function(pendingFiles) {
+
+		//if we have some pending uploads 
+    	if (!jQuery.isEmptyObject(pendingFiles)) {
+    		
+    		var i = 0;
+			//iterate over all the pending file uploads
+    		$.each(pendingFiles, function(fileId,pendingFile) {
+    			
+		  		//get container div element
+		  		var div = document.getElementById('container'+i);
+		  		
+    			//if the file is complete
+			  	if (pendingFile.fileComplete) {
+			  		//specify it in the em element
+				  	div.children[2].innerHTML = 
+				  		"The file '"+pendingFile.originalFileName+"' has been fully uploaded ("+pendingFile.fileCompletion+"/"+pendingFile.originalFileSize+"). "+
+				  		"<a href='javascript:void(0)' onclick='cancelFileUpload(\""+fileId+"\", function(e) {clearProgressText("+i+");});'>Delete it</a>.";
+			  	} 
+    			
+    			//if incomplete and pending 
+			  	else if (pendingFile.fileCompletion) {
+			  		
+			  		//describe the file so that the user can select it again
+				  	div.children[2].innerHTML = 
+				  		"The file '"+pendingFile.originalFileName+"' has been partially uploaded ("+pendingFile.fileCompletion+"/"+pendingFile.originalFileSize+"). "+
+				  		"Reselect it to continue uploading it or <a href='javascript:void(0)' onclick='cancelFileUpload(\""+fileId+"\", function(e) {clearProgressText("+i+");});'>cancel the upload of this file</a>.";
+				  		
+			  		//and assign the fileId as the name of the fileupload html element
+				  	div.children[0].name = fileId;
+			  	}
+    			i++;
+		   	}); 
+    	}
+    	
+	});
+	
+	//add the listeners on all the file upload elements
+	for (i=0;i<=3;i++) {
+		
+		//add a change listener on the fileupload to manage a file upload directly when the user selects the file
+	  	document.getElementById("container"+i).children[0].addEventListener("change", function(e) {
+	  		
+	  		//process the file upload
+	  		fileUploadProcess(e.target, 
+	  				
+	  			//define a progressCallback showing the progress in the em element 
+				function(theFileId, percentageCompleted, origin) {
+		  			origin.parentElement.children[2].textContent="Uploading... ("+percentageCompleted+"% complete)";
+		  		}, 
+	  			
+		  		//define a finishCallback showing the completion in the em element 
+		  		function(theFileId, origin) {
+		  			origin.parentElement.children[2].textContent="Upload completed.";
+	
+		  		}, 
+		  		
+		  		//define an exception callback
+		  		function(message) {
+		  			alert(message);
+		  		},
+		  		
+		  		e.target.name);
+	  		
+	  	}, false);
+	}
+	
+ 
+});
+function clearProgressText(i) {
+	document.getElementById('container'+i).children[2].innerHTML="";
+}
+</script>
+</head>
+<body>
+
+	<div id="container0">
+		<input type="file"/><br/> 
+		<em></em>
+	</div>
+	
+	<div  id="container1">
+		<input type="file"/><br/> 
+		<em></em>
+	</div>
+	
+	<div  id="container2">
+		<input type="file"/><br/> 
+		<em></em>
+	</div>
+	
+	<div  id="container3">
+		<input type="file"/><br/> 
+		<em></em>
+	</div>
+	
+	<div>
+		<a href='javascript:void(0)' onclick='clearFileUpload(function(e) {window.location.reload();});'>Clear all</a>
+	</div>
+	
+</body>
+</html>
