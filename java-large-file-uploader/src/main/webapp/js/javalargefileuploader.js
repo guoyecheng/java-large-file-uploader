@@ -3,6 +3,7 @@
  */
 function JavaLargeFileUploader() {
 	var globalServletMapping = "javaLargeFileUploaderServlet";
+	var uploadServletMapping = "javaLargeFileUploaderAsyncServlet";
 	var pendingFiles = new Object();
 	var bytesPerChunk;
 	
@@ -190,7 +191,7 @@ function JavaLargeFileUploader() {
 		
 				// prepare xhr request
 				var xhr = new XMLHttpRequest();
-				xhr.open('POST', globalServletMapping + '?action=upload&sliceFrom=' +
+				xhr.open('POST', uploadServletMapping + '?action=upload&sliceFrom=' +
 						filePosition + '&fileId=' + fileId + '&crc=' + decimalToHexString(digest), true);
 		
 				// assign callback
