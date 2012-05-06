@@ -87,12 +87,13 @@ public class UploadServletTest {
 
 		// set action parameter
 		request.setParameter(UploadServletParameter.action.name(), UploadServletAction.getProgress.name());
-		request.setParameter(UploadServletParameter.fileId.name(), "a bad id");
+		String id = "a bad id";
+		request.setParameter(UploadServletParameter.fileId.name(), id);
 
 		// handle request
 		uploadServlet.handleRequest(request, response);
-		Assert.assertThat(response.getStatus(), is(500));
-
+		SimpleJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), SimpleJsonObject.class);
+		Assert.assertThat("File with id "+id+" not found", is(fromJson.getValue()));
 	}
 
 	
@@ -126,7 +127,8 @@ public class UploadServletTest {
 
 		// handle request
 		uploadServlet.handleRequest(request, response);
-		Assert.assertThat(response.getStatus(), is(400));
+		SimpleJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), SimpleJsonObject.class);
+		Assert.assertThat("Request should be multipart", is(fromJson.getValue()));
 
 	}
 
@@ -165,7 +167,11 @@ public class UploadServletTest {
 		
 		// handle request
 		uploadServlet.handleRequest(request, response);
-		Assert.assertThat(response.getStatus(), is(400));
+		
+		//assert that we have an error
+		SimpleJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), SimpleJsonObject.class);
+
+		Assert.assertThat("The parameter fileId is missing for this request.", is(fromJson.getValue()));
 		
 	}
 		

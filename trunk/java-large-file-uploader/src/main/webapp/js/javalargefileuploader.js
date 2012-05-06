@@ -8,10 +8,7 @@ function JavaLargeFileUploader() {
 	
 	/*
 	 * callback: 
-	 * Callback function with the following parameters:
-	 * 
-	 * -First argument: 
-	 * 	A map of the files previously uploaded. 
+	 * Callback function containing a map of the files previously uploaded as parameter. 
 	 * 	The key of this map is the fileIdentifier. 
 	 * 	The value is a pendingFile which contains:
 	 * 		-fileComplete (boolean) : specifies if the file is complete or not.
@@ -19,8 +16,11 @@ function JavaLargeFileUploader() {
 	 * 		-fileCompletion (string) : the file completion formatted with its unit. 
 	 * 		-originalFileSize (string) : the original file size formatted with its unit.
 	 * 
+	 * exceptionCallback:
+	 * A callback function with a String as paraemeter triggered if an exception occurs. 
+	 * 
 	 */
-	this.initialize = function (callback) {
+	this.initialize = function (callback, exceptionCallback) {
 	
 		// get the configuration
 		$.get(globalServletMapping + "?action=getConfig", function(data) {
@@ -38,7 +38,7 @@ function JavaLargeFileUploader() {
 				callback(data.pendingFiles);
 	
 			} else {
-				alert("Error! Cannot retrieve the configuration!");
+				exceptionCallback("Error! Cannot retrieve the configuration!");
 			}
 		});
 	
@@ -97,7 +97,7 @@ function JavaLargeFileUploader() {
 		var files = referenceToFileElement.files;
 	
 		if (!files.length) {
-			alert('Please select a file!');
+			exceptionCallback("Please select a file!");
 			return;
 		}
 	
@@ -116,7 +116,7 @@ function JavaLargeFileUploader() {
 	
 			// compare to previously updated filename
 			if (pendingFile.originalFileName != fileName || pendingFile.originalFileSizeInBytes != size) {
-				alert("You want to upload a file named '" + fileName + "'("	+ getFormattedSize(size)+ ") but there" +
+				exceptionCallback("You want to upload a file named '" + fileName + "'("	+ getFormattedSize(size)+ ") but there" +
 						" is already a pending upload for a file named '"	+ pendingFile.originalFileName	+ "'(" +
 						getFormattedSize(pendingFile.fileCompletionInBytes)	+ "/" + getFormattedSize(pendingFile.originalFileSizeInBytes) +
 						"). \r\nReselect this file to resume the upload or cancel this upload before selecting a new file.");
