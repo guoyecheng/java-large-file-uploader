@@ -92,31 +92,26 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				writeToResponse(jsonObject, response);
 			}
 
-			// set success
-			response.setStatus(200);
 		}
 		// handles a stream ended unexpectedly , it just means the user has stopped the stream
 		catch (IOException e) {
-			if (e.getCause() instanceof MalformedStreamException) {
+			if (e.getMessage().equals("Stream ended unexpectedly")) {
 				log.warn("User has stopped streaming.");
 			}
 			else {
 				log.error(e.getMessage(), e);
 				writeExceptionToResponse(e, response);
-				response.sendError(500);
 			}
 		}
 		// If bad request, send a 400 error code
 		catch (BadRequestException e) {
 			log.error(e.getMessage(), e);
 			writeExceptionToResponse(e, response);
-			response.sendError(400);
 		}
 		// If unknown exception, send a 500 error code
 		catch (Exception e) {
 			log.error(e.getMessage(), e);
 			writeExceptionToResponse(e, response);
-			response.sendError(500);
 		}
 
 	}
