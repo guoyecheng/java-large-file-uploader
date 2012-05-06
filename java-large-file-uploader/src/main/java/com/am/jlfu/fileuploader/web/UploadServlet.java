@@ -36,8 +36,8 @@ import com.google.gson.Gson;
  * @author antoinem
  * 
  */
-@Component("javaFileUploaderManagerServlet")
-@WebServlet(name = "javaFileUploaderManagerServlet", urlPatterns = { "/javaFileUploaderManagerServlet" })
+@Component("javaLargeFileUploaderServlet")
+@WebServlet(name = "javaLargeFileUploaderServlet", urlPatterns = { "/javaLargeFileUploaderServlet" })
 public class UploadServlet extends HttpRequestHandlerServlet
 		implements HttpRequestHandler {
 
