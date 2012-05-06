@@ -112,7 +112,7 @@ function JavaLargeFileUploader() {
 	
 		// if we are resuming an upload
 		if (fileId && pendingFiles[fileId]) {
-			pendingFile = pendingFiles[fileId];
+			var pendingFile = pendingFiles[fileId];
 	
 			// compare to previously updated filename
 			if (pendingFile.originalFileName != fileName || pendingFile.originalFileSizeInBytes != size) {
@@ -173,9 +173,9 @@ function JavaLargeFileUploader() {
 			referenceToFileElement) {
 	
 		if (blob.mozSlice) {
-			chunk = blob.mozSlice(filePosition, end);
+			var chunk = blob.mozSlice(filePosition, end);
 		} else {
-			chunk = blob.webkitSlice(filePosition, end);
+			var chunk = blob.webkitSlice(filePosition, end);
 		}
 	
 		var formData = new FormData();
@@ -262,7 +262,7 @@ function JavaLargeFileUploader() {
 	
 		// get the configuration
 		$.get(globalServletMapping + "?action=getProgress&fileId=" + fileId,	function(data) {
-			progress = parseFloat(data.value);
+			var progress = parseFloat(data.value);
 	
 			// specify progress
 			progressCallback(fileId, format(progress),
