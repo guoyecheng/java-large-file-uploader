@@ -24,16 +24,9 @@
 			<artifactId>java-large-file-uploader</artifactId>
 			<version>0.2-SNAPSHOT</version>
 			<type>war</type>
+			<scope>runtime</scope>
 		</dependency>
 
-		<!-- the jar -->
-		<dependency>
-			<groupId>com.am</groupId>
-			<artifactId>java-large-file-uploader</artifactId>
-			<version>0.2-SNAPSHOT</version>
-			<classifier>classes</classifier>
-			<type>jar</type>
-		</dependency>
 
 	</dependencies>
 
@@ -47,6 +40,20 @@
 				<configuration>
 					<source>1.6</source>
 					<target>1.6</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>2.2</version>
+				<configuration>
+					<overlay>
+						<groupId>com.am</groupId>
+						<artifactId>java-large-file-uploader</artifactId>
+						<excludes>
+							<exclude>WEB-INF/classes/*</exclude>
+						</excludes>
+					</overlay>
 				</configuration>
 			</plugin>
 		</plugins>
