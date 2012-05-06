@@ -50,9 +50,6 @@
 					<overlay>
 						<groupId>com.am</groupId>
 						<artifactId>java-large-file-uploader</artifactId>
-						<excludes>
-							<exclude>WEB-INF/classes/*</exclude>
-						</excludes>
 					</overlay>
 				</configuration>
 			</plugin>
