@@ -131,48 +131,6 @@ public class UploadProcessor {
 	}
 
 
-	public void process(InputStream inputStream, Long sliceFrom, String fileId, String receivedChecksum)
-			throws IOException, InvalidCrcException {
-
-		// one operation per client at a time
-		String identifier = staticStateIdentifierManager.getIdentifier();
-
-
-		// get the file
-		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
-		StaticFileState fileState = model.getFileStates().get(fileId);
-		if (fileState == null) {
-			throw new FileNotFoundException("File with id " + fileId + " for client " + identifier + " not found");
-		}
-
-		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
-
-		// if the file does not exist, there is an issue!
-		if (!file.exists()) {
-			throw new FileNotFoundException("File with id " + fileId + " for client " + identifier + " not found");
-		}
-
-		// Process file upload
-		String calculatedChecksum = Long.toHexString(writeFromInputstreamToFile(inputStream, file));
-		
-		// TODO
-		// compare the first chunk
-		
-		//compare the checksum of the chunks
-		if (!calculatedChecksum.equals(receivedChecksum)) {
-			throw new InvalidCrcException(calculatedChecksum, receivedChecksum);
-		}
-
-		// persist file
-		if (log.isDebugEnabled()) {
-			log.debug("Processed part " + sliceFrom + " for file " + fileId + " for client " +
-					identifier + " into temp file");
-		}
-
-
-	}
-
-
 	public void clearFile(String fileId) {
 		staticStateManager.clearFile(fileId);
 
@@ -184,37 +142,6 @@ public class UploadProcessor {
 	}
 
 
-
-	int BUFFER_SIZE = 1024 * 2;
-
-
-
-	private long writeFromInputstreamToFile(InputStream in, File file)
-			throws IOException {
-		log.debug("-begining writing stream to " + file.getName() + "-");
-
-
-		byte[] buffer = new byte[BUFFER_SIZE];
-
-		BufferedInputStream bin = new BufferedInputStream(in, BUFFER_SIZE);
-		BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file, true), BUFFER_SIZE);
-		CRC32 crc32 = new CRC32();
-		int n = 0;
-		try {
-			while ((n = bin.read(buffer, 0, BUFFER_SIZE)) != -1) {
-				out.write(buffer, 0, n);
-				crc32.update(buffer, 0, n);
-			}
-			out.flush();
-		}
-		finally {
-			IOUtils.closeQuietly(out);
-			IOUtils.closeQuietly(in);
-		}
-		log.debug("-finished writing stream to " + file.getName() + "-");
-
-		return crc32.getValue();
-	}
 
 
 	public Float getProgress(String fileId) throws FileNotFoundException {

@@ -118,19 +118,19 @@ public class UploadServletTest {
 		
 	}
 	
-	
-	@Test
-	public void uploadNotMultipartParams() throws IOException {
-
-		// set action parameter
-		request.setParameter(UploadServletParameter.action.name(), UploadServletAction.upload.name());
-
-		// handle request
-		uploadServlet.handleRequest(request, response);
-		SimpleJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), SimpleJsonObject.class);
-		Assert.assertThat("Request should be multipart", is(fromJson.getValue()));
-
-	}
+//	
+//	@Test
+//	public void uploadNotMultipartParams() throws IOException {
+//
+//		// set action parameter
+//		request.setParameter(UploadServletParameter.action.name(), UploadServletAction.upload.name());
+//
+//		// handle request
+//		uploadServlet.handleRequest(request, response);
+//		SimpleJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), SimpleJsonObject.class);
+//		Assert.assertThat("Request should be multipart", is(fromJson.getValue()));
+//
+//	}
 
 
 	@Test
@@ -176,46 +176,46 @@ public class UploadServletTest {
 	}
 		
 	
-	@Test
-	public void completeTest() throws IOException {
-		
-
-		//prepare upload
-		String fileId = prepareUpload();
-		
-		
-		// populate request component container with multipart request
-		MockMultipartHttpServletRequest multipartRequest = new MockMultipartHttpServletRequest();
-		requestComponentContainer.populate(multipartRequest, response);
-
-		//populate multipart request session with the previous call to keep the identifier
-		multipartRequest.setSession(request.getSession());
-
-		//set the file to request
-		FilePart[] parts = new FilePart[] {
-	        new FilePart("name", new ByteArrayPartSource("i am a file", content)) };
-	    MultipartRequestEntity multipartRequestEntity =
-	        new MultipartRequestEntity(parts, new PostMethod().getParams());
-	    ByteArrayOutputStream requestContent = new ByteArrayOutputStream();
-	    multipartRequestEntity.writeRequest(requestContent);
-	    multipartRequest.setContent(requestContent.toByteArray());
-	    multipartRequest.setContentType(multipartRequestEntity.getContentType());
-		
-		//get crc
-		CRC32 crc32 = new CRC32();
-		crc32.update(content);
-
-	    // set action parameters
-		multipartRequest.setParameter(UploadServletParameter.action.name(), UploadServletAction.upload.name());
-		multipartRequest.setParameter(UploadServletParameter.fileId.name(), fileId);
-		multipartRequest.setParameter(UploadServletParameter.sliceFrom.name(), 0+"");
-		multipartRequest.setParameter(UploadServletParameter.crc.name(), Long.toHexString(crc32.getValue()));
-		
-		// handle request
-		response = new MockHttpServletResponse();
-		uploadServlet.handleRequest(multipartRequest, response);
-		Assert.assertThat(response.getStatus(), is(200));
-		
-	}
+//	@Test
+//	public void completeTest() throws IOException {
+//		
+//
+//		//prepare upload
+//		String fileId = prepareUpload();
+//		
+//		
+//		// populate request component container with multipart request
+//		MockMultipartHttpServletRequest multipartRequest = new MockMultipartHttpServletRequest();
+//		requestComponentContainer.populate(multipartRequest, response);
+//
+//		//populate multipart request session with the previous call to keep the identifier
+//		multipartRequest.setSession(request.getSession());
+//
+//		//set the file to request
+//		FilePart[] parts = new FilePart[] {
+//	        new FilePart("name", new ByteArrayPartSource("i am a file", content)) };
+//	    MultipartRequestEntity multipartRequestEntity =
+//	        new MultipartRequestEntity(parts, new PostMethod().getParams());
+//	    ByteArrayOutputStream requestContent = new ByteArrayOutputStream();
+//	    multipartRequestEntity.writeRequest(requestContent);
+//	    multipartRequest.setContent(requestContent.toByteArray());
+//	    multipartRequest.setContentType(multipartRequestEntity.getContentType());
+//		
+//		//get crc
+//		CRC32 crc32 = new CRC32();
+//		crc32.update(content);
+//
+//	    // set action parameters
+//		multipartRequest.setParameter(UploadServletParameter.action.name(), UploadServletAction.upload.name());
+//		multipartRequest.setParameter(UploadServletParameter.fileId.name(), fileId);
+//		multipartRequest.setParameter(UploadServletParameter.sliceFrom.name(), 0+"");
+//		multipartRequest.setParameter(UploadServletParameter.crc.name(), Long.toHexString(crc32.getValue()));
+//		
+//		// handle request
+//		response = new MockHttpServletResponse();
+//		uploadServlet.handleRequest(multipartRequest, response);
+//		Assert.assertThat(response.getStatus(), is(200));
+//		
+//	}
 
 }

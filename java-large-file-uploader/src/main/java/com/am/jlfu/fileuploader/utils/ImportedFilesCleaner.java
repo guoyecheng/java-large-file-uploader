@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.stereotype.Component;
 
 import com.am.jlfu.staticstate.StaticStateRootFolderProvider;
@@ -56,4 +57,17 @@ public class ImportedFilesCleaner {
 	}
 
 
+	@ManagedAttribute
+	public Integer getMaximumInactivityInHoursBeforeDelete() {
+		return maximumInactivityInHoursBeforeDelete;
+	}
+
+
+	@ManagedAttribute
+	public void setMaximumInactivityInHoursBeforeDelete(Integer maximumInactivityInHoursBeforeDelete) {
+		this.maximumInactivityInHoursBeforeDelete = maximumInactivityInHoursBeforeDelete;
+	}
+
+
+	
 }

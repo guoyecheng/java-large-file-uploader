@@ -3,6 +3,7 @@ package com.am.jlfu.fileuploader.web;
 
 import java.io.IOException;
 
+import javax.servlet.ServletResponse;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -48,7 +49,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 
 
 
-	private String getParameterValue(HttpServletRequest request, UploadServletParameter parameter)
+	static String getParameterValue(HttpServletRequest request, UploadServletParameter parameter)
 			throws MissingParameterException {
 		String parameterValue = request.getParameter(parameter.name());
 		if (parameterValue == null) {
@@ -58,17 +59,17 @@ public class UploadServlet extends HttpRequestHandlerServlet
 	}
 
 
-	private void writeExceptionToResponse(final Exception e, HttpServletResponse response)
+	static void writeExceptionToResponse(final Exception e, ServletResponse servletResponse)
 			throws IOException {
-		writeToResponse(new SimpleJsonObject(e.getMessage()), response);
+		writeToResponse(new SimpleJsonObject(e.getMessage()), servletResponse);
 	}
 
 
-	private void writeToResponse(JsonObject jsonObject, HttpServletResponse response)
+	private static void writeToResponse(JsonObject jsonObject, ServletResponse servletResponse)
 			throws IOException {
-		response.setContentType("application/json");
-		response.getWriter().print(new Gson().toJson(jsonObject));
-		response.getWriter().close();
+		servletResponse.setContentType("application/json");
+		servletResponse.getWriter().print(new Gson().toJson(jsonObject));
+		servletResponse.getWriter().close();
 	}
 
 
@@ -132,9 +133,6 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				String idOfTheFile = uploadProcessor.prepareUpload(size, fileName);
 				returnObject = new SimpleJsonObject(idOfTheFile);
 				break;
-			case upload:
-				processUpload(request);
-				break;
 			case clearFile:
 				uploadProcessor.clearFile(getParameterValue(request, UploadServletParameter.fileId));
 				break;
@@ -147,39 +145,6 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				break;
 		}
 		return returnObject;
-	}
-
-
-	public void processUpload(HttpServletRequest req)
-			throws IOException, IncorrectRequestException, MissingParameterException, FileUploadException, InvalidCrcException {
-
-		// check if the request is multipart:
-		if (!ServletFileUpload.isMultipartContent(req)) {
-			throw new IncorrectRequestException("Request should be multipart");
-		}
-
-		// extract the fields
-		String fileId = getParameterValue(req, UploadServletParameter.fileId);
-		Long sliceFrom = Long.valueOf(getParameterValue(req, UploadServletParameter.sliceFrom));
-		String crc = getParameterValue(req, UploadServletParameter.crc);
-		
-
-		// Create a new file upload handler
-		ServletFileUpload upload = new ServletFileUpload();
-
-		// parse the request
-		FileItemIterator iter = upload.getItemIterator(req);
-		FileItemStream item = iter.next();
-
-		// throw exception if item is null
-		if (item == null) {
-			throw new IncorrectRequestException("No file to upload found in the request");
-		}
-
-		// TODO catch exception from process?
-		// process
-		uploadProcessor.process(item.openStream(), sliceFrom, fileId, crc);
-
 	}
 
 
