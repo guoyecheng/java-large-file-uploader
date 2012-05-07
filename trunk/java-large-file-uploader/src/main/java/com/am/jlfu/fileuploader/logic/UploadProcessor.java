@@ -5,6 +5,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +25,6 @@ import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
-import com.am.jlfu.staticstate.entities.StaticStateRateConfiguration;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 
@@ -46,6 +49,9 @@ public class UploadProcessor {
 
 	@Autowired
 	UploadLockMap lockMap;
+	
+	/** Executor service for closing streams */
+	private ExecutorService streamCloserExecutor = Executors.newSingleThreadExecutor();
 
 	/**
 	 * Size of a slice <br>
@@ -75,6 +81,7 @@ public class UploadProcessor {
 					fileStateJson.setFileCompletionInBytes(fileSize);
 					fileStateJson.setOriginalFileName(staticFileStateJson.getOriginalFileName());
 					fileStateJson.setOriginalFileSizeInBytes(staticFileStateJson.getOriginalFileSizeInBytes());
+					fileStateJson.setRateInKiloBytes(staticFileStateJson.getRateInKiloBytes());
 					return fileStateJson;
 				}
 
@@ -128,14 +135,61 @@ public class UploadProcessor {
 		return fileExtension;
 	}
 
+	
+	private void closeStreamForFile(final String fileId) {
 
+		//ask for the stream to close
+		boolean needToCloseStream = rateLimiter.markRequestHasShallBeCancelled(fileId);
+		
+		if (needToCloseStream) {
+			log.debug("waiting for the stream to be closed for "+fileId);
+
+			//then wait for the stream to be closed
+			Future<?> submit = streamCloserExecutor.submit(new Runnable() {
+				
+				@Override
+				public void run() {
+					while (rateLimiter.requestHasToBeCancelled(fileId)) {
+						try {
+							Thread.sleep(10);
+						} catch (InterruptedException e) {
+							throw new RuntimeException(e);
+						}
+					}
+				}
+			});
+			try {
+				//get the future
+				submit.get(1, TimeUnit.MINUTES);
+			}
+			catch (Exception e) {
+				//if we timeout delete anyway, just log
+				log.debug("cannot confirm that the stream is closed for "+fileId);
+			}
+		}
+		
+	}
+	
 	public void clearFile(String fileId) {
-		staticStateManager.clearFile(fileId);
+		
+		//ask for the stream to be closed
+		log.debug("asking for deletion for file with id "+fileId);
+		closeStreamForFile(fileId);
 
+		//then delete
+		staticStateManager.clearFile(fileId);
 	}
 
 
 	public void clearAll() {
+		
+		//close any pending stream before clearing the file
+		for (String	 fileId : staticStateManager.getEntity().getFileStates().keySet()) {
+			log.debug("asking for deletion for file with id "+fileId);
+			closeStreamForFile(fileId);
+		}
+		
+		//then clear everything
 		staticStateManager.clear();
 	}
 
@@ -169,22 +223,24 @@ public class UploadProcessor {
 
 
 	public Long getUploadStat(String fileId) {
-		return rateLimiter.getUploadState(staticStateIdentifierManager.getIdentifier() + fileId);
+		return rateLimiter.getUploadState(fileId);
 	}
 
 
-	public void setUploadRate(String fileId, Integer rate) {
+	public void setUploadRate(String fileId, Long rate) {
 
 		// set the rate
-		StaticStateRateConfiguration staticStateRateConfiguration = new StaticStateRateConfiguration();
-		staticStateRateConfiguration.setRateInKiloBytes(rate);
-		rateLimiter.assignConfigurationToRequest(staticStateIdentifierManager.getIdentifier() + fileId, staticStateRateConfiguration);
+		rateLimiter.assignRateToRequest(fileId, rate);
 
-		// TODO save it for the file with this file id
+		// save it for the file with this file id
+		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
+		entity.getFileStates().get(fileId).getStaticFileStateJson().setRateInKiloBytes(rate);
 
 		// save it to file system as the default
-		staticStateManager.getEntity().setDefaultStaticStateRateConfiguration(staticStateRateConfiguration);
+		entity.setDefaultRateInKiloBytes(rate);
 
+		//persist changes
+		staticStateManager.processEntityTreatment(entity);
 	}
 
 }

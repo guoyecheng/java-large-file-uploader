@@ -39,6 +39,10 @@ $(document).ready(function() {
 				  		
 			  		//and assign the fileId as the name of the fileupload html element
 				  	div.children[0].name = fileId;
+			  		
+			  		//set if there is a rate configured
+				  	 div.children[4].value = pendingFile.rateInKiloBytes;
+			  		
 			  	}
     			i++;
 		   	}); 
@@ -56,10 +60,16 @@ $(document).ready(function() {
 	  		
 	  		//process the file upload
 	  		jlfu.fileUploadProcess(e.target, 
+	  			
+	  			//define a start callback
+	  			function(theFileId, origin) {
+	  				//assign the name of the element to keep a reference to the file id
+		  			origin.parentElement.children[0].name=theFileId;
+	  			},		
 	  				
 	  			//define a progressCallback showing the progress in the em element 
 				function(theFileId, percentageCompleted, uploadRate, origin) {
-		  			origin.parentElement.children[2].textContent="Uploading... ("+percentageCompleted+"% complete) | Uploading at "+uploadRate + " per second.";
+	  				origin.parentElement.children[2].textContent="Uploading... ("+percentageCompleted+"% complete) | Uploading at "+uploadRate + " per second.";
 		  		}, 
 	  			
 		  		//define a finishCallback showing the completion in the em element 
@@ -84,7 +94,7 @@ function clearProgressText(i) {
 	document.getElementById('container'+i).children[2].innerHTML="";
 }
 function setRate(e) {
-	jlfu.setRateInKiloBytes(e.parentElement.children[4].value);
+	jlfu.setRateInKiloBytes(e.parentElement.children[0].name, e.parentElement.children[4].value);
 }
 </script>
 </head>
@@ -93,8 +103,7 @@ function setRate(e) {
 	<div id="container0">
 		<input type="file"/><br/> 
 		<em></em><br>
-		<input type="text"/>
-		<button onclick="setRate(this);">Set rate</button>		
+		Limit the upload bandwith to <input type="text"/> KB <button onclick="setRate(this);">Set rate</button>		
 	</div>
 	
 	<hr>
@@ -102,24 +111,27 @@ function setRate(e) {
 	<div  id="container1">
 		<input type="file"/><br/> 
 		<em></em><br>
-		<input type="text"/>
-		<button onclick="setRate(this);">Set rate</button>	
+		Limit the upload bandwith to <input type="text"/> KB <button onclick="setRate(this);">Set rate</button>		
 	</div>
+
+	<hr>
 	
 	<div  id="container2">
 		<input type="file"/><br/> 
 		<em></em><br>
-		<input type="text"/>
-		<button onclick="setRate(this);">Set rate</button>	
+		Limit the upload bandwith to <input type="text"/> KB <button onclick="setRate(this);">Set rate</button>		
 	</div>
 	
+	<hr>
+
 	<div  id="container3">
 		<input type="file"/><br/> 
 		<em></em><br>
-		<input type="text"/>
-		<button onclick="setRate(this);">Set rate</button>	
+		Limit the upload bandwith to <input type="text"/> KB <button onclick="setRate(this);">Set rate</button>		
 	</div>
 	
+	<hr>
+
 	<div>
 		<a href='javascript:void(0)' onclick='jlfu.clearFileUpload(function(e) {window.location.reload();});'>Clear all</a>
 	</div>

@@ -1,7 +1,6 @@
 package com.am.jlfu.fileuploader.json;
 
 
-import com.am.jlfu.staticstate.entities.StaticStateRateConfiguration;
 
 
 
@@ -16,8 +15,13 @@ public class FileStateJsonBase
 	/** The original file size */
 	private Long originalFileSizeInBytes;
 
-	/** rate conf */
-	private StaticStateRateConfiguration staticStateRateConfiguration;
+
+	/**
+	 * The rate of the client in kilo bytes.<br>
+	 * Minimum should be set to 10kb/s.<br>
+	 * Maximum is {@link Long#MAX_VALUE}<br>
+	 * */
+	private Long rateInKiloBytes;
 
 
 
@@ -49,14 +53,13 @@ public class FileStateJsonBase
 	}
 
 
-	public StaticStateRateConfiguration getStaticStateRateConfiguration() {
-		return staticStateRateConfiguration;
+	public Long getRateInKiloBytes() {
+		return rateInKiloBytes;
 	}
 
 
-	public void setStaticStateRateConfiguration(StaticStateRateConfiguration staticStateRateConfiguration) {
-		this.staticStateRateConfiguration = staticStateRateConfiguration;
+	public void setRateInKiloBytes(Long rateInKiloBytes) {
+		this.rateInKiloBytes = rateInKiloBytes;
 	}
-
 
 }

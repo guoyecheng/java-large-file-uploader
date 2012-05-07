@@ -59,17 +59,21 @@ function JavaLargeFileUploader() {
 	 * Specify an upload rate in kilo bytes (minimum is 10kb)
 	 */
 	this.setRateInKiloBytes = function (fileId, rate) {
-		$.get(globalServletMapping + "?action=setRate&rate="+rate+"&fileId=fileId");
-	}
+		if(fileId && rate)  {
+			$.get(globalServletMapping + "?action=setRate&rate="+rate+"&fileId="+fileId);
+		}
+	};
 	
 	/*
 	 * clear the file with the specified id.
 	 */
 	this.cancelFileUpload = function (fileId, callback) {
-		$.get(globalServletMapping + "?action=clearFile&fileId=" + fileId,	function(e) {
-			delete pendingFiles[fileId];
-			callback();
-		});
+		if(fileId) {
+			$.get(globalServletMapping + "?action=clearFile&fileId=" + fileId,	function(e) {
+				delete pendingFiles[fileId];
+				callback();
+			});
+		}
 	};
 	
 	/*
@@ -87,6 +91,10 @@ function JavaLargeFileUploader() {
 	/*
 	 * referenceToFileElement: reference to the file element 
 	 * 
+	 * startcallback:
+	 * a function that is called once the upload is pre initialized if the file id is not specified
+	 * params: 1 is the fileId, 2 is the origin element
+	 * 
 	 * progressCallback: 
 	 * a function that will be called to monitor the progress. 
 	 * params: 1 is the fileId, 2 is the percentage as parameter, 3 is the current upload rate formatted, 4 is the origin element
@@ -99,7 +107,7 @@ function JavaLargeFileUploader() {
 	 * 
 	 * fileId: a parameter to resume a pending file upload (null/undefined for a new upload)
 	 */
-	this.fileUploadProcess = function (referenceToFileElement, progressCallback,
+	this.fileUploadProcess = function (referenceToFileElement, startCallback, progressCallback,
 			finishCallback, exceptionCallback, fileId) {
 	
 		var files = referenceToFileElement.files;
@@ -134,8 +142,8 @@ function JavaLargeFileUploader() {
 			}
 	
 			// and process the upload
-			fileUploadProcessStarter(fileId, filePosition, blob, finishCallback,
-					exceptionCallback, referenceToFileElement, progressCallback);
+			fileUploadProcessStarter(fileId, filePosition, blob, progressCallback, finishCallback,
+					exceptionCallback, referenceToFileElement);
 	
 		}
 		// if not, file id is undefined:
@@ -150,11 +158,13 @@ function JavaLargeFileUploader() {
 					originalFileName : fileName,
 					fileCompletionInBytes : filePosition
 				};
+				
+				//call callback
+				startCallback(fileId, referenceToFileElement);
 	
 				// and process the upload
-				fileUploadProcessStarter(fileId, filePosition, blob,
-						finishCallback, exceptionCallback, referenceToFileElement,
-						progressCallback);
+				fileUploadProcessStarter(fileId, filePosition, blob, progressCallback,
+						finishCallback, exceptionCallback, referenceToFileElement);
 	
 			});
 	
@@ -162,8 +172,8 @@ function JavaLargeFileUploader() {
 	
 	};
 	
-	function fileUploadProcessStarter(fileId, filePosition, blob, finishCallback,
-			exceptionCallback, referenceToFileElement, progressCallback) {
+	function fileUploadProcessStarter(fileId, filePosition, blob, progressCallback, finishCallback,
+			exceptionCallback, referenceToFileElement) {
 	
 		// start
 		var end = filePosition + bytesPerChunk;
@@ -180,10 +190,11 @@ function JavaLargeFileUploader() {
 	function go(fileId, filePosition, end, blob, finishCallback, exceptionCallback,
 			referenceToFileElement) {
 	
+		var chunk;
 		if (blob.mozSlice) {
-			var chunk = blob.mozSlice(filePosition, end);
+			chunk = blob.mozSlice(filePosition, end);
 		} else {
-			var chunk = blob.webkitSlice(filePosition, end);
+			chunk = blob.webkitSlice(filePosition, end);
 		}
 	
 		var formData = new FormData();

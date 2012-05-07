@@ -22,11 +22,11 @@ import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
+import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.limiter.RateLimiter;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
-import com.am.jlfu.staticstate.entities.StaticStateRateConfiguration;
 
 
 
@@ -46,7 +46,7 @@ public class UploadServletAsyncProcessor {
 
 
 
-	public void process(String requestIdentifier, String fileId, Long sliceFrom, String crc, InputStream inputStream,
+	public void process(String fileId, Long sliceFrom, String crc, InputStream inputStream,
 			WriteChunkCompletionListener completionListener)
 			throws FileNotFoundException
 	{
@@ -55,18 +55,22 @@ public class UploadServletAsyncProcessor {
 		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
 
 		// if there is no configuration in the map
-		if (tokenBucket.getConfigurationOfRequest(requestIdentifier) == null) {
-			// and if there is none for this file
-			StaticStateRateConfiguration staticStateRateConfiguration =
-					model.getFileStates().get(fileId).getStaticFileStateJson().getStaticStateRateConfiguration();
-			if (staticStateRateConfiguration == null) {
-				// assign default configuration
-				tokenBucket.assignConfigurationToRequest(requestIdentifier, model.getDefaultStaticStateRateConfiguration());
+		if (tokenBucket.getRateOfRequest(fileId) == null) {
+
+			// and if there is a specific configuration 
+			FileStateJsonBase staticFileStateJson = model.getFileStates().get(fileId).getStaticFileStateJson();
+			if (staticFileStateJson != null && staticFileStateJson.getRateInKiloBytes() != null) {
+			
+				// use it
+				tokenBucket.assignRateToRequest(fileId, staticFileStateJson.getRateInKiloBytes());
+				
 			}
 			// otherwise
 			else {
-				// use it
-				tokenBucket.assignConfigurationToRequest(requestIdentifier, staticStateRateConfiguration);
+				
+				// assign default configuration
+				tokenBucket.assignRateToRequest(fileId, model.getDefaultRateInKiloBytes());
+
 			}
 		}
 
@@ -92,7 +96,7 @@ public class UploadServletAsyncProcessor {
 
 		// init the task
 		final WriteChunkToFileTask task =
-				new WriteChunkToFileTask(fileId, sliceFrom, crc, inputStream, outputStream, requestIdentifier, crc32, completionListener);
+				new WriteChunkToFileTask(fileId, sliceFrom, crc, inputStream, outputStream, crc32, completionListener);
 
 
 		// then submit it to the workers pool
@@ -113,7 +117,6 @@ public class UploadServletAsyncProcessor {
 			implements Callable<Void> {
 
 
-		private final String requestIdentifier;
 		private final InputStream inputStream;
 		private final OutputStream outputStream;
 		private final String fileId;
@@ -128,8 +131,7 @@ public class UploadServletAsyncProcessor {
 
 
 		public WriteChunkToFileTask(String fileId, Long sliceFrom, String crc, InputStream inputStream,
-				OutputStream outputStream, String identifier, CRC32 crc32, WriteChunkCompletionListener completionListener) {
-			this.requestIdentifier = identifier;
+				OutputStream outputStream, CRC32 crc32, WriteChunkCompletionListener completionListener) {
 			this.fileId = fileId;
 			this.sliceFrom = sliceFrom;
 			this.crc = crc;
@@ -145,7 +147,7 @@ public class UploadServletAsyncProcessor {
 				throws Exception {
 			try {
 				// if we can get a token
-				if (tokenBucket.tryTake(requestIdentifier)) {
+				if (tokenBucket.tryTake(fileId)) {
 					// process
 					writeChunkWorthOneToken();
 				}
@@ -155,9 +157,18 @@ public class UploadServletAsyncProcessor {
 					uploadWorkersPool.schedule(this, 5, TimeUnit.MILLISECONDS);
 				}
 			}
+			// handles a stream ended unexpectedly , it just means the user has stopped the stream
+			catch (IOException e) {
+				if (e.getMessage().equals("Stream ended unexpectedly")) {
+					log.warn("User has stopped streaming for file "+fileId);
+				}
+				else {
+					error(e);
+				}
+			}
 			catch (Exception e) {
 				log.error("Error while sending data chunk, aborting (" + fileId + ")", e);
-				error(e);
+
 			}
 			return null;
 		}
@@ -165,6 +176,14 @@ public class UploadServletAsyncProcessor {
 
 		private void writeChunkWorthOneToken()
 				throws IOException {
+			
+			//check if user wants to cancel 
+			if (tokenBucket.requestHasToBeCancelled(fileId)) {
+				log.debug("User cancellation detected for file "+fileId +". Closing streams now.");
+				success();
+				return;
+			}
+			
 			// process the write for one token
 			log.trace("Processing chunk {} of request ({})", chunkNo++, fileId);
 

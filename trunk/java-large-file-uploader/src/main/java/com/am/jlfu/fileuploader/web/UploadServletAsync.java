@@ -63,12 +63,9 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 			}
 
 			// extract the fields
-			String fileId = UploadServlet.getParameterValue(request, UploadServletParameter.fileId);
+			final String fileId = UploadServlet.getParameterValue(request, UploadServletParameter.fileId);
 			Long sliceFrom = Long.valueOf(UploadServlet.getParameterValue(request, UploadServletParameter.sliceFrom));
 			String crc = UploadServlet.getParameterValue(request, UploadServletParameter.crc);
-
-			// calculate a request identifier
-			final String requestIdentifier = staticStateIdentifierManager.getIdentifier() + fileId;
 
 			// Create a new file upload handler
 			ServletFileUpload upload = new ServletFileUpload();
@@ -93,19 +90,19 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 
 			// add a listener to clear bucket and close inputstream when process is complete or with
 			// error
-			asyncContext.addListener(new UploadServletAsyncListenerAdapter(requestIdentifier) {
+			asyncContext.addListener(new UploadServletAsyncListenerAdapter(fileId) {
 
 				@Override
 				void clean() {
 					// close input stream
 					IOUtils.closeQuietly(inputStream);
 					// and tell processor to clean its shit!
-					uploadServletAsyncProcessor.clean(requestIdentifier);
+					uploadServletAsyncProcessor.clean(fileId);
 				}
 			});
 
 			// then process
-			uploadServletAsyncProcessor.process(requestIdentifier, fileId, sliceFrom, crc, inputStream, new WriteChunkCompletionListener() {
+			uploadServletAsyncProcessor.process(fileId, sliceFrom, crc, inputStream, new WriteChunkCompletionListener() {
 
 				@Override
 				public void success() {
