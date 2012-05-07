@@ -14,7 +14,6 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.am.jlfu.staticstate.entities.StaticStateRateConfiguration;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -36,24 +35,63 @@ public class RateLimiter
 
 	class RequestConfig {
 
-		Semaphore semaphore;
-		StaticStateRateConfiguration staticStateRateConfiguration;
-		Long currentRateInBytes;
+		Semaphore semaphore = new Semaphore(0, false);
+		volatile boolean cancelRequest;
+		Statistics stats = new Statistics();
+		Long rateInKiloBytes;
+		
+		Long getStats() {
+			synchronized (stats) {
+				//if counter is to 0
+				if (stats.counter == 0) {
+					//we dont have anything to measure rate
+					return 0l;
+				} else {
+					
+					//get the total
+					long stat =
+							(long) stats.numberOfItemsConsumed * NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND * SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES;
+					
+					//divide by the counter
+					stat = stat / stats.counter;
+					
+					//reset
+					stats.reset();
+					
+					//return
+					return stat;
+				}
+
+			}
+		}
+		
+		private class Statistics  {
+			private int numberOfItemsConsumed;
+			private int counter;
+			
+			void reset() {
+				numberOfItemsConsumed = counter = 0;
+			}
+			
+			void updateStats(int numberOfItemsConsumedAtThatTime) {
+				counter++;
+				this.numberOfItemsConsumed += numberOfItemsConsumedAtThatTime;
+			}
+		}
+		
 
 	}
 
 
 
-	final LoadingCache<String, RequestConfig> requestConfigMap = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.DAYS)
+	final LoadingCache<String, RequestConfig> requestConfigMap = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.MINUTES)
 			.build(new CacheLoader<String, RequestConfig>() {
 
 				@Override
 				public RequestConfig load(String arg0)
 						throws Exception {
 					log.trace("Created new bucket for #{}", arg0);
-					RequestConfig requestConfig = new RequestConfig();
-					requestConfig.semaphore = new Semaphore(0, false);
-					return requestConfig;
+					return new RequestConfig();
 				}
 			});
 
@@ -88,16 +126,15 @@ public class RateLimiter
 
 			// calculate from the rate in the config
 			int requestBucketCapacity;
-			Integer rateInKiloBytes = count.getValue().staticStateRateConfiguration.getRateInKiloBytes();
-			if (rateInKiloBytes != null) {
+			if (count.getValue().rateInKiloBytes != null) {
 
 				// check min
-				if (rateInKiloBytes < 10) {
-					rateInKiloBytes = 10;
+				if (count.getValue().rateInKiloBytes < 10) {
+					count.getValue().rateInKiloBytes = 10l;
 				}
 
 				// then calculate
-				requestBucketCapacity = rateInKiloBytes * 1024 / SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES;
+				requestBucketCapacity = (int) (count.getValue().rateInKiloBytes * 1024 / SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES);
 
 			}
 			else {
@@ -111,10 +148,8 @@ public class RateLimiter
 			final int releaseCount = maxToRelease - count.getValue().semaphore.availablePermits();
 
 			// set the statistics
-			final long stat =
-					(long) releaseCount * NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND * SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES;
-			if (stat > 0) {
-				count.getValue().currentRateInBytes = stat;
+			synchronized (count.getValue().stats) {
+				count.getValue().stats.updateStats(releaseCount);
 			}
 
 			// if we have consumed some
@@ -126,19 +161,37 @@ public class RateLimiter
 			}
 		}
 	}
+	
+	/**
+	 * Specify that a request has to be cancelled, the file is scheduled for deletion.
+	 * @param fileId
+	 * @return true if there was a pending upload for this file.
+	 */
+	public boolean markRequestHasShallBeCancelled(String fileId) {
+		RequestConfig ifPresent = requestConfigMap.getIfPresent(fileId);
+		if (ifPresent != null) {
+			requestConfigMap.getUnchecked(fileId).cancelRequest = true;
+		}
+		return ifPresent != null;
+	}
 
+	public boolean requestHasToBeCancelled(String fileId) {
+		return requestConfigMap.getUnchecked(fileId).cancelRequest;
+	}
 
 	@Override
-	public boolean tryTake(String requestId) {
-		return requestConfigMap.getUnchecked(requestId).semaphore.tryAcquire();
+	public boolean tryTake(String fileId) {
+		return requestConfigMap.getUnchecked(fileId).semaphore.tryAcquire();
 	}
 
 
 	@Override
-	public void completed(String requestId) {
+	public void completed(String fileId) {
 		// reinit semaphore but do not clear configuration.
-		requestConfigMap.getUnchecked(requestId).semaphore = new Semaphore(0, false);
-		log.trace("Completed #{}, reinitializing semaphore", requestId);
+		RequestConfig unchecked = requestConfigMap.getUnchecked(fileId);
+		unchecked.semaphore = new Semaphore(0, false);
+		unchecked.cancelRequest = false;
+		log.debug("Completed #{}, reinitializing semaphore", fileId);
 	}
 
 
@@ -161,18 +214,18 @@ public class RateLimiter
 	}
 
 
-	public void assignConfigurationToRequest(String requestId, StaticStateRateConfiguration staticStateRateConfiguration) {
-		requestConfigMap.getUnchecked(requestId).staticStateRateConfiguration = staticStateRateConfiguration;
+	public void assignRateToRequest(String fileId, Long rateInKiloBytes) {
+		requestConfigMap.getUnchecked(fileId).rateInKiloBytes = rateInKiloBytes;
 	}
 
 
-	public StaticStateRateConfiguration getConfigurationOfRequest(String requestId) {
-		return requestConfigMap.getUnchecked(requestId).staticStateRateConfiguration;
+	public Long getRateOfRequest(String fileId) {
+		return requestConfigMap.getUnchecked(fileId).rateInKiloBytes;
 	}
 
 
 	public Long getUploadState(String requestIdentifier) {
 		RequestConfig config = requestConfigMap.getUnchecked(requestIdentifier);
-		return config.currentRateInBytes;
+		return config.getStats();
 	}
 }

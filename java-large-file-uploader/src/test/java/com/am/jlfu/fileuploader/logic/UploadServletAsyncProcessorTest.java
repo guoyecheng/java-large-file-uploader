@@ -109,7 +109,7 @@ public class UploadServletAsyncProcessorTest {
 		// upload with bad crc
 		TestFileSplitResult splitResult = UploadProcessorTest.getByteArrayFromFile(file, 0, 3);
 		final Semaphore semaphore = new Semaphore(0);
-		uploadServletAsyncProcessor.process(fileId + "1", fileId, 0l, "lala", splitResult.stream, new Listener(semaphore) {
+		uploadServletAsyncProcessor.process(fileId, 0l, "lala", splitResult.stream, new Listener(semaphore) {
 
 			@Override
 			public void error(Exception exception) {
@@ -147,7 +147,7 @@ public class UploadServletAsyncProcessorTest {
 
 		// upload first part
 		splitResult = UploadProcessorTest.getByteArrayFromFile(file, 0, 3);
-		uploadServletAsyncProcessor.process(fileId + "1", fileId, 0l, splitResult.crc, splitResult.stream, new Listener(waitForMe));
+		uploadServletAsyncProcessor.process(fileId, 0l, splitResult.crc, splitResult.stream, new Listener(waitForMe));
 
 		// wait until processing is done
 		Assert.assertTrue(waitForMe.tryAcquire(5, TimeUnit.SECONDS));
@@ -157,7 +157,7 @@ public class UploadServletAsyncProcessorTest {
 
 		// upload second part
 		splitResult = UploadProcessorTest.getByteArrayFromFile(file, 3, 5);
-		uploadServletAsyncProcessor.process(fileId + "2", fileId, 0l, splitResult.crc, splitResult.stream, new Listener(waitForMe));
+		uploadServletAsyncProcessor.process(fileId, 0l, splitResult.crc, splitResult.stream, new Listener(waitForMe));
 
 		// wait until processing is done
 		Assert.assertTrue(waitForMe.tryAcquire(5, TimeUnit.SECONDS));
@@ -167,7 +167,7 @@ public class UploadServletAsyncProcessorTest {
 
 		// upload last part
 		splitResult = UploadProcessorTest.getByteArrayFromFile(file, 5, fileSize.intValue());
-		uploadServletAsyncProcessor.process(fileId + "3", fileId, 0l, splitResult.crc, splitResult.stream, new Listener(waitForMe));
+		uploadServletAsyncProcessor.process(fileId, 0l, splitResult.crc, splitResult.stream, new Listener(waitForMe));
 
 		// wait until processing is done
 		Assert.assertTrue(waitForMe.tryAcquire(5, TimeUnit.SECONDS));

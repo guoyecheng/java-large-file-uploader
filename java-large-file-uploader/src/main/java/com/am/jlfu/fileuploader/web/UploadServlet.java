@@ -88,16 +88,6 @@ public class UploadServlet extends HttpRequestHandlerServlet
 			}
 
 		}
-		// handles a stream ended unexpectedly , it just means the user has stopped the stream
-		catch (IOException e) {
-			if (e.getMessage().equals("Stream ended unexpectedly")) {
-				log.warn("User has stopped streaming.");
-			}
-			else {
-				log.error(e.getMessage(), e);
-				writeExceptionToResponse(e, response);
-			}
-		}
 		// If bad request, send a 400 error code
 		catch (BadRequestException e) {
 			log.error(e.getMessage(), e);
@@ -135,7 +125,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				break;
 			case setRate:
 				uploadProcessor.setUploadRate(getParameterValue(request, UploadServletParameter.fileId),
-						Integer.valueOf(getParameterValue(request, UploadServletParameter.rate)));
+						Long.valueOf(getParameterValue(request, UploadServletParameter.rate)));
 				break;
 			case getProgress:
 				String fileId = getParameterValue(request, UploadServletParameter.fileId);

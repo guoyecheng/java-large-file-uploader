@@ -15,7 +15,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.am.jlfu.fileuploader.limiter.RateLimiter.RequestConfig;
-import com.am.jlfu.staticstate.entities.StaticStateRateConfiguration;
 
 
 
@@ -28,15 +27,13 @@ public class RateLimiterTest {
 
 
 
-	private void emulateUpload(Integer rate, int upload, int duration)
+	private void emulateUpload(Long rate, int upload, int duration)
 			throws InterruptedException {
 		String id = "an id";
 
 		// init config
-		StaticStateRateConfiguration staticStateRateConfiguration = new StaticStateRateConfiguration();
-		staticStateRateConfiguration.setRateInKiloBytes(rate);
 		RequestConfig unchecked = rateLimiter.requestConfigMap.getUnchecked(id);
-		unchecked.staticStateRateConfiguration = staticStateRateConfiguration;
+		unchecked.rateInKiloBytes = rate;
 
 		// emulate an upload of a file
 		Date reference = new Date();
@@ -46,8 +43,8 @@ public class RateLimiterTest {
 		long itTookThatLong = new Date().getTime() - reference.getTime();
 
 		// get stat
-		long currentRateInKiloBytes = unchecked.currentRateInBytes / 1024;
-		Assert.assertThat(currentRateInKiloBytes, is(Integer.valueOf(rate).longValue()));
+		long currentRateInKiloBytes = unchecked.getStats() / 1024;
+		Assert.assertThat(currentRateInKiloBytes, is(rate));
 
 		// specify completion
 		rateLimiter.completed(id);
@@ -67,13 +64,13 @@ public class RateLimiterTest {
 		int upload = 10;
 
 		// set rate to 10kb, should have taken 1 second
-		emulateUpload(10, upload, 1000);
+		emulateUpload(10l, upload, 1000);
 
 		// set rate to 20kb, should have taken 0.5second
-		emulateUpload(20, upload, 500);
+		emulateUpload(20l, upload, 500);
 
 		// set rate to 50kb, should have taken 0.2 seconds
-		emulateUpload(50, upload, 200);
+		emulateUpload(50l, upload, 200);
 	}
 
 
