@@ -10,7 +10,7 @@ import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 
 @Component
 @Primary
-public class StaticStateIdentifierManagerForTest extends StaticStateIdentifierManager {
+public class StaticStateIdentifierManagerForTestProvider extends StaticStateIdentifierManager {
 
 
 }

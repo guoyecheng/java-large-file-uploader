@@ -10,12 +10,10 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
-import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 
 
 
@@ -27,13 +25,10 @@ public class StaticStateIdentifierManagerTest {
 	StaticStateIdentifierManager staticStateIdentifierManager;
 
 	@Autowired
-	MockHttpServletRequest mockHttpServletRequest;
-
-	@Autowired
-	MockHttpServletResponse mockHttpServletResponse;
-
-	@Autowired
 	RequestComponentContainer requestComponentContainer;
+
+	MockHttpServletRequest mockHttpServletRequest = new MockHttpServletRequest();
+	MockHttpServletResponse mockHttpServletResponse = new MockHttpServletResponse();
 
 
 
@@ -41,7 +36,7 @@ public class StaticStateIdentifierManagerTest {
 	public void init() {
 
 		// populate request component container
-		requestComponentContainer.populate(mockHttpServletRequest,mockHttpServletResponse);
+		requestComponentContainer.populate(mockHttpServletRequest, mockHttpServletResponse);
 
 		// clean cookie
 		mockHttpServletRequest.clearAttributes();

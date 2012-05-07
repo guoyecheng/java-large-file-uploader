@@ -40,8 +40,5 @@
 			</list>
 		</property>
 	</bean>
-	<bean class="org.springframework.mock.web.MockHttpServletRequest" primary="true"/>
-	<bean class="org.springframework.mock.web.MockHttpServletResponse" primary="true"/>
-	<bean class="org.springframework.mock.web.MockHttpSession" primary="true"/>
 
 </beans>
