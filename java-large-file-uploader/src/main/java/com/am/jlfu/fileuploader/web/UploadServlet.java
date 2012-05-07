@@ -8,11 +8,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.MultipartStream.MalformedStreamException;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +16,9 @@ import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
 import com.am.jlfu.fileuploader.exception.BadRequestException;
-import com.am.jlfu.fileuploader.exception.IncorrectRequestException;
-import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
 import com.am.jlfu.fileuploader.json.JsonObject;
+import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.json.SimpleJsonObject;
 import com.am.jlfu.fileuploader.logic.UploadProcessor;
 import com.google.gson.Gson;
@@ -140,8 +134,15 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				uploadProcessor.clearAll();
 				break;
 			case getProgress:
-				Float progress = uploadProcessor.getProgress(getParameterValue(request, UploadServletParameter.fileId));
-				returnObject = new SimpleJsonObject(progress.toString());
+				String fileId = getParameterValue(request, UploadServletParameter.fileId);
+				Float progress = uploadProcessor.getProgress(fileId);
+				Long uploadStat = uploadProcessor.getUploadStat(fileId);
+				ProgressJson progressJson = new ProgressJson();
+				progressJson.setProgress(progress);
+				if (uploadStat != null) {
+					progressJson.setUploadRate(uploadStat);
+				}
+				returnObject = progressJson;
 				break;
 		}
 		return returnObject;

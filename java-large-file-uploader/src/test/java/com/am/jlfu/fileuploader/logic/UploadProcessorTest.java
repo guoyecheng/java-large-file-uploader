@@ -22,9 +22,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
-import com.am.jlfu.fileuploader.logic.UploadProcessorTest.TestFileSplitResult;
 import com.am.jlfu.fileuploader.web.UploadServletAsync;
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
 import com.am.jlfu.staticstate.StaticStateManager;
@@ -40,7 +38,7 @@ public class UploadProcessorTest {
 
 	@Autowired
 	UploadProcessor uploadProcessor;
-	
+
 	@Autowired
 	UploadServletAsync uploadServletAsync;
 
@@ -65,7 +63,7 @@ public class UploadProcessorTest {
 			throws IOException {
 
 		// populate request component container
-		requestComponentContainer.populate(new MockHttpServletRequest(),new MockHttpServletResponse());
+		requestComponentContainer.populate(new MockHttpServletRequest(), new MockHttpServletResponse());
 
 
 		staticStateManager.clear();
@@ -105,82 +103,40 @@ public class UploadProcessorTest {
 		Assert.assertEquals(fileSize, state.getStaticFileStateJson().getOriginalFileSizeInBytes());
 	}
 
-	class TestFileSplitResult {
+
+
+	public static class TestFileSplitResult {
+
 		ByteArrayInputStream stream;
 		String crc;
 	}
 
-	
-	public TestFileSplitResult getByteArrayFromFile(MockMultipartFile file, int start, int length)
+
+
+	public static TestFileSplitResult getByteArrayFromFile(MockMultipartFile file, int start, int length)
 			throws IOException {
 		TestFileSplitResult testFileSplitResult = new TestFileSplitResult();
-		
-		//read file
+
+		// read file
 		byte[] b = new byte[length - start];
 		InputStream inputStream = file.getInputStream();
 		inputStream.skip(start);
 		inputStream.read(b, 0, b.length);
 		inputStream.close();
-		testFileSplitResult.stream =new ByteArrayInputStream(b);
+		testFileSplitResult.stream = new ByteArrayInputStream(b);
 
-		//get crc
+		// get crc
 		CRC32 crc32 = new CRC32();
 		crc32.update(b);
-		testFileSplitResult.crc = Long.toHexString(crc32.getValue()); 
-		
+		testFileSplitResult.crc = Long.toHexString(crc32.getValue());
+
 		return testFileSplitResult;
 	}
 
-	
-//	@Test(expected = InvalidCrcException.class)
-//	public void testInvalidCrc() throws IOException, InvalidCrcException {
-//
-//		// begin a file upload process
-//		String fileId = uploadProcessor.prepareUpload(fileSize, fileName);
-//
-//		// upload first part
-//		TestFileSplitResult splitResult = getByteArrayFromFile(file, 0, 3);
-//		
-//		uploadServletAsync.processUpload(splitResult.stream, 0l, fileId, "lala");
-//
-//	}
-
-//	@Test
-//	public void testClassic()
-//			throws ServletException, IOException, InvalidCrcException {
-//		TestFileSplitResult splitResult;
-//		
-//		// begin a file upload process
-//		String fileId = uploadProcessor.prepareUpload(fileSize, fileName);
-//
-//		// get progress
-//		Assert.assertThat(0f, is(uploadProcessor.getProgress(fileId)));
-//
-//		// upload first part
-//		splitResult = getByteArrayFromFile(file, 0, 3);
-//		uploadProcessor.process(splitResult.stream, 0l, fileId, splitResult.crc);
-//
-//		// get progress
-//		Assert.assertThat(3 * 100 / fileSize.intValue(), is(Math.round(uploadProcessor.getProgress(fileId))));
-//
-//		// upload second part
-//		splitResult = getByteArrayFromFile(file, 3, 5);
-//		uploadProcessor.process(splitResult.stream, 0l, fileId, splitResult.crc);
-//
-//		// get progress
-//		Assert.assertThat(Math.round(5f / fileSize.floatValue() * 100f), is(Math.round(uploadProcessor.getProgress(fileId))));
-//
-//		// upload last part
-//		splitResult = getByteArrayFromFile(file, 5, fileSize.intValue());
-//		uploadProcessor.process(splitResult.stream, 0l, fileId, splitResult.crc);
-//
-//		// get progress
-//		Assert.assertThat(100, is(Math.round(uploadProcessor.getProgress(fileId))));
-//	}
-
 
 	@Test
-	public void testCancelFileUpload() throws ServletException, IOException {
+	public void testCancelFileUpload()
+			throws ServletException, IOException {
 
 		// begin a file upload process
 		String fileId = uploadProcessor.prepareUpload(fileSize, fileName);
@@ -204,7 +160,8 @@ public class UploadProcessorTest {
 
 
 	@Test
-	public void testConfig() throws IOException {
+	public void testConfig()
+			throws IOException {
 		InitializationConfiguration config = uploadProcessor.getConfig();
 		Assert.assertNotNull(config.getInByte());
 	}
