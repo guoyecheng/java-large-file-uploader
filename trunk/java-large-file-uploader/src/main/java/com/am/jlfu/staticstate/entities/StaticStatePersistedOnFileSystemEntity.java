@@ -28,6 +28,9 @@ public class StaticStatePersistedOnFileSystemEntity
 	/** The states of the files being uploaded, the string being its identifier. */
 	private Map<String, StaticFileState> fileStates = Maps.newHashMap();
 
+	/** The configuration for uploading */
+	private StaticStateRateConfiguration staticStateRateConfiguration = new StaticStateRateConfiguration();
+
 
 
 	/**
@@ -48,6 +51,14 @@ public class StaticStatePersistedOnFileSystemEntity
 	}
 
 
+	public StaticStateRateConfiguration getStaticStateRateConfiguration() {
+		return staticStateRateConfiguration;
+	}
+
+
+	public void setStaticStateRateConfiguration(StaticStateRateConfiguration staticStateRateConfiguration) {
+		this.staticStateRateConfiguration = staticStateRateConfiguration;
+	}
 
 
 }

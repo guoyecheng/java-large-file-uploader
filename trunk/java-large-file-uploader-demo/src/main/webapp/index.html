@@ -58,8 +58,8 @@ $(document).ready(function() {
 	  		jlfu.fileUploadProcess(e.target, 
 	  				
 	  			//define a progressCallback showing the progress in the em element 
-				function(theFileId, percentageCompleted, origin) {
-		  			origin.parentElement.children[2].textContent="Uploading... ("+percentageCompleted+"% complete)";
+				function(theFileId, percentageCompleted, uploadRate, origin) {
+		  			origin.parentElement.children[2].textContent="Uploading... ("+percentageCompleted+"% complete) | Uploading at "+uploadRate + " per second.";
 		  		}, 
 	  			
 		  		//define a finishCallback showing the completion in the em element 

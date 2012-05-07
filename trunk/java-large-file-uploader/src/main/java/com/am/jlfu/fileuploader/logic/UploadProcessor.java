@@ -1,26 +1,20 @@
 package com.am.jlfu.fileuploader.logic;
 
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.UUID;
-import java.util.zip.CRC32;
 
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
+import com.am.jlfu.fileuploader.limiter.RateLimiter;
 import com.am.jlfu.fileuploader.utils.UploadLockMap;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
@@ -36,6 +30,9 @@ import com.google.common.collect.Maps;
 public class UploadProcessor {
 
 	private static final Logger log = LoggerFactory.getLogger(UploadProcessor.class);
+
+	@Autowired
+	RateLimiter rateLimiter;
 
 	@Autowired
 	StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
@@ -115,7 +112,7 @@ public class UploadProcessor {
 		jsonFileState.setOriginalFileSizeInBytes(size);
 
 		// and returns the file identifier
-		log.debug("File prepared for client "+staticStateIdentifierManager.getIdentifier() +" at path "+file.getAbsolutePath());
+		log.debug("File prepared for client " + staticStateIdentifierManager.getIdentifier() + " at path " + file.getAbsolutePath());
 		return fileId;
 
 	}
@@ -142,15 +139,14 @@ public class UploadProcessor {
 	}
 
 
-
-
-	public Float getProgress(String fileId) throws FileNotFoundException {
+	public Float getProgress(String fileId)
+			throws FileNotFoundException {
 
 		// get the file
 		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
 		StaticFileState fileState = model.getFileStates().get(fileId);
 		if (fileState == null) {
-			throw new FileNotFoundException("File with id " + fileId + " not found"); 
+			throw new FileNotFoundException("File with id " + fileId + " not found");
 		}
 		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
 
@@ -168,6 +164,11 @@ public class UploadProcessor {
 			percent = 99.99d;
 		}
 		return percent;
+	}
+
+
+	public Long getUploadStat(String fileId) {
+		return rateLimiter.getUploadState(staticStateIdentifierManager.getIdentifier() + fileId);
 	}
 
 }

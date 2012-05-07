@@ -82,7 +82,7 @@ function JavaLargeFileUploader() {
 	 * 
 	 * progressCallback: 
 	 * a function that will be called to monitor the progress. 
-	 * params: 1 is the fileId, 2 is the percentage as parameter, 3 is the origin element
+	 * params: 1 is the fileId, 2 is the percentage as parameter, 3 is the current upload rate formatted, 4 is the origin element
 	 * 
 	 * finishCallback: 
 	 * a function that will be called when the process is fully complete. params: 1 is the fileId, 2 is the origin element 
@@ -263,14 +263,18 @@ function JavaLargeFileUploader() {
 	
 		// get the configuration
 		$.get(globalServletMapping + "?action=getProgress&fileId=" + fileId,	function(data) {
-			var progress = parseFloat(data.value);
 	
+			//if we have information about the rate:
+			if (data.uploadRate) {
+				var uploadRate = getFormattedSize(data.uploadRate);
+			}
+			
 			// specify progress
-			progressCallback(fileId, format(progress),
+			progressCallback(fileId, format(data.progress), uploadRate,
 					referenceToFileElement);
 	
 			// continue if not finished
-			if (progress < 100) {
+			if (data.progress < 100) {
 				setTimeout(startProgressPoller, 500, fileId,
 						progressCallback, referenceToFileElement);
 			}
