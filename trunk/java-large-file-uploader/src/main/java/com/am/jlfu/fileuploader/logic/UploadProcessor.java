@@ -21,6 +21,7 @@ import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
+import com.am.jlfu.staticstate.entities.StaticStateRateConfiguration;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 
@@ -169,6 +170,21 @@ public class UploadProcessor {
 
 	public Long getUploadStat(String fileId) {
 		return rateLimiter.getUploadState(staticStateIdentifierManager.getIdentifier() + fileId);
+	}
+
+
+	public void setUploadRate(String fileId, Integer rate) {
+
+		// set the rate
+		StaticStateRateConfiguration staticStateRateConfiguration = new StaticStateRateConfiguration();
+		staticStateRateConfiguration.setRateInKiloBytes(rate);
+		rateLimiter.assignConfigurationToRequest(staticStateIdentifierManager.getIdentifier() + fileId, staticStateRateConfiguration);
+
+		// TODO save it for the file with this file id
+
+		// save it to file system as the default
+		staticStateManager.getEntity().setDefaultStaticStateRateConfiguration(staticStateRateConfiguration);
+
 	}
 
 }

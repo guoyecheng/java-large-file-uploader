@@ -26,6 +26,7 @@ import com.am.jlfu.fileuploader.limiter.RateLimiter;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
+import com.am.jlfu.staticstate.entities.StaticStateRateConfiguration;
 
 
 
@@ -50,12 +51,26 @@ public class UploadServletAsyncProcessor {
 			throws FileNotFoundException
 	{
 
-		// keep it in cache
-		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
-		tokenBucket.assignConfigurationToRequest(requestIdentifier, entity.getStaticStateRateConfiguration());
+		// get entity
+		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
+
+		// if there is no configuration in the map
+		if (tokenBucket.getConfigurationOfRequest(requestIdentifier) == null) {
+			// and if there is none for this file
+			StaticStateRateConfiguration staticStateRateConfiguration =
+					model.getFileStates().get(fileId).getStaticFileStateJson().getStaticStateRateConfiguration();
+			if (staticStateRateConfiguration == null) {
+				// assign default configuration
+				tokenBucket.assignConfigurationToRequest(requestIdentifier, model.getDefaultStaticStateRateConfiguration());
+			}
+			// otherwise
+			else {
+				// use it
+				tokenBucket.assignConfigurationToRequest(requestIdentifier, staticStateRateConfiguration);
+			}
+		}
 
 		// get the file
-		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
 		StaticFileState fileState = model.getFileStates().get(fileId);
 		if (fileState == null) {
 			throw new FileNotFoundException("File with id " + fileId + " not found");

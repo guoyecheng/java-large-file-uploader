@@ -83,28 +83,41 @@ $(document).ready(function() {
 function clearProgressText(i) {
 	document.getElementById('container'+i).children[2].innerHTML="";
 }
+function setRate(e) {
+	jlfu.setRateInKiloBytes(e.parentElement.children[4].value);
+}
 </script>
 </head>
 <body>
 
 	<div id="container0">
 		<input type="file"/><br/> 
-		<em></em>
+		<em></em><br>
+		<input type="text"/>
+		<button onclick="setRate(this);">Set rate</button>		
 	</div>
+	
+	<hr>
 	
 	<div  id="container1">
 		<input type="file"/><br/> 
-		<em></em>
+		<em></em><br>
+		<input type="text"/>
+		<button onclick="setRate(this);">Set rate</button>	
 	</div>
 	
 	<div  id="container2">
 		<input type="file"/><br/> 
-		<em></em>
+		<em></em><br>
+		<input type="text"/>
+		<button onclick="setRate(this);">Set rate</button>	
 	</div>
 	
 	<div  id="container3">
 		<input type="file"/><br/> 
-		<em></em>
+		<em></em><br>
+		<input type="text"/>
+		<button onclick="setRate(this);">Set rate</button>	
 	</div>
 	
 	<div>

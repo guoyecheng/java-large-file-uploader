@@ -1,6 +1,10 @@
 package com.am.jlfu.fileuploader.json;
 
 
+import com.am.jlfu.staticstate.entities.StaticStateRateConfiguration;
+
+
+
 public class FileStateJsonBase
 		implements JsonObject {
 
@@ -11,6 +15,9 @@ public class FileStateJsonBase
 
 	/** The original file size */
 	private Long originalFileSizeInBytes;
+
+	/** rate conf */
+	private StaticStateRateConfiguration staticStateRateConfiguration;
 
 
 
@@ -41,6 +48,15 @@ public class FileStateJsonBase
 		this.originalFileSizeInBytes = originalFileSizeInBytes;
 	}
 
+
+	public StaticStateRateConfiguration getStaticStateRateConfiguration() {
+		return staticStateRateConfiguration;
+	}
+
+
+	public void setStaticStateRateConfiguration(StaticStateRateConfiguration staticStateRateConfiguration) {
+		this.staticStateRateConfiguration = staticStateRateConfiguration;
+	}
 
 
 }
