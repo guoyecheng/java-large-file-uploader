@@ -29,7 +29,7 @@ public class StaticStatePersistedOnFileSystemEntity
 	private Map<String, StaticFileState> fileStates = Maps.newHashMap();
 
 	/** The configuration for uploading */
-	private StaticStateRateConfiguration staticStateRateConfiguration = new StaticStateRateConfiguration();
+	private StaticStateRateConfiguration defaultStaticStateRateConfiguration = new StaticStateRateConfiguration();
 
 
 
@@ -51,13 +51,13 @@ public class StaticStatePersistedOnFileSystemEntity
 	}
 
 
-	public StaticStateRateConfiguration getStaticStateRateConfiguration() {
-		return staticStateRateConfiguration;
+	public StaticStateRateConfiguration getDefaultStaticStateRateConfiguration() {
+		return defaultStaticStateRateConfiguration;
 	}
 
 
-	public void setStaticStateRateConfiguration(StaticStateRateConfiguration staticStateRateConfiguration) {
-		this.staticStateRateConfiguration = staticStateRateConfiguration;
+	public void setDefaultStaticStateRateConfiguration(StaticStateRateConfiguration defaultStaticStateRateConfiguration) {
+		this.defaultStaticStateRateConfiguration = defaultStaticStateRateConfiguration;
 	}
 
 

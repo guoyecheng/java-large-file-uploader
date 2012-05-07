@@ -56,6 +56,13 @@ function JavaLargeFileUploader() {
 	};
 	
 	/*
+	 * Specify an upload rate in kilo bytes (minimum is 10kb)
+	 */
+	this.setRateInKiloBytes = function (fileId, rate) {
+		$.get(globalServletMapping + "?action=setRate&rate="+rate+"&fileId=fileId");
+	}
+	
+	/*
 	 * clear the file with the specified id.
 	 */
 	this.cancelFileUpload = function (fileId, callback) {

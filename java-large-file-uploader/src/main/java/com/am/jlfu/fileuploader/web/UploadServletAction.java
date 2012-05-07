@@ -13,6 +13,7 @@ public enum UploadServletAction {
 	getProgress,
 	prepareUpload,
 	clearFile,
+	setRate,
 	clearAll;
 
 

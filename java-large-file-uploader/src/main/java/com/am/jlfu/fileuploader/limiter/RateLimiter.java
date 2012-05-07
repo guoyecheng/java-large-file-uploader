@@ -53,7 +53,6 @@ public class RateLimiter
 					log.trace("Created new bucket for #{}", arg0);
 					RequestConfig requestConfig = new RequestConfig();
 					requestConfig.semaphore = new Semaphore(0, false);
-					requestConfig.staticStateRateConfiguration = new StaticStateRateConfiguration();
 					return requestConfig;
 				}
 			});
@@ -164,6 +163,11 @@ public class RateLimiter
 
 	public void assignConfigurationToRequest(String requestId, StaticStateRateConfiguration staticStateRateConfiguration) {
 		requestConfigMap.getUnchecked(requestId).staticStateRateConfiguration = staticStateRateConfiguration;
+	}
+
+
+	public StaticStateRateConfiguration getConfigurationOfRequest(String requestId) {
+		return requestConfigMap.getUnchecked(requestId).staticStateRateConfiguration;
 	}
 
 

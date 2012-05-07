@@ -133,6 +133,10 @@ public class UploadServlet extends HttpRequestHandlerServlet
 			case clearAll:
 				uploadProcessor.clearAll();
 				break;
+			case setRate:
+				uploadProcessor.setUploadRate(getParameterValue(request, UploadServletParameter.fileId),
+						Integer.valueOf(getParameterValue(request, UploadServletParameter.rate)));
+				break;
 			case getProgress:
 				String fileId = getParameterValue(request, UploadServletParameter.fileId);
 				Float progress = uploadProcessor.getProgress(fileId);
