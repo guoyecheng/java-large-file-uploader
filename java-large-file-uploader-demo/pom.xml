@@ -60,7 +60,7 @@
 	<repositories>
 		<repository>
 			<id>java large file uploader repository</id>
-			<url>https://java-large-file-uploader.googlecode.com/git/mvnrepo</url>
+			<url>svn:https://java-large-file-uploader.googlecode.com/svn/mvnrepo</url>
 		</repository>
 	</repositories>
 </project>
