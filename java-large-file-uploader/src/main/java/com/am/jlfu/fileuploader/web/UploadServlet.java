@@ -3,11 +3,11 @@ package com.am.jlfu.fileuploader.web;
 
 import java.io.IOException;
 
-import javax.servlet.ServletResponse;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.fileupload.FileUploadException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,13 +15,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
-import com.am.jlfu.fileuploader.exception.BadRequestException;
+import com.am.jlfu.fileuploader.exception.IncorrectRequestException;
+import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
 import com.am.jlfu.fileuploader.json.JsonObject;
 import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.json.SimpleJsonObject;
 import com.am.jlfu.fileuploader.logic.UploadProcessor;
-import com.google.gson.Gson;
+import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper;
+import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper.FileUploadConfiguration;
 
 
 
@@ -41,30 +43,9 @@ public class UploadServlet extends HttpRequestHandlerServlet
 	@Autowired
 	UploadProcessor uploadProcessor;
 
+	@Autowired
+	FileUploaderHelper fileUploaderHelper;
 
-
-	static String getParameterValue(HttpServletRequest request, UploadServletParameter parameter)
-			throws MissingParameterException {
-		String parameterValue = request.getParameter(parameter.name());
-		if (parameterValue == null) {
-			throw new MissingParameterException(parameter);
-		}
-		return parameterValue;
-	}
-
-
-	static void writeExceptionToResponse(final Exception e, ServletResponse servletResponse)
-			throws IOException {
-		writeToResponse(new SimpleJsonObject(e.getMessage()), servletResponse);
-	}
-
-
-	private static void writeToResponse(JsonObject jsonObject, ServletResponse servletResponse)
-			throws IOException {
-		servletResponse.setContentType("application/json");
-		servletResponse.getWriter().print(new Gson().toJson(jsonObject));
-		servletResponse.getWriter().close();
-	}
 
 
 	@Override
@@ -76,7 +57,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 		try {
 			// extract the action from the request
 			UploadServletAction actionByParameterName =
-					UploadServletAction.valueOf(getParameterValue(request, UploadServletParameter.action));
+					UploadServletAction.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.action));
 
 			// then process the asked action
 			jsonObject = processAction(actionByParameterName, request);
@@ -84,19 +65,14 @@ public class UploadServlet extends HttpRequestHandlerServlet
 
 			// if something has to be written to the response
 			if (jsonObject != null) {
-				writeToResponse(jsonObject, response);
+				fileUploaderHelper.writeToResponse(jsonObject, response);
 			}
 
 		}
-		// If bad request, send a 400 error code
-		catch (BadRequestException e) {
-			log.error(e.getMessage(), e);
-			writeExceptionToResponse(e, response);
-		}
-		// If unknown exception, send a 500 error code
+		// If exception, write it
 		catch (Exception e) {
 			log.error(e.getMessage(), e);
-			writeExceptionToResponse(e, response);
+			fileUploaderHelper.writeExceptionToResponse(e, response);
 		}
 
 	}
@@ -111,30 +87,33 @@ public class UploadServlet extends HttpRequestHandlerServlet
 			case getConfig:
 				returnObject = uploadProcessor.getConfig();
 				break;
+			case verifyFirstChunk:
+				verifyFirstChunk(request);
+				break;
 			case prepareUpload:
-				String fileName = getParameterValue(request, UploadServletParameter.fileName);
-				Long size = Long.valueOf(getParameterValue(request, UploadServletParameter.size));
+				String fileName = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileName);
+				Long size = Long.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.size));
 				String idOfTheFile = uploadProcessor.prepareUpload(size, fileName);
 				returnObject = new SimpleJsonObject(idOfTheFile);
 				break;
 			case clearFile:
-				uploadProcessor.clearFile(getParameterValue(request, UploadServletParameter.fileId));
+				uploadProcessor.clearFile(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
 				break;
 			case clearAll:
 				uploadProcessor.clearAll();
 				break;
 			case pauseFile:
-				uploadProcessor.pauseFile(getParameterValue(request, UploadServletParameter.fileId));
+				uploadProcessor.pauseFile(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
 				break;
 			case resumeFile:
-				uploadProcessor.resumeFile(getParameterValue(request, UploadServletParameter.fileId));
+				uploadProcessor.resumeFile(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
 				break;
 			case setRate:
-				uploadProcessor.setUploadRate(getParameterValue(request, UploadServletParameter.fileId),
-						Long.valueOf(getParameterValue(request, UploadServletParameter.rate)));
+				uploadProcessor.setUploadRate(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId),
+						Long.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.rate)));
 				break;
 			case getProgress:
-				String fileId = getParameterValue(request, UploadServletParameter.fileId);
+				String fileId = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId);
 				Float progress = uploadProcessor.getProgress(fileId);
 				Long uploadStat = uploadProcessor.getUploadStat(fileId);
 				ProgressJson progressJson = new ProgressJson();
@@ -146,6 +125,17 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				break;
 		}
 		return returnObject;
+	}
+
+
+	private void verifyFirstChunk(HttpServletRequest request)
+			throws MissingParameterException, IncorrectRequestException, FileUploadException, IOException, InvalidCrcException {
+
+		// get config
+		final FileUploadConfiguration extractFileUploadConfiguration = fileUploaderHelper.extractFileUploadConfiguration(request);
+
+		// verify first chunk
+		uploadProcessor.verifyFirstChunk(extractFileUploadConfiguration);
 	}
 
 

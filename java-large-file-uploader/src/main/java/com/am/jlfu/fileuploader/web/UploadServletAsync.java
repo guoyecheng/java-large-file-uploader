@@ -2,7 +2,6 @@ package com.am.jlfu.fileuploader.web;
 
 
 import java.io.IOException;
-import java.io.InputStream;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletException;
@@ -10,9 +9,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
@@ -22,9 +18,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
-import com.am.jlfu.fileuploader.exception.IncorrectRequestException;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor.WriteChunkCompletionListener;
+import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper;
+import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper.FileUploadConfiguration;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 
 
@@ -41,6 +38,9 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 
 	@Autowired
 	StaticStateIdentifierManager staticStateIdentifierManager;
+
+	@Autowired
+	FileUploaderHelper fileUploaderHelper;
 
 	/**
 	 * Maximum time that a streaming request can take.<br>
@@ -59,30 +59,8 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 		// process the request
 		try {
 
-			// check if the request is multipart:
-			if (!ServletFileUpload.isMultipartContent(request)) {
-				throw new IncorrectRequestException("Request should be multipart");
-			}
-
-			// extract the fields
-			final String fileId = UploadServlet.getParameterValue(request, UploadServletParameter.fileId);
-			String crc = UploadServlet.getParameterValue(request, UploadServletParameter.crc);
-
-			// Create a new file upload handler
-			ServletFileUpload upload = new ServletFileUpload();
-
-			// parse the requestuest
-			FileItemIterator iter = upload.getItemIterator(request);
-			FileItemStream item = iter.next();
-
-			// throw exception if item is null
-			if (item == null) {
-				throw new IncorrectRequestException("No file to upload found in the request");
-			}
-
-			// extract input stream
-			final InputStream inputStream = item.openStream();
-
+			// extract stuff from request
+			final FileUploadConfiguration process = fileUploaderHelper.extractFileUploadConfiguration(request);
 
 			// process the request asynchronously
 			final AsyncContext asyncContext = request.startAsync();
@@ -91,20 +69,20 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 
 			// add a listener to clear bucket and close inputstream when process is complete or with
 			// error
-			asyncContext.addListener(new UploadServletAsyncListenerAdapter(fileId) {
+			asyncContext.addListener(new UploadServletAsyncListenerAdapter(process.getFileId()) {
 
 				@Override
 				void clean() {
-					log.debug("closing input stream for " + fileId);
+					log.debug("closing input stream for " + process.getFileId());
 					// close input stream
-					IOUtils.closeQuietly(inputStream);
+					IOUtils.closeQuietly(process.getInputStream());
 					// and tell processor to clean its shit!
-					uploadServletAsyncProcessor.clean(fileId);
+					uploadServletAsyncProcessor.clean(process.getFileId());
 				}
 			});
 
 			// then process
-			uploadServletAsyncProcessor.process(fileId, crc, inputStream, new WriteChunkCompletionListener() {
+			uploadServletAsyncProcessor.process(process.getFileId(), process.getCrc(), process.getInputStream(), new WriteChunkCompletionListener() {
 
 				@Override
 				public void success() {
@@ -115,7 +93,7 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 				@Override
 				public void error(Exception exception) {
 					try {
-						UploadServlet.writeExceptionToResponse(exception, response);
+						fileUploaderHelper.writeExceptionToResponse(exception, response);
 					}
 					catch (IOException e) {
 						log.error(e.getMessage(), e);
@@ -127,7 +105,7 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 		}
 		catch (Exception e) {
 			log.error(e.getMessage(), e);
-			UploadServlet.writeExceptionToResponse(e, response);
+			fileUploaderHelper.writeExceptionToResponse(e, response);
 		}
 
 	}

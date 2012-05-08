@@ -6,8 +6,13 @@ function JavaLargeFileUploader() {
 	var uploadServletMapping = "javaLargeFileUploaderAsyncServlet";
 	var pendingFiles = new Object();
 	var bytesPerChunk;
+	var firstChunkValidation = false;
 	
 	/*
+	 * firstChunkValidation:
+	 * boolean specifying whether you want to verify or not the crc32 signature of the first 
+	 * chunk of a file when that file is resumed from a previous upload. 
+	 * 
 	 * callback: 
 	 * Callback function containing a map of the files previously uploaded as parameter. 
 	 * 	The key of this map is the fileIdentifier. 
@@ -21,8 +26,9 @@ function JavaLargeFileUploader() {
 	 * A callback function with a String as paraemeter triggered if an exception occurs. 
 	 * 
 	 */
-	this.initialize = function (callback, exceptionCallback) {
-	
+	this.initialize = function (firstChunkValidationBoolean, callback, exceptionCallback) {
+		firstChunkValidation = firstChunkValidationBoolean;
+		
 		// get the configuration
 		$.get(globalServletMapping + "?action=getConfig", function(data) {
 			if (data) {
@@ -173,9 +179,17 @@ function JavaLargeFileUploader() {
 		// if we are resuming an upload
 		if (fileId && pendingFiles[fileId]) {
 			pendingFile.id = fileId;
+			
+			//populate stuff retrieved in initialization 
+			//TODO thats is bad, just add that config to the one already in the array!
+			pendingFile.originalFileName = pendingFiles[fileId].originalFileName;
+			pendingFile.originalFileSize = pendingFiles[fileId].originalFileSize;
+			pendingFile.fileCompletionInBytes = pendingFiles[fileId].fileCompletionInBytes;
+			pendingFile.originalFileSizeInBytes = pendingFiles[fileId].originalFileSizeInBytes;
+			pendingFiles[fileId] = pendingFile;
 	
 			// compare to previously updated filename
-			if (pendingFile.originalFileName != pendingFile.fileName || pendingFile.originalFileSizeInBytes != size) {
+			if (pendingFile.originalFileName != pendingFile.fileName || pendingFile.originalFileSizeInBytes != pendingFile.size) {
 				if (exceptionCallback) {
 					exceptionCallback("You want to upload a file named '" + pendingFile.fileName + "'("	+ getFormattedSize(pendingFile.size)+ ") but there" +
 							" is already a pending upload for a file named '"	+ pendingFile.originalFileName	+ "'(" +
@@ -185,11 +199,66 @@ function JavaLargeFileUploader() {
 				return;
 			} 
 			
-			// and process the upload
-			fileUploadProcessStarter(pendingFile,blob);
+			//process first file chunk validation
+			if (firstChunkValidation == true) {
+				
+				//slice a little part of the file
+				var chunk = slice(blob, 0, 1024);
+				
+				//append chunk to a formdata
+				var formData = new FormData();
+				formData.append("file", chunk);
+		        
+				// prepare xhr request
+				var xhr = new XMLHttpRequest();
+				xhr.open('POST', globalServletMapping + '?action=verifyFirstChunk&fileId=' + pendingFile.id, true);
+		
+				// assign callback
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState == 4) {
+		
+						if (xhr.status != 200) {
+							if (exceptionCallback) {
+								exceptionCallback("Error while verifying the first chunk.", pendingFile.referenceToFileElement);
+							}
+							return;
+						} else {
+							
+							//verify stuff!
+							if (xhr.responseTest) {
+								exceptionCallback("The file uploaded does not appear to be the same, please check its content", pendingFile.referenceToFileElement);
+							} else {
+								// process the upload
+								fileUploadProcessStarter(pendingFile,blob);
+							}
+							
+							
+						}
+					}
+				}
+		        
+				//send xhr request validation
+				try {
+					xhr.send(formData);
+				} catch (e) {
+					if (pendingFile.exceptionCallback) {
+						pendingFile.exceptionCallback(e.message, pendingFile.referenceToFileElement);
+					}
+					return;
+				}
+
+
+			}
+			
+			//otherwise process directly
+			else {
+				// process the upload
+				fileUploadProcessStarter(pendingFile,blob);
+			}
+			
 	
 		}
-		// if not, file id is undefined:
+		// if file id is undefined:
 		else {
 			// if file id is undefined, we need to prepare the upload
 			$.get(globalServletMapping + "?action=prepareUpload&fileName="+ pendingFile.fileName + "&size=" + pendingFile.size, function(response) {
@@ -232,16 +301,20 @@ function JavaLargeFileUploader() {
 	
 	}
 	
+	function slice(blob, start, end) {
+		if (blob.mozSlice) {
+			return blob.mozSlice(start, end);
+		} else {
+			return blob.webkitSlice(start, end);
+		}
+	}
+	
 	function go(pendingFile, blob) {
 	
 		//if file id is in the pending files:
-		var chunk;
-		if (blob.mozSlice) {
-			chunk = blob.mozSlice(pendingFile.fileCompletionInBytes, pendingFile.end);
-		} else {
-			chunk = blob.webkitSlice(pendingFile.fileCompletionInBytes, pendingFile.end);
-		}
+		var chunk = slice(blob, pendingFile.fileCompletionInBytes, pendingFile.end);
 	
+		//append chunk to a formdata
 		var formData = new FormData();
 		formData.append("file", chunk);
 	
