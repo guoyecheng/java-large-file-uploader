@@ -217,13 +217,11 @@ public class UploadServletAsyncProcessor {
 			//
 			// if we are done
 			else {
-				log.debug("Processed part for file " + fileId + " into temp file");
-
-				// TODO
-				// compare the first chunk
+				String calculatedChecksum = Long.toHexString(crc32.getValue());
+				log.debug("Processed part for file " + fileId + " into temp file, checking written crc " + calculatedChecksum +
+						" against input crc " + crc);
 
 				// compare the checksum of the chunks
-				String calculatedChecksum = Long.toHexString(crc32.getValue());
 				if (!calculatedChecksum.equals(crc)) {
 					InvalidCrcException invalidCrcException = new InvalidCrcException(calculatedChecksum, crc);
 					log.error(invalidCrcException.getMessage(), invalidCrcException);

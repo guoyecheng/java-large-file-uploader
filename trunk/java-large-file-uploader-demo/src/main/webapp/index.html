@@ -9,7 +9,9 @@ $(document).ready(function() {
 	jlfu = new JavaLargeFileUploader();
 	
 	//call the initializing function
-	jlfu.initialize(function(pendingFiles) {
+	jlfu.initialize(
+			true, //Yes I want first chunk of file validation
+			function(pendingFiles) {
 		
 		//if we have some pending uploads 
     	if (!jQuery.isEmptyObject(pendingFiles)) {

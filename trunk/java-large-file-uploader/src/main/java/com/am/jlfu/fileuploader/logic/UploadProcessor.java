@@ -1,9 +1,12 @@
 package com.am.jlfu.fileuploader.logic;
 
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -11,16 +14,20 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.zip.CRC32;
 
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
 import com.am.jlfu.fileuploader.utils.UploadLockMap;
+import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper.FileUploadConfiguration;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
@@ -259,4 +266,55 @@ public class UploadProcessor {
 		uploadProcessingConfigurationManager.resume(fileId);
 	}
 
+
+	public void verifyFirstChunk(FileUploadConfiguration extractFileUploadConfiguration)
+			throws IOException, InvalidCrcException {
+		log.debug("resuming file " + extractFileUploadConfiguration.getFileId() + ", processing crc validation of first chunk.");
+
+		// get entity
+		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
+
+		// get the file
+		StaticFileState fileState = model.getFileStates().get(extractFileUploadConfiguration.getFileId());
+		if (fileState == null) {
+			throw new FileNotFoundException("File with id " + extractFileUploadConfiguration.getFileId() + " not found");
+		}
+		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
+
+
+		// if the file does not exist, there is an issue!
+		if (!file.exists()) {
+			throw new FileNotFoundException("File with id " + extractFileUploadConfiguration.getFileId() + " not found");
+		}
+
+		// get crc of input
+		final String inputCrc = getCrc(extractFileUploadConfiguration.getInputStream());
+
+		// read the file
+		final String fileCrc = getCrc(new FileInputStream(file));
+
+		// compare them
+		log.debug("validating chunk crc " + fileCrc + " against " + inputCrc);
+		if (!fileCrc.equals(inputCrc)) {
+			throw new InvalidCrcException(fileCrc, inputCrc);
+		}
+
+	}
+
+
+	private String getCrc(InputStream inputStream)
+			throws IOException {
+
+		// read the input stream
+		inputStream = new BufferedInputStream(inputStream, 1024);
+		byte[] b = new byte[1024];
+		inputStream.read(b);
+		IOUtils.closeQuietly(inputStream);
+
+		// calculate the crc32 of the first chunk
+		CRC32 crc32 = new CRC32();
+		crc32.update(b);
+		return Long.toHexString(crc32.getValue());
+
+	}
 }
