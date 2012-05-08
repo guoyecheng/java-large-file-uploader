@@ -24,18 +24,15 @@ $(document).ready(function() {
     			//if the file is complete
 			  	if (pendingFile.fileComplete) {
 			  		//specify it in the em element
-				  	div.children[2].innerHTML = 
-				  		"The file '"+pendingFile.originalFileName+"' has been fully uploaded ("+pendingFile.fileCompletion+"/"+pendingFile.originalFileSize+"). "+
-				  		"<a href='javascript:void(0)' onclick='jlfu.cancelFileUpload(\""+fileId+"\", function(e) {clearProgressText("+i+");});'>Delete it</a>.";
+			  		setTextToEm(div, "The file '"+pendingFile.originalFileName+"' has been fully uploaded ("+pendingFile.fileCompletion+"/"+pendingFile.originalFileSize+").");
 			  	} 
     			
     			//if incomplete and pending 
 			  	else if (pendingFile.fileCompletion) {
 			  		
 			  		//describe the file so that the user can select it again
-				  	div.children[2].innerHTML = 
-				  		"The file '"+pendingFile.originalFileName+"' has been partially uploaded ("+pendingFile.fileCompletion+"/"+pendingFile.originalFileSize+"). "+
-				  		"Reselect it to continue uploading it or <a href='javascript:void(0)' onclick='jlfu.cancelFileUpload(\""+fileId+"\", function(e) {clearProgressText("+i+");});'>cancel the upload of this file</a>.";
+				  	setTextToEm(div, 
+				  		"The file '"+pendingFile.originalFileName+"' has been partially uploaded ("+pendingFile.fileCompletion+"/"+pendingFile.originalFileSize+"). Reselect it to continue uploading it or cancel it.");
 				  		
 			  		//and assign the fileId as the name of the fileupload html element
 				  	div.children[0].name = fileId;
@@ -49,7 +46,7 @@ $(document).ready(function() {
     	}
     	
 	}, function(message) {
-		
+		alert(message);
 	});
 	
 	//add the listeners on all the file upload elements
@@ -64,23 +61,22 @@ $(document).ready(function() {
 	  			//define a start callback
 	  			function(theFileId, origin) {
 	  				//assign the name of the element to keep a reference to the file id
-		  			origin.parentElement.children[0].name=theFileId;
+	  				origin.name = theFileId;
 	  			},		
 	  				
 	  			//define a progressCallback showing the progress in the em element 
 				function(theFileId, percentageCompleted, uploadRate, origin) {
-	  				origin.parentElement.children[2].textContent="Uploading... ("+percentageCompleted+"% complete) | Uploading at "+uploadRate + " per second.";
+	  				setTextToEm(origin.parentElement, "Uploading... ("+percentageCompleted+"% complete) | Uploading at "+uploadRate + " per second.");
 		  		}, 
 	  			
 		  		//define a finishCallback showing the completion in the em element 
 		  		function(theFileId, origin) {
-		  			origin.parentElement.children[2].textContent="Upload completed.";
-	
+		  			setTextToEm(origin.parentElement, "Upload completed.");
 		  		}, 
 		  		
 		  		//define an exception callback
-		  		function(message) {
-		  			alert(message);
+		  		function(message, origin) {
+		  			setTextToEm(origin.parentElement, message);
 		  		},
 		  		
 		  		e.target.name);
@@ -90,11 +86,11 @@ $(document).ready(function() {
 	
  
 });
-function clearProgressText(i) {
-	document.getElementById('container'+i).children[2].innerHTML="";
+function setTextToEm(div, text) {
+	div.children[2].textContent=text;
 }
-function setRate(e) {
-	jlfu.setRateInKiloBytes(e.parentElement.children[0].name, e.parentElement.children[4].value);
+function getFileId(div) {
+	return div.children[0].name;
 }
 </script>
 </head>
@@ -103,7 +99,10 @@ function setRate(e) {
 	<div id="container0">
 		<input type="file"/><br/> 
 		<em></em><br>
-		Limit the upload bandwith to <input type="text"/> KB <button onclick="setRate(this);">Set rate</button>		
+		Limit the upload bandwith to <input type="text"/> KB <button onclick="jlfu.setRateInKiloBytes(getFileId(this.parentElement), this.parentElement.children[4].value);">Set rate</button>	<br>	
+  		<a href='javascript:void(0)' onclick='jlfu.cancelFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "");'>Cancel</a>
+  		<a href='javascript:void(0)' onclick='jlfu.pauseFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Paused");'>Pause</a>
+  		<a href='javascript:void(0)' onclick='jlfu.resumeFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Resuming...");'>Resume</a>
 	</div>
 	
 	<hr>

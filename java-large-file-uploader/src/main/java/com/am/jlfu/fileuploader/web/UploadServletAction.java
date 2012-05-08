@@ -14,6 +14,8 @@ public enum UploadServletAction {
 	prepareUpload,
 	clearFile,
 	setRate,
+	resumeFile,
+	pauseFile,
 	clearAll;
 
 

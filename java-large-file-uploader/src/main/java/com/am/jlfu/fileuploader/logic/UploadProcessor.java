@@ -249,4 +249,14 @@ public class UploadProcessor {
 		staticStateManager.processEntityTreatment(entity);
 	}
 
+
+	public void pauseFile(String fileId) {
+		uploadProcessingConfigurationManager.pause(fileId);
+	}
+
+
+	public void resumeFile(String fileId) {
+		uploadProcessingConfigurationManager.resume(fileId);
+	}
+
 }
