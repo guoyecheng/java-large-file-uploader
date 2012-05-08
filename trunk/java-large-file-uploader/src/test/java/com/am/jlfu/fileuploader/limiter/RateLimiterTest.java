@@ -1,8 +1,6 @@
 package com.am.jlfu.fileuploader.limiter;
 
 
-import static org.hamcrest.CoreMatchers.is;
-
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -14,7 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.am.jlfu.fileuploader.limiter.RateLimiter.RequestConfig;
+import com.am.jlfu.fileuploader.logic.UploadProcessingConfigurationManager;
+import com.am.jlfu.fileuploader.logic.UploadProcessingConfigurationManager.UploadProcessingConfiguration;
 
 
 
@@ -25,6 +24,9 @@ public class RateLimiterTest {
 	@Autowired
 	RateLimiter rateLimiter;
 
+	@Autowired
+	UploadProcessingConfigurationManager uploadProcessingConfigurationManager;
+
 
 
 	private void emulateUpload(Long rate, int upload, int duration)
@@ -32,22 +34,19 @@ public class RateLimiterTest {
 		String id = "an id";
 
 		// init config
-		RequestConfig unchecked = rateLimiter.requestConfigMap.getUnchecked(id);
-		unchecked.rateInKiloBytes = rate;
+		final UploadProcessingConfiguration uploadProcessingConfiguration = uploadProcessingConfigurationManager.getUploadProcessingConfiguration(id);
+		uploadProcessingConfigurationManager.assignRateToRequest(id, rate);
 
 		// emulate an upload of a file
 		Date reference = new Date();
 		for (int i = 0; i < upload; i++) {
-			Assert.assertTrue(unchecked.semaphore.tryAcquire(1, TimeUnit.MINUTES));
+			Assert.assertTrue(uploadProcessingConfiguration.getSemaphore()
+					.tryAcquire(10, TimeUnit.MINUTES));
 		}
 		long itTookThatLong = new Date().getTime() - reference.getTime();
 
-		// get stat
-		long currentRateInKiloBytes = unchecked.getStats() / 1024;
-		Assert.assertThat(currentRateInKiloBytes, is(rate));
-
 		// specify completion
-		rateLimiter.completed(id);
+		uploadProcessingConfigurationManager.reset(id);
 
 		// verify that it took around that duration
 		Assert.assertTrue(itTookThatLong < duration + 100);

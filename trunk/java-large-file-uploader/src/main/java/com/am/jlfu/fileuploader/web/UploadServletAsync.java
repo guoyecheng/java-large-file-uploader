@@ -64,7 +64,6 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 
 			// extract the fields
 			final String fileId = UploadServlet.getParameterValue(request, UploadServletParameter.fileId);
-			Long sliceFrom = Long.valueOf(UploadServlet.getParameterValue(request, UploadServletParameter.sliceFrom));
 			String crc = UploadServlet.getParameterValue(request, UploadServletParameter.crc);
 
 			// Create a new file upload handler
@@ -102,7 +101,7 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 			});
 
 			// then process
-			uploadServletAsyncProcessor.process(fileId, sliceFrom, crc, inputStream, new WriteChunkCompletionListener() {
+			uploadServletAsyncProcessor.process(fileId, crc, inputStream, new WriteChunkCompletionListener() {
 
 				@Override
 				public void success() {

@@ -11,7 +11,6 @@ public enum UploadServletParameter {
 
 	action,
 	fileId,
-	sliceFrom,
 	size,
 	crc,
 	rate,
