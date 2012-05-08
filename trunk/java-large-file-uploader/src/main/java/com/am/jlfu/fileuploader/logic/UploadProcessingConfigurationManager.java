@@ -82,7 +82,7 @@ public class UploadProcessingConfigurationManager {
 
 					// get the total
 					// divide by the time
-					long stat = stats.totalBytesWritten / (new Date().getTime() - stats.startTime) * DateUtils.MILLIS_PER_SECOND;
+					long stat = stats.totalBytesWritten * DateUtils.MILLIS_PER_SECOND / (new Date().getTime() - stats.startTime) ;
 
 					// reset
 					stats.reset();
