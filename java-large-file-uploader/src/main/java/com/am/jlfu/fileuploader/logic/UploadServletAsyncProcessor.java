@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.limiter.RateLimiter;
+import com.am.jlfu.fileuploader.logic.UploadProcessingConfigurationManager.UploadProcessingConfiguration;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
@@ -39,6 +40,9 @@ public class UploadServletAsyncProcessor {
 	private RateLimiter tokenBucket;
 
 	@Autowired
+	UploadProcessingConfigurationManager uploadProcessingConfigurationManager;
+
+	@Autowired
 	private StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
 
 	/** The executor */
@@ -46,7 +50,7 @@ public class UploadServletAsyncProcessor {
 
 
 
-	public void process(String fileId, Long sliceFrom, String crc, InputStream inputStream,
+	public void process(String fileId, String crc, InputStream inputStream,
 			WriteChunkCompletionListener completionListener)
 			throws FileNotFoundException
 	{
@@ -54,22 +58,26 @@ public class UploadServletAsyncProcessor {
 		// get entity
 		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
 
-		// if there is no configuration in the map
-		if (tokenBucket.getRateOfRequest(fileId) == null) {
+		// extract the corresponding entity from map
+		final UploadProcessingConfiguration uploadProcessingConfiguration =
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
 
-			// and if there is a specific configuration 
+		// if there is no configuration in the map
+		if (uploadProcessingConfiguration.getRateInKiloBytes() == null) {
+
+			// and if there is a specific configuration
 			FileStateJsonBase staticFileStateJson = model.getFileStates().get(fileId).getStaticFileStateJson();
 			if (staticFileStateJson != null && staticFileStateJson.getRateInKiloBytes() != null) {
-			
+
 				// use it
-				tokenBucket.assignRateToRequest(fileId, staticFileStateJson.getRateInKiloBytes());
-				
+				uploadProcessingConfigurationManager.assignRateToRequest(fileId, staticFileStateJson.getRateInKiloBytes());
+
 			}
 			// otherwise
 			else {
-				
+
 				// assign default configuration
-				tokenBucket.assignRateToRequest(fileId, model.getDefaultRateInKiloBytes());
+				uploadProcessingConfigurationManager.assignRateToRequest(fileId, model.getDefaultRateInKiloBytes());
 
 			}
 		}
@@ -96,7 +104,7 @@ public class UploadServletAsyncProcessor {
 
 		// init the task
 		final WriteChunkToFileTask task =
-				new WriteChunkToFileTask(fileId, sliceFrom, crc, inputStream, outputStream, crc32, completionListener);
+				new WriteChunkToFileTask(fileId, uploadProcessingConfiguration, crc, inputStream, outputStream, crc32, completionListener);
 
 
 		// then submit it to the workers pool
@@ -120,20 +128,21 @@ public class UploadServletAsyncProcessor {
 		private final InputStream inputStream;
 		private final OutputStream outputStream;
 		private final String fileId;
-		private final Long sliceFrom;
 		private final String crc;
 
 		private final WriteChunkCompletionListener completionListener;
 
 		private CRC32 crc32;
 		private int chunkNo;
+		private UploadProcessingConfiguration uploadProcessingConfiguration;
 
 
 
-		public WriteChunkToFileTask(String fileId, Long sliceFrom, String crc, InputStream inputStream,
+		public WriteChunkToFileTask(String fileId, UploadProcessingConfiguration uploadProcessingConfiguration, String crc,
+				InputStream inputStream,
 				OutputStream outputStream, CRC32 crc32, WriteChunkCompletionListener completionListener) {
 			this.fileId = fileId;
-			this.sliceFrom = sliceFrom;
+			this.uploadProcessingConfiguration = uploadProcessingConfiguration;
 			this.crc = crc;
 			this.inputStream = new BufferedInputStream(inputStream);
 			this.outputStream = new BufferedOutputStream(outputStream);
@@ -147,7 +156,7 @@ public class UploadServletAsyncProcessor {
 				throws Exception {
 			try {
 				// if we can get a token
-				if (tokenBucket.tryTake(fileId)) {
+				if (uploadProcessingConfiguration.getSemaphore().tryAcquire()) {
 					// process
 					writeChunkWorthOneToken();
 				}
@@ -160,7 +169,7 @@ public class UploadServletAsyncProcessor {
 			// handles a stream ended unexpectedly , it just means the user has stopped the stream
 			catch (IOException e) {
 				if (e.getMessage().equals("Stream ended unexpectedly")) {
-					log.warn("User has stopped streaming for file "+fileId);
+					log.warn("User has stopped streaming for file " + fileId);
 				}
 				else {
 					error(e);
@@ -176,14 +185,14 @@ public class UploadServletAsyncProcessor {
 
 		private void writeChunkWorthOneToken()
 				throws IOException {
-			
-			//check if user wants to cancel 
-			if (tokenBucket.requestHasToBeCancelled(fileId)) {
-				log.debug("User cancellation detected for file "+fileId +". Closing streams now.");
+
+			// check if user wants to cancel
+			if (uploadProcessingConfigurationManager.requestHasToBeCancelled(fileId)) {
+				log.debug("User cancellation detected for file " + fileId + ". Closing streams now.");
 				success();
 				return;
 			}
-			
+
 			// process the write for one token
 			log.trace("Processing chunk {} of request ({})", chunkNo++, fileId);
 
@@ -200,13 +209,16 @@ public class UploadServletAsyncProcessor {
 				// and update crc32
 				crc32.update(buffer, 0, bytesCount);
 
+				// update stats
+				uploadProcessingConfiguration.stats.update(bytesCount);
+
 				// submit again
 				uploadWorkersPool.submit(this);
 			}
 			//
 			// if we are done
 			else {
-				log.debug("Processed part " + sliceFrom + " for file " + fileId + " into temp file");
+				log.debug("Processed part for file " + fileId + " into temp file");
 
 				// TODO
 				// compare the first chunk
@@ -249,7 +261,7 @@ public class UploadServletAsyncProcessor {
 
 
 	public void clean(String identifier) {
-		tokenBucket.completed(identifier);
+		uploadProcessingConfigurationManager.reset(identifier);
 	}
 
 

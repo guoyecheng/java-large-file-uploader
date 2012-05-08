@@ -39,6 +39,9 @@ public class UploadProcessor {
 	RateLimiter rateLimiter;
 
 	@Autowired
+	UploadProcessingConfigurationManager uploadProcessingConfigurationManager;
+
+	@Autowired
 	StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
 
 	@Autowired
@@ -49,7 +52,7 @@ public class UploadProcessor {
 
 	@Autowired
 	UploadLockMap lockMap;
-	
+
 	/** Executor service for closing streams */
 	private ExecutorService streamCloserExecutor = Executors.newSingleThreadExecutor();
 
@@ -135,61 +138,63 @@ public class UploadProcessor {
 		return fileExtension;
 	}
 
-	
+
 	private void closeStreamForFile(final String fileId) {
 
-		//ask for the stream to close
-		boolean needToCloseStream = rateLimiter.markRequestHasShallBeCancelled(fileId);
-		
-		if (needToCloseStream) {
-			log.debug("waiting for the stream to be closed for "+fileId);
+		// ask for the stream to close
+		boolean needToCloseStream = uploadProcessingConfigurationManager.markRequestHasShallBeCancelled(fileId);
 
-			//then wait for the stream to be closed
+		if (needToCloseStream) {
+			log.debug("waiting for the stream to be closed for " + fileId);
+
+			// then wait for the stream to be closed
 			Future<?> submit = streamCloserExecutor.submit(new Runnable() {
-				
+
 				@Override
 				public void run() {
-					while (rateLimiter.requestHasToBeCancelled(fileId)) {
+					while (uploadProcessingConfigurationManager.requestHasToBeCancelled(fileId)) {
 						try {
 							Thread.sleep(10);
-						} catch (InterruptedException e) {
+						}
+						catch (InterruptedException e) {
 							throw new RuntimeException(e);
 						}
 					}
 				}
 			});
 			try {
-				//get the future
-				submit.get(1, TimeUnit.MINUTES);
+				// get the future
+				submit.get(5, TimeUnit.SECONDS);
 			}
 			catch (Exception e) {
-				//if we timeout delete anyway, just log
-				log.debug("cannot confirm that the stream is closed for "+fileId);
+				// if we timeout delete anyway, just log
+				log.debug("cannot confirm that the stream is closed for " + fileId);
 			}
 		}
-		
+
 	}
-	
+
+
 	public void clearFile(String fileId) {
-		
-		//ask for the stream to be closed
-		log.debug("asking for deletion for file with id "+fileId);
+
+		// ask for the stream to be closed
+		log.debug("asking for deletion for file with id " + fileId);
 		closeStreamForFile(fileId);
 
-		//then delete
+		// then delete
 		staticStateManager.clearFile(fileId);
 	}
 
 
 	public void clearAll() {
-		
-		//close any pending stream before clearing the file
-		for (String	 fileId : staticStateManager.getEntity().getFileStates().keySet()) {
-			log.debug("asking for deletion for file with id "+fileId);
+
+		// close any pending stream before clearing the file
+		for (String fileId : staticStateManager.getEntity().getFileStates().keySet()) {
+			log.debug("asking for deletion for file with id " + fileId);
 			closeStreamForFile(fileId);
 		}
-		
-		//then clear everything
+
+		// then clear everything
 		staticStateManager.clear();
 	}
 
@@ -223,14 +228,14 @@ public class UploadProcessor {
 
 
 	public Long getUploadStat(String fileId) {
-		return rateLimiter.getUploadState(fileId);
+		return uploadProcessingConfigurationManager.getUploadState(fileId);
 	}
 
 
 	public void setUploadRate(String fileId, Long rate) {
 
 		// set the rate
-		rateLimiter.assignRateToRequest(fileId, rate);
+		uploadProcessingConfigurationManager.assignRateToRequest(fileId, rate);
 
 		// save it for the file with this file id
 		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
@@ -239,7 +244,7 @@ public class UploadProcessor {
 		// save it to file system as the default
 		entity.setDefaultRateInKiloBytes(rate);
 
-		//persist changes
+		// persist changes
 		staticStateManager.processEntityTreatment(entity);
 	}
 

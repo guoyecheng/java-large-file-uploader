@@ -209,8 +209,7 @@ function JavaLargeFileUploader() {
 		
 				// prepare xhr request
 				var xhr = new XMLHttpRequest();
-				xhr.open('POST', uploadServletMapping + '?action=upload&sliceFrom=' +
-						filePosition + '&fileId=' + fileId + '&crc=' + decimalToHexString(digest), true);
+				xhr.open('POST', uploadServletMapping + '?action=upload&fileId=' + fileId + '&crc=' + decimalToHexString(digest), true);
 		
 				// assign callback
 				xhr.onreadystatechange = function() {
