@@ -7,6 +7,8 @@ import static org.hamcrest.CoreMatchers.not;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.zip.CRC32;
 
 import javax.servlet.ServletException;
@@ -60,7 +62,7 @@ public class UploadProcessorTest {
 
 	@Before
 	public void init()
-			throws IOException {
+			throws IOException, InterruptedException, ExecutionException, TimeoutException {
 
 		// populate request component container
 		requestComponentContainer.populate(new MockHttpServletRequest(), new MockHttpServletResponse());
@@ -136,7 +138,7 @@ public class UploadProcessorTest {
 
 	@Test
 	public void testCancelFileUpload()
-			throws ServletException, IOException {
+			throws ServletException, IOException, InterruptedException, ExecutionException, TimeoutException {
 
 		// begin a file upload process
 		String fileId = uploadProcessor.prepareUpload(fileSize, fileName);

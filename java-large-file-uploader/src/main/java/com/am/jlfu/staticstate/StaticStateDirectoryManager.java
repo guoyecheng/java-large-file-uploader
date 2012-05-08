@@ -17,7 +17,7 @@ public class StaticStateDirectoryManager {
 	StaticStateRootFolderProvider staticStateRootFolderProvider;
 
 	@Autowired
-	StaticStateIdentifierManager staticStateCookieManager;
+	StaticStateIdentifierManager staticStateIdentifierManager;
 
 
 
@@ -27,7 +27,7 @@ public class StaticStateDirectoryManager {
 	 * @return
 	 */
 	public File getUUIDFileParent() {
-		String uuid = staticStateCookieManager.getIdentifier();
+		String uuid = staticStateIdentifierManager.getIdentifier();
 		File uuidFileParent = new File(staticStateRootFolderProvider.getRootFolder(), uuid);
 		if (!uuidFileParent.exists()) {
 			uuidFileParent.mkdirs();

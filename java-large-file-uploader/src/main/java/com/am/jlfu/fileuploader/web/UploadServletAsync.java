@@ -93,6 +93,7 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 
 				@Override
 				void clean() {
+					log.debug("closing input stream for " + fileId);
 					// close input stream
 					IOUtils.closeQuietly(inputStream);
 					// and tell processor to clean its shit!

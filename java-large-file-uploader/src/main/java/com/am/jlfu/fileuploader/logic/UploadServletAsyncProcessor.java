@@ -10,8 +10,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.zip.CRC32;
 
 import org.apache.commons.io.IOUtils;
@@ -37,16 +37,13 @@ public class UploadServletAsyncProcessor {
 	private static final Logger log = LoggerFactory.getLogger(UploadServletAsyncProcessor.class);
 
 	@Autowired
-	private RateLimiter tokenBucket;
-
-	@Autowired
 	UploadProcessingConfigurationManager uploadProcessingConfigurationManager;
 
 	@Autowired
 	private StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
 
 	/** The executor */
-	private ScheduledThreadPoolExecutor uploadWorkersPool = new ScheduledThreadPoolExecutor(1);
+	private ThreadPoolExecutor uploadWorkersPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 
 
 
@@ -162,17 +159,19 @@ public class UploadServletAsyncProcessor {
 				}
 				// if we cant
 				else {
-					// resubmit it (but wait a bit before to stress less the cpu)
-					uploadWorkersPool.schedule(this, 5, TimeUnit.MILLISECONDS);
+					// resubmit it
+					uploadWorkersPool.submit(this);
 				}
 			}
 			// handles a stream ended unexpectedly , it just means the user has stopped the stream
 			catch (IOException e) {
 				if (e.getMessage().equals("Stream ended unexpectedly")) {
+					// we need to clean
 					log.warn("User has stopped streaming for file " + fileId);
+					complete();
 				}
 				else {
-					error(e);
+					completeWithError(e);
 				}
 			}
 			catch (Exception e) {
@@ -189,7 +188,7 @@ public class UploadServletAsyncProcessor {
 			// check if user wants to cancel
 			if (uploadProcessingConfigurationManager.requestHasToBeCancelled(fileId)) {
 				log.debug("User cancellation detected for file " + fileId + ". Closing streams now.");
-				success();
+				complete();
 				return;
 			}
 
@@ -228,23 +227,25 @@ public class UploadServletAsyncProcessor {
 				if (!calculatedChecksum.equals(crc)) {
 					InvalidCrcException invalidCrcException = new InvalidCrcException(calculatedChecksum, crc);
 					log.error(invalidCrcException.getMessage(), invalidCrcException);
-					error(invalidCrcException);
+					completeWithError(invalidCrcException);
 					return;
 				}
 
 				// and specify as complete
-				success();
+				complete();
 			}
 		}
 
 
-		public void error(Exception e) {
+		public void completeWithError(Exception e) {
+			log.debug("error for " + fileId + ". closing file stream");
 			IOUtils.closeQuietly(outputStream);
 			completionListener.error(e);
 		}
 
 
-		public void success() {
+		public void complete() {
+			log.debug("completion for " + fileId + ". closing file stream");
 			IOUtils.closeQuietly(outputStream);
 			completionListener.success();
 
@@ -261,6 +262,7 @@ public class UploadServletAsyncProcessor {
 
 
 	public void clean(String identifier) {
+		log.debug("resetting token bucket for " + identifier);
 		uploadProcessingConfigurationManager.reset(identifier);
 	}
 

@@ -8,8 +8,8 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -38,13 +38,13 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 	private static final Logger log = LoggerFactory.getLogger(StaticStateManager.class);
 	private static final String FILENAME = "StaticState.xml";
+	public static final int DELETION_DELAY = 100;
 
 	@Autowired
 	StaticStateIdentifierManager staticStateIdentifierManager;
 
 	@Autowired
 	StaticStateDirectoryManager staticStateDirectoryManager;
-
 
 	/**
 	 * Used to bypass generic type erasure.<br>
@@ -159,12 +159,19 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 	/**
 	 * Clear everything including cache, session, files.
+	 * 
+	 * @throws TimeoutException
+	 * @throws ExecutionException
+	 * @throws InterruptedException
 	 */
-	public void clear() {
+	public void clear()
+			throws InterruptedException, ExecutionException, TimeoutException {
 		log.debug("Clearing everything including cache, session, files.");
 
+		final File uuidFileParent = staticStateDirectoryManager.getUUIDFileParent();
+
+
 		// remove files
-		File uuidFileParent = staticStateDirectoryManager.getUUIDFileParent();
 		try {
 			FileUtils.deleteDirectory(uuidFileParent);
 		}
@@ -176,6 +183,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 							e.getMessage(), e);
 		}
 
+
 		// remove entity from cache
 		cache.invalidate(staticStateIdentifierManager.getIdentifier());
 
@@ -185,11 +193,15 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	}
 
 
-	public void clearFile(final String fileId) {
+	public void clearFile(final String fileId)
+			throws InterruptedException, ExecutionException, TimeoutException {
 		log.debug("Clearing pending uploaded file and all attributes linked to it.");
 
+		final File uuidFileParent = staticStateDirectoryManager.getUUIDFileParent();
+
+
 		// remove the uploaded file for this particular id
-		File[] listFiles = staticStateDirectoryManager.getUUIDFileParent().listFiles(new FilenameFilter() {
+		File[] listFiles = uuidFileParent.listFiles(new FilenameFilter() {
 
 			public boolean accept(File dir, String name) {
 				return name.startsWith(fileId);
@@ -202,13 +214,13 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 			}
 		}
 
+
 		// remove the file information in entity
 		T entity = getEntity();
 		entity.getFileStates().remove(fileId);
 
 		// and save
 		processEntityTreatment(entity);
-
 	}
 
 

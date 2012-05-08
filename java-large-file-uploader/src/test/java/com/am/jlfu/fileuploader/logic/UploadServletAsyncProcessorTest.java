@@ -4,8 +4,10 @@ package com.am.jlfu.fileuploader.logic;
 import static org.hamcrest.CoreMatchers.is;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.servlet.ServletException;
 
@@ -58,7 +60,7 @@ public class UploadServletAsyncProcessorTest {
 
 	@Before
 	public void init()
-			throws IOException {
+			throws IOException, InterruptedException, ExecutionException, TimeoutException {
 
 		// populate request component container
 		requestComponentContainer.populate(new MockHttpServletRequest(), new MockHttpServletResponse());

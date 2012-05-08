@@ -22,9 +22,6 @@ import com.am.jlfu.fileuploader.logic.UploadProcessingConfigurationManager.Uploa
 public class RateLimiterTest {
 
 	@Autowired
-	RateLimiter rateLimiter;
-
-	@Autowired
 	UploadProcessingConfigurationManager uploadProcessingConfigurationManager;
 
 

@@ -3,6 +3,8 @@ package com.am.jlfu.staticstate;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import junit.framework.Assert;
 
@@ -17,9 +19,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
-import com.am.jlfu.staticstate.StaticStateDirectoryManager;
-import com.am.jlfu.staticstate.StaticStateIdentifierManager;
-import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 
@@ -41,18 +40,21 @@ public class StaticStateManagerTest {
 	@Autowired
 	RequestComponentContainer requestComponentContainer;
 
+
+
 	@Before
 	public void init() {
 
 		// populate request component container
-		requestComponentContainer.populate( new MockHttpServletRequest(), new MockHttpServletResponse());
+		requestComponentContainer.populate(new MockHttpServletRequest(), new MockHttpServletResponse());
 
 		staticStateManager.init(StaticStatePersistedOnFileSystemEntity.class);
 	}
 
 
 	@Test
-	public void testClear() {
+	public void testClear()
+			throws InterruptedException, ExecutionException, TimeoutException {
 
 		// get entity
 		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
@@ -71,7 +73,7 @@ public class StaticStateManagerTest {
 
 	@Test
 	public void testClearFile()
-			throws IOException {
+			throws IOException, InterruptedException, ExecutionException, TimeoutException {
 		String randomValue = "a";
 		String fileId = "lalala";
 
