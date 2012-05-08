@@ -5,10 +5,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +20,6 @@ import org.springframework.stereotype.Component;
 import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
-import com.am.jlfu.fileuploader.limiter.RateLimiter;
 import com.am.jlfu.fileuploader.utils.UploadLockMap;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
@@ -34,9 +35,6 @@ import com.google.common.collect.Maps;
 public class UploadProcessor {
 
 	private static final Logger log = LoggerFactory.getLogger(UploadProcessor.class);
-
-	@Autowired
-	RateLimiter rateLimiter;
 
 	@Autowired
 	UploadProcessingConfigurationManager uploadProcessingConfigurationManager;
@@ -175,7 +173,8 @@ public class UploadProcessor {
 	}
 
 
-	public void clearFile(String fileId) {
+	public void clearFile(String fileId)
+			throws InterruptedException, ExecutionException, TimeoutException {
 
 		// ask for the stream to be closed
 		log.debug("asking for deletion for file with id " + fileId);
@@ -186,7 +185,8 @@ public class UploadProcessor {
 	}
 
 
-	public void clearAll() {
+	public void clearAll()
+			throws InterruptedException, ExecutionException, TimeoutException {
 
 		// close any pending stream before clearing the file
 		for (String fileId : staticStateManager.getEntity().getFileStates().keySet()) {
@@ -201,6 +201,7 @@ public class UploadProcessor {
 
 	public Float getProgress(String fileId)
 			throws FileNotFoundException {
+
 
 		// get the file
 		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();

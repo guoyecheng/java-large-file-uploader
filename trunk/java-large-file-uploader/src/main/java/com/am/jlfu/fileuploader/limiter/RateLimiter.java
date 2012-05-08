@@ -36,8 +36,8 @@ public class RateLimiter
 	public static final int SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES = 1024;// 1KB
 
 	/** The default request capacity. volatile because it can be changed. */
-	private volatile int defaultRateInBytes = 100 * 1024 * SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES;
-	// 100MB PER SECOND
+	private volatile int defaultRateInBytes = 10 * 1024 * SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES;
+	// 10MB PER SECOND
 
 	/** Number of times the bucket is filled per second. */
 	public static final int NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND = 10;

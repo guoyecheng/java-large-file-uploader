@@ -49,8 +49,8 @@ function JavaLargeFileUploader() {
 	 * clear all state on the server.
 	 */
 	this.clearFileUpload = function (callback) {
+		pendingFiles = new Object();
 		$.get(globalServletMapping + "?action=clearAll", function(e) {
-			pendingFiles = new Object();
 			callback();
 		});
 	};
@@ -68,9 +68,9 @@ function JavaLargeFileUploader() {
 	 * clear the file with the specified id.
 	 */
 	this.cancelFileUpload = function (fileId, callback) {
+		delete pendingFiles[fileId];
 		if(fileId) {
 			$.get(globalServletMapping + "?action=clearFile&fileId=" + fileId,	function(e) {
-				delete pendingFiles[fileId];
 				callback();
 			});
 		}
@@ -190,6 +190,7 @@ function JavaLargeFileUploader() {
 	function go(fileId, filePosition, end, blob, finishCallback, exceptionCallback,
 			referenceToFileElement) {
 	
+		//if file id is in the pending files:
 		var chunk;
 		if (blob.mozSlice) {
 			chunk = blob.mozSlice(filePosition, end);
@@ -244,7 +245,10 @@ function JavaLargeFileUploader() {
 		
 				// send xhr request
 				try {
-					xhr.send(formData);
+					//only send if it is pending, because it could have been asked for cancellation while we were reading the file!
+					if (fileId && pendingFiles[fileId]) {
+						xhr.send(formData);
+					}
 				} catch (e) {
 					exceptionCallback(e.message);
 					return;
@@ -254,7 +258,7 @@ function JavaLargeFileUploader() {
 		};
 		//read the chunk to calculate the crc
 		reader.readAsBinaryString(chunk);
-	
+
 	
 	}
 	
@@ -278,25 +282,30 @@ function JavaLargeFileUploader() {
 	
 	function startProgressPoller(fileId, progressCallback, referenceToFileElement) {
 	
-		// get the configuration
-		$.get(globalServletMapping + "?action=getProgress&fileId=" + fileId,	function(data) {
-	
-			//if we have information about the rate:
-			if (data.uploadRate) {
-				var uploadRate = getFormattedSize(data.uploadRate);
-			}
+		//process only if we have this id in the pending files
+		if (fileId && pendingFiles[fileId]) {
 			
-			// specify progress
-			progressCallback(fileId, format(data.progress), uploadRate,
-					referenceToFileElement);
-	
-			// continue if not finished
-			if (data.progress < 100) {
-				setTimeout(startProgressPoller, 500, fileId,
-						progressCallback, referenceToFileElement);
-			}
-		});
-	
+			// get the progress
+			$.get(globalServletMapping + "?action=getProgress&fileId=" + fileId,	function(data) {
+				
+				//if we have information about the rate:
+				if (data.uploadRate) {
+					var uploadRate = getFormattedSize(data.uploadRate);
+				}
+				
+				// specify progress
+				progressCallback(fileId, format(data.progress), uploadRate,
+						referenceToFileElement);
+				
+				// continue if not finished
+				if (data.progress < 100) {
+					setTimeout(startProgressPoller, 500, fileId,
+							progressCallback, referenceToFileElement);
+				}
+			});
+			
+		}
+		
 	}
 	
 	
