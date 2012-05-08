@@ -39,7 +39,9 @@ function JavaLargeFileUploader() {
 				callback(data.pendingFiles);
 	
 			} else {
-				exceptionCallback("Error! Cannot retrieve the configuration!");
+				if (exceptionCallback) {
+					exceptionCallback("Error! Cannot retrieve the configuration!");
+				}
 			}
 		});
 	
@@ -51,7 +53,9 @@ function JavaLargeFileUploader() {
 	this.clearFileUpload = function (callback) {
 		pendingFiles = new Object();
 		$.get(globalServletMapping + "?action=clearAll", function(e) {
-			callback();
+			if (callback) {
+				callback();
+			}
 		});
 	};
 	
@@ -68,10 +72,44 @@ function JavaLargeFileUploader() {
 	 * clear the file with the specified id.
 	 */
 	this.cancelFileUpload = function (fileId, callback) {
-		delete pendingFiles[fileId];
-		if(fileId) {
+		if(fileId && pendingFiles[fileId]) {
+			delete pendingFiles[fileId];
 			$.get(globalServletMapping + "?action=clearFile&fileId=" + fileId,	function(e) {
-				callback();
+				if (callback) {
+					callback();
+				}
+			});
+		}
+	};
+	
+	/*
+	 * Pauses the fileUpload 
+	 */
+	this.pauseFileUpload = function (fileId, callback) {
+		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused == false) {
+			pendingFiles[fileId].paused = true;
+			$.get(globalServletMapping + "?action=pauseFile&fileId=" + fileId,	function(e) {
+				if (callback) {
+					callback();
+				}
+			});
+		}
+	};
+
+	/*
+	 * Resumes the fileUpload 
+	 */
+	this.resumeFileUpload = function (fileId, callback) {
+		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused == true) {
+			//set as not paused anymore
+			pendingFiles[fileId].paused = false;
+			//restart progress poller
+			startProgressPoller(pendingFiles[fileId]);
+			//and restart flow
+			$.get(globalServletMapping + "?action=resumeFile&fileId=" + fileId,	function(e) {
+				if (callback) {
+					callback();
+				}
 			});
 		}
 	};
@@ -103,7 +141,7 @@ function JavaLargeFileUploader() {
 	 * a function that will be called when the process is fully complete. params: 1 is the fileId, 2 is the origin element 
 	 * 
 	 * exceptionCallback:
-	 * a callback triggered when an exception occurred. params: 1 exception description. 
+	 * a callback triggered when an exception occurred. params: 1 exception description, 2 the reference to the file element 
 	 * 
 	 * fileId: a parameter to resume a pending file upload (null/undefined for a new upload)
 	 */
@@ -113,58 +151,65 @@ function JavaLargeFileUploader() {
 		var files = referenceToFileElement.files;
 	
 		if (!files.length) {
-			exceptionCallback("Please select a file!");
+			if (exceptionCallback) {
+				exceptionCallback("Please select a file!", referenceToFileElement);
+			}
 			return;
 		}
-	
+
+		//extract blob
 		var blob = files[0];
-	
-		// init file informations (redefined by the resuming block if resume)
-		var filePosition = 0;
-		var fileName = extractFileName(referenceToFileElement.value);
-	
-		// init size
-		var size = blob.size;
-	
+		
+		//init the pending file object
+		var pendingFile = new Object();
+		pendingFile.fileName = extractFileName(referenceToFileElement.value); 
+		pendingFile.size = blob.size;  
+		pendingFile.progressCallback=progressCallback;
+		pendingFile.referenceToFileElement= referenceToFileElement;
+		pendingFile.finishCallback= finishCallback;
+		pendingFile.exceptionCallback= exceptionCallback;
+		pendingFile.paused=false;
+		
 		// if we are resuming an upload
 		if (fileId && pendingFiles[fileId]) {
-			var pendingFile = pendingFiles[fileId];
+			pendingFile.id = fileId;
 	
 			// compare to previously updated filename
-			if (pendingFile.originalFileName != fileName || pendingFile.originalFileSizeInBytes != size) {
-				exceptionCallback("You want to upload a file named '" + fileName + "'("	+ getFormattedSize(size)+ ") but there" +
-						" is already a pending upload for a file named '"	+ pendingFile.originalFileName	+ "'(" +
-						getFormattedSize(pendingFile.fileCompletionInBytes)	+ "/" + getFormattedSize(pendingFile.originalFileSizeInBytes) +
-						"). \r\nReselect this file to resume the upload or cancel this upload before selecting a new file.");
+			if (pendingFile.originalFileName != pendingFile.fileName || pendingFile.originalFileSizeInBytes != size) {
+				if (exceptionCallback) {
+					exceptionCallback("You want to upload a file named '" + pendingFile.fileName + "'("	+ getFormattedSize(pendingFile.size)+ ") but there" +
+							" is already a pending upload for a file named '"	+ pendingFile.originalFileName	+ "'(" +
+							getFormattedSize(pendingFile.fileCompletionInBytes)	+ "/" + getFormattedSize(pendingFile.originalFileSizeInBytes) +
+							"). \r\nReselect this file to resume the upload or cancel this upload before selecting a new file.", referenceToFileElement);
+				}
 				return;
-			} else {
-				filePosition = pendingFile.fileCompletionInBytes;
-			}
-	
+			} 
+			
 			// and process the upload
-			fileUploadProcessStarter(fileId, filePosition, blob, progressCallback, finishCallback,
-					exceptionCallback, referenceToFileElement);
+			fileUploadProcessStarter(pendingFile,blob);
 	
 		}
 		// if not, file id is undefined:
 		else {
 			// if file id is undefined, we need to prepare the upload
-			$.get(globalServletMapping + "?action=prepareUpload&fileName="+ fileName + "&size=" + size, function(response) {
+			$.get(globalServletMapping + "?action=prepareUpload&fileName="+ pendingFile.fileName + "&size=" + pendingFile.size, function(response) {
 	
+				//now that we have the file id, we can assign the object
 				fileId = response.value;
-				pendingFiles[fileId] = {
-					fileComplete : false,
-					originalFileSize : size,
-					originalFileName : fileName,
-					fileCompletionInBytes : filePosition
-				};
+				pendingFiles[fileId] = pendingFile;
+				pendingFile.id = fileId;
+				pendingFile.fileComplete = false;
+				pendingFile.originalFileSize = pendingFile.size;
+				pendingFile.originalFileName = pendingFile.fileName;
+				pendingFile.fileCompletionInBytes = 0;
 				
 				//call callback
-				startCallback(fileId, referenceToFileElement);
+				if (startCallback) {
+					startCallback(fileId, referenceToFileElement);
+				}
 	
 				// and process the upload
-				fileUploadProcessStarter(fileId, filePosition, blob, progressCallback,
-						finishCallback, exceptionCallback, referenceToFileElement);
+				fileUploadProcessStarter(pendingFile, blob);
 	
 			});
 	
@@ -172,30 +217,29 @@ function JavaLargeFileUploader() {
 	
 	};
 	
-	function fileUploadProcessStarter(fileId, filePosition, blob, progressCallback, finishCallback,
-			exceptionCallback, referenceToFileElement) {
-	
+	function fileUploadProcessStarter(pendingFile,blob) {
+		
 		// start
-		var end = filePosition + bytesPerChunk;
+		pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
 	
 		// launch the progress poller
-		startProgressPoller(fileId, progressCallback, referenceToFileElement);
+		if (pendingFile.progressCallback) {
+			startProgressPoller(pendingFile);
+		}
 	
 		// then process the recursive function
-		go(fileId, filePosition, end, blob, finishCallback, exceptionCallback,
-				referenceToFileElement);
+		go(pendingFile,blob);
 	
 	}
 	
-	function go(fileId, filePosition, end, blob, finishCallback, exceptionCallback,
-			referenceToFileElement) {
+	function go(pendingFile, blob) {
 	
 		//if file id is in the pending files:
 		var chunk;
 		if (blob.mozSlice) {
-			chunk = blob.mozSlice(filePosition, end);
+			chunk = blob.mozSlice(pendingFile.fileCompletionInBytes, pendingFile.end);
 		} else {
-			chunk = blob.webkitSlice(filePosition, end);
+			chunk = blob.webkitSlice(pendingFile.fileCompletionInBytes, pendingFile.end);
 		}
 	
 		var formData = new FormData();
@@ -210,35 +254,32 @@ function JavaLargeFileUploader() {
 		
 				// prepare xhr request
 				var xhr = new XMLHttpRequest();
-				xhr.open('POST', uploadServletMapping + '?action=upload&fileId=' + fileId + '&crc=' + decimalToHexString(digest), true);
+				xhr.open('POST', uploadServletMapping + '?action=upload&fileId=' + pendingFile.id + '&crc=' + decimalToHexString(digest), true);
 		
 				// assign callback
 				xhr.onreadystatechange = function() {
 					if (xhr.readyState == 4) {
 		
 						if (xhr.status != 200) {
-							exceptionCallback("Error while uploading slice of byte " + filePosition + "-" + (filePosition + bytesPerChunk));
+							if (exceptionCallback) {
+								exceptionCallback("Error while uploading slice of byte " + pendingFile.fileCompletionInBytes + "-" + (pendingFile.fileCompletionInBytes + bytesPerChunk), pendingFile.referenceToFileElement);
+							}
 							return;
 						}
 		
 						// progress
-						filePosition = end;
-						end = filePosition + bytesPerChunk;
-		
-						// update map
-						var pendingFile = pendingFiles[fileId];
-						// update completion
-						pendingFile.fileCompletionInBytes = filePosition;
+						pendingFile.fileCompletionInBytes = pendingFile.end;
+						pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
 		
 						// check if we need to go on
-						if (filePosition < blob.size) {
+						if (pendingFile.fileCompletionInBytes < pendingFile.size) {
 							// recursive call
-							setTimeout(go, 5, fileId, filePosition, end, blob,
-									finishCallback, exceptionCallback,
-									referenceToFileElement);
+							setTimeout(go, 5, pendingFile, blob);
 						} else {
 							// finish callback
-							finishCallback(fileId, referenceToFileElement);
+							if (pendingFile.finishCallback) {
+								pendingFile.finishCallback(pendingFile.id, pendingFile.referenceToFileElement);
+							}
 						}
 					}
 				};
@@ -246,11 +287,13 @@ function JavaLargeFileUploader() {
 				// send xhr request
 				try {
 					//only send if it is pending, because it could have been asked for cancellation while we were reading the file!
-					if (fileId && pendingFiles[fileId]) {
+					if (pendingFiles[pendingFile.id]) {
 						xhr.send(formData);
 					}
 				} catch (e) {
-					exceptionCallback(e.message);
+					if (pendingFile.exceptionCallback) {
+						pendingFile.exceptionCallback(e.message, pendingFile.referenceToFileElement);
+					}
 					return;
 				}
 		    }
@@ -280,28 +323,34 @@ function JavaLargeFileUploader() {
 		return size.toFixed(2);
 	}
 	
-	function startProgressPoller(fileId, progressCallback, referenceToFileElement) {
+	
+	function startProgressPoller(pendingFile) {
 	
 		//process only if we have this id in the pending files
-		if (fileId && pendingFiles[fileId]) {
+		if (pendingFiles[pendingFile.id] && !pendingFile.paused) {
 			
 			// get the progress
-			$.get(globalServletMapping + "?action=getProgress&fileId=" + fileId,	function(data) {
+			$.get(globalServletMapping + "?action=getProgress&fileId=" + pendingFile.id,	function(data) {
 				
-				//if we have information about the rate:
-				if (data.uploadRate) {
-					var uploadRate = getFormattedSize(data.uploadRate);
+				//if the pending file has not been deleted while we querying:
+				if (pendingFiles[pendingFile.id]) {
+
+					//if we have information about the rate:
+					if (data.uploadRate) {
+						var uploadRate = getFormattedSize(data.uploadRate);
+					}
+					
+					// specify progress
+					pendingFile.progressCallback(pendingFile.id, format(data.progress), uploadRate,
+							pendingFile.referenceToFileElement);
+					
+					// continue if not finished
+					if (data.progress < 100) {
+						setTimeout(startProgressPoller, 500, pendingFile);
+					}
+					
 				}
 				
-				// specify progress
-				progressCallback(fileId, format(data.progress), uploadRate,
-						referenceToFileElement);
-				
-				// continue if not finished
-				if (data.progress < 100) {
-					setTimeout(startProgressPoller, 500, fileId,
-							progressCallback, referenceToFileElement);
-				}
 			});
 			
 		}

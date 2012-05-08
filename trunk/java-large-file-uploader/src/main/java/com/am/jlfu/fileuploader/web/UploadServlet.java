@@ -123,6 +123,12 @@ public class UploadServlet extends HttpRequestHandlerServlet
 			case clearAll:
 				uploadProcessor.clearAll();
 				break;
+			case pauseFile:
+				uploadProcessor.pauseFile(getParameterValue(request, UploadServletParameter.fileId));
+				break;
+			case resumeFile:
+				uploadProcessor.resumeFile(getParameterValue(request, UploadServletParameter.fileId));
+				break;
 			case setRate:
 				uploadProcessor.setUploadRate(getParameterValue(request, UploadServletParameter.fileId),
 						Long.valueOf(getParameterValue(request, UploadServletParameter.rate)));

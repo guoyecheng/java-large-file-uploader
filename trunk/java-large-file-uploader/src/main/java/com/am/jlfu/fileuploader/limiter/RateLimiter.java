@@ -60,37 +60,41 @@ public class RateLimiter
 		// for all the requests we have
 		for (Entry<String, UploadProcessingConfiguration> count : uploadProcessingConfigurationManager.getEntries()) {
 
-			// calculate from the rate in the config
-			int requestBucketCapacity;
-			Long rateInKiloBytes = count.getValue().getRateInKiloBytes();
-			if (rateInKiloBytes != null) {
+			// if it is paused, we do nothing.. The bucket is gonna get exhausted pretty soon :)
+			if (!count.getValue().isPaused()) {
 
-				// check min
-				if (rateInKiloBytes < 10) {
-					rateInKiloBytes = 10l;
+				// calculate from the rate in the config
+				int requestBucketCapacity;
+				Long rateInKiloBytes = count.getValue().getRateInKiloBytes();
+				if (rateInKiloBytes != null) {
+
+					// check min
+					if (rateInKiloBytes < 10) {
+						rateInKiloBytes = 10l;
+					}
+
+					// then calculate
+					requestBucketCapacity = (int) (rateInKiloBytes * 1024 / SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES);
+
+				}
+				else {
+					requestBucketCapacity = defaultRateInBytes / SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES;
 				}
 
-				// then calculate
-				requestBucketCapacity = (int) (rateInKiloBytes * 1024 / SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES);
+				// then calculate the maximum number to release;
+				final int maxToRelease = requestBucketCapacity / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND;
 
-			}
-			else {
-				requestBucketCapacity = defaultRateInBytes / SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES;
-			}
+				// release maximum minus number of semaphores still present
+				final int releaseCount = maxToRelease - count.getValue().getSemaphore().availablePermits();
 
-			// then calculate the maximum number to release;
-			final int maxToRelease = requestBucketCapacity / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND;
-
-			// release maximum minus number of semaphores still present
-			final int releaseCount = maxToRelease - count.getValue().getSemaphore().availablePermits();
-
-			// if we have consumed some
-			if (releaseCount > 0) {
-				// release
-				count.getValue().getSemaphore().release(releaseCount);
-				log.trace("Releasing {} tokens for request #{}, available tokens: " + count.getValue().getSemaphore()
-						.availablePermits(), releaseCount,
-						count.getKey());
+				// if we have consumed some
+				if (releaseCount > 0) {
+					// release
+					count.getValue().getSemaphore().release(releaseCount);
+					log.trace("Releasing {} tokens for request #{}, available tokens: " + count.getValue().getSemaphore()
+							.availablePermits(), releaseCount,
+							count.getKey());
+				}
 			}
 		}
 	}

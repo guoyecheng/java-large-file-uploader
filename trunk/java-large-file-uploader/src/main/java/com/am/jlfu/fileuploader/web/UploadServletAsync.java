@@ -43,7 +43,9 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 	StaticStateIdentifierManager staticStateIdentifierManager;
 
 	/**
-	 * Maximum time that a streaming request can take.
+	 * Maximum time that a streaming request can take.<br>
+	 * Note that the pause/resume stuff might not be a good idea as it keeps the stream opened while
+	 * paused.
 	 */
 	// TODO make configurable
 	private long taskTimeOut = DateUtils.MILLIS_PER_HOUR;

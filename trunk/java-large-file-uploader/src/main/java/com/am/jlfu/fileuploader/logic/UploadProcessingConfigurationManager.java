@@ -64,6 +64,11 @@ public class UploadProcessingConfigurationManager {
 		 */
 		private Long rateInKiloBytes;
 
+		/**
+		 * Boolean specifying whether the upload is paused or not.
+		 */
+		private boolean isPaused = false;
+
 
 
 		public Long getStats() {
@@ -115,6 +120,8 @@ public class UploadProcessingConfigurationManager {
 					totalBytesWritten += numberOfBytesWritten;
 				}
 			}
+
+
 		}
 
 
@@ -126,6 +133,11 @@ public class UploadProcessingConfigurationManager {
 
 		public Long getRateInKiloBytes() {
 			return rateInKiloBytes;
+		}
+
+
+		public boolean isPaused() {
+			return isPaused;
 		}
 
 
@@ -162,6 +174,7 @@ public class UploadProcessingConfigurationManager {
 		final UploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
 		unchecked.semaphore = new Semaphore(0, false);
 		unchecked.cancelRequest = false;
+		unchecked.isPaused = false;
 	}
 
 
@@ -188,6 +201,16 @@ public class UploadProcessingConfigurationManager {
 
 	public UploadProcessingConfiguration getUploadProcessingConfiguration(String fileId) {
 		return requestConfigMap.getUnchecked(fileId);
+	}
+
+
+	public void pause(String fileId) {
+		requestConfigMap.getUnchecked(fileId).isPaused = true;
+	}
+
+
+	public void resume(String fileId) {
+		requestConfigMap.getUnchecked(fileId).isPaused = false;
 	}
 
 
