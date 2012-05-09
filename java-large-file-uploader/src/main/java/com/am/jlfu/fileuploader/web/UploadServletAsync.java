@@ -20,8 +20,8 @@ import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor.WriteChunkCompletionListener;
+import com.am.jlfu.fileuploader.web.utils.FileUploadConfiguration;
 import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper;
-import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper.FileUploadConfiguration;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 
 
@@ -92,11 +92,25 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 
 				@Override
 				public void error(Exception exception) {
-					try {
-						fileUploaderHelper.writeExceptionToResponse(exception, response);
+					// treat the exception:
+
+					// handles a stream ended unexpectedly , it just means the user has stopped the
+					// stream
+					if (exception.getMessage().equals("User has stopped streaming")) {
+						log.warn("User has stopped streaming for file " + process.getFileId());
 					}
-					catch (IOException e) {
-						log.error(e.getMessage(), e);
+					else if (exception.getMessage().equals("User cancellation")) {
+						log.warn("User has cancelled streaming for file id " + process.getFileId());
+						// do nothing
+					}
+					// if we have an unmanaged exception
+					else {
+						try {
+							fileUploaderHelper.writeExceptionToResponse(exception, response);
+						}
+						catch (IOException e) {
+							log.error(e.getMessage(), e);
+						}
 					}
 					asyncContext.complete();
 				}

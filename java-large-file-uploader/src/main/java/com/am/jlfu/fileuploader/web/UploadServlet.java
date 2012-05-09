@@ -22,8 +22,8 @@ import com.am.jlfu.fileuploader.json.JsonObject;
 import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.json.SimpleJsonObject;
 import com.am.jlfu.fileuploader.logic.UploadProcessor;
+import com.am.jlfu.fileuploader.web.utils.FileUploadConfiguration;
 import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper;
-import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper.FileUploadConfiguration;
 
 
 
@@ -87,6 +87,9 @@ public class UploadServlet extends HttpRequestHandlerServlet
 			case getConfig:
 				returnObject = uploadProcessor.getConfig();
 				break;
+			case verifyCrcOfUncheckedPart:
+				verifyCrcOfUncheckedPart(request);
+				break;
 			case verifyFirstChunk:
 				verifyFirstChunk(request);
 				break;
@@ -125,6 +128,18 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				break;
 		}
 		return returnObject;
+	}
+
+
+	private void verifyCrcOfUncheckedPart(HttpServletRequest request)
+			throws IncorrectRequestException, MissingParameterException, FileUploadException, IOException, InvalidCrcException {
+
+		// get config
+		final FileUploadConfiguration extractFileUploadConfiguration = fileUploaderHelper.extractFileUploadConfiguration(request);
+
+		// verify first chunk
+		uploadProcessor.verifyCrcOfUncheckedPart(extractFileUploadConfiguration);
+
 	}
 
 

@@ -19,7 +19,7 @@ public class InitializationConfiguration
 	/**
 	 * The size of the slice in bytes.
 	 */
-	private Float inByte;
+	private long inByte;
 
 	/**
 	 * The list of the pending files.
@@ -36,12 +36,12 @@ public class InitializationConfiguration
 	}
 
 
-	public Float getInByte() {
+	public long getInByte() {
 		return inByte;
 	}
 
 
-	public void setInByte(Float inByte) {
+	public void setInByte(long inByte) {
 		this.inByte = inByte;
 	}
 
@@ -54,7 +54,6 @@ public class InitializationConfiguration
 	public void setPendingFiles(Map<String, FileStateJson> pendingFiles) {
 		this.pendingFiles = pendingFiles;
 	}
-
 
 
 }

@@ -1,8 +1,6 @@
 package com.am.jlfu.fileuploader.logic;
 
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -35,7 +33,7 @@ import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 public class UploadServletAsyncProcessor {
 
 	/** The size of the buffer in bytes */
-	private static final int SIZE_OF_THE_BUFFER_IN_BYTES = 8192;// 8KB
+	public static final int SIZE_OF_THE_BUFFER_IN_BYTES = 8192;// 8KB
 
 	private static final Logger log = LoggerFactory.getLogger(UploadServletAsyncProcessor.class);
 
@@ -45,7 +43,7 @@ public class UploadServletAsyncProcessor {
 	@Autowired
 	private StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
 
-	/** The executor */
+	/** The executor that writes the file */
 	private ThreadPoolExecutor uploadWorkersPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 
 
@@ -144,8 +142,8 @@ public class UploadServletAsyncProcessor {
 			this.fileId = fileId;
 			this.uploadProcessingConfiguration = uploadProcessingConfiguration;
 			this.crc = crc;
-			this.inputStream = new BufferedInputStream(inputStream);
-			this.outputStream = new BufferedOutputStream(outputStream);
+			this.inputStream = inputStream;
+			this.outputStream = outputStream;
 			this.crc32 = crc32;
 			this.completionListener = completionListener;
 		}
@@ -166,20 +164,15 @@ public class UploadServletAsyncProcessor {
 					uploadWorkersPool.submit(this);
 				}
 			}
-			// handles a stream ended unexpectedly , it just means the user has stopped the stream
 			catch (IOException e) {
 				if (e.getMessage().equals("Stream ended unexpectedly")) {
-					// we need to clean
-					log.warn("User has stopped streaming for file " + fileId);
-					complete();
-				}
-				else {
-					completeWithError(e);
+					completeWithError(new Exception("User has stopped streaming"));// TODO custom
+																					// exception
 				}
 			}
 			catch (Exception e) {
 				log.error("Error while sending data chunk, aborting (" + fileId + ")", e);
-
+				completeWithError(e);
 			}
 			return null;
 		}
@@ -190,8 +183,7 @@ public class UploadServletAsyncProcessor {
 
 			// check if user wants to cancel
 			if (uploadProcessingConfigurationManager.requestHasToBeCancelled(fileId)) {
-				log.debug("User cancellation detected for file " + fileId + ". Closing streams now.");
-				complete();
+				completeWithError(new Exception("User cancellation"));// TODO custom exceptions
 				return;
 			}
 
@@ -234,8 +226,11 @@ public class UploadServletAsyncProcessor {
 					return;
 				}
 
+				// if the crc is valid, specify the validation to the state
+				staticStateManager.setCrcBytesValidated(fileId, UploadProcessor.sliceSizeInBytes);
+
 				// and specify as complete
-				complete();
+				success();
 			}
 		}
 
@@ -247,7 +242,7 @@ public class UploadServletAsyncProcessor {
 		}
 
 
-		public void complete() {
+		public void success() {
 			log.debug("completion for " + fileId + ". closing file stream");
 			IOUtils.closeQuietly(outputStream);
 			completionListener.success();

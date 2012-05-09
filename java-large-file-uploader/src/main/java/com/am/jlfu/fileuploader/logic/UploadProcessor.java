@@ -1,7 +1,7 @@
 package com.am.jlfu.fileuploader.logic;
 
 
-import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,7 +14,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.zip.CRC32;
 
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -27,8 +26,10 @@ import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
+import com.am.jlfu.fileuploader.utils.CRCHelper;
+import com.am.jlfu.fileuploader.utils.CRCHelper.CRCResult;
 import com.am.jlfu.fileuploader.utils.UploadLockMap;
-import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper.FileUploadConfiguration;
+import com.am.jlfu.fileuploader.web.utils.FileUploadConfiguration;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
@@ -43,6 +44,9 @@ import com.google.common.collect.Maps;
 public class UploadProcessor {
 
 	private static final Logger log = LoggerFactory.getLogger(UploadProcessor.class);
+
+	@Autowired
+	CRCHelper crcHelper;
 
 	@Autowired
 	RateLimiterConfigurationManager uploadProcessingConfigurationManager;
@@ -68,7 +72,7 @@ public class UploadProcessor {
 	 */
 	// Float sliceSize = 1048576f;
 	// Float sliceSize = 104857600f; // 100mb
-	Float sliceSize = 10485760f; // 10mb
+	public static final long sliceSizeInBytes = 10485760; // 10mb
 
 
 
@@ -91,6 +95,7 @@ public class UploadProcessor {
 					fileStateJson.setOriginalFileName(staticFileStateJson.getOriginalFileName());
 					fileStateJson.setOriginalFileSizeInBytes(staticFileStateJson.getOriginalFileSizeInBytes());
 					fileStateJson.setRateInKiloBytes(staticFileStateJson.getRateInKiloBytes());
+					fileStateJson.setCrcedBytes(staticFileStateJson.getCrcedBytes());
 					return fileStateJson;
 				}
 
@@ -99,7 +104,7 @@ public class UploadProcessor {
 		}
 
 		// fill configuration
-		config.setInByte(sliceSize);
+		config.setInByte(sliceSizeInBytes);
 
 		return config;
 	}
@@ -170,7 +175,7 @@ public class UploadProcessor {
 			});
 			try {
 				// get the future
-				submit.get(5, TimeUnit.SECONDS);
+				submit.get(1, TimeUnit.SECONDS);
 			}
 			catch (Exception e) {
 				// if we timeout delete anyway, just log
@@ -289,10 +294,16 @@ public class UploadProcessor {
 		}
 
 		// get crc of input
-		final String inputCrc = getCrc(extractFileUploadConfiguration.getInputStream());
+		InputStream inputInputStream = extractFileUploadConfiguration.getInputStream();
+		final String inputCrc = crcHelper.getBufferedCrc(inputInputStream).getCrcAsString();
+		IOUtils.closeQuietly(inputInputStream);
 
-		// read the file
-		final String fileCrc = getCrc(new FileInputStream(file));
+		// extract from the file input stream to get the crc of the same part:
+		byte[] b = new byte[1024];
+		IOUtils.read(new FileInputStream(file), b);
+		ByteArrayInputStream fileInputStream = new ByteArrayInputStream(b);
+		final String fileCrc = crcHelper.getBufferedCrc(fileInputStream).getCrcAsString();
+		IOUtils.closeQuietly(fileInputStream);
 
 		// compare them
 		log.debug("validating chunk crc " + fileCrc + " against " + inputCrc);
@@ -303,19 +314,87 @@ public class UploadProcessor {
 	}
 
 
-	private String getCrc(InputStream inputStream)
-			throws IOException {
+	public void verifyCrcOfUncheckedPart(FileUploadConfiguration extractFileUploadConfiguration)
+			throws IOException, InvalidCrcException {
+		log.debug("validating the bytes that have not been validated from the previous interrupted upload for file " +
+				extractFileUploadConfiguration.getFileId());
 
-		// read the input stream
-		inputStream = new BufferedInputStream(inputStream, 1024);
-		byte[] b = new byte[1024];
-		inputStream.read(b);
+		// get entity
+		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
+
+		// get the file
+		StaticFileState fileState = model.getFileStates().get(extractFileUploadConfiguration.getFileId());
+		if (fileState == null) {
+			throw new FileNotFoundException("File with id " + extractFileUploadConfiguration.getFileId() + " not found");
+		}
+		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
+
+
+		// if the file does not exist, there is an issue!
+		if (!file.exists()) {
+			throw new FileNotFoundException("File with id " + extractFileUploadConfiguration.getFileId() + " not found");
+		}
+
+		// get crc of input
+		InputStream inputStream = extractFileUploadConfiguration.getInputStream();
+		CRCResult bufferedCrc = crcHelper.getBufferedCrc(inputStream);
+		final String inputCrc = bufferedCrc.getCrcAsString();
 		IOUtils.closeQuietly(inputStream);
 
-		// calculate the crc32 of the first chunk
-		CRC32 crc32 = new CRC32();
-		crc32.update(b);
-		return Long.toHexString(crc32.getValue());
+		// compute the crc of the not validated part of the file
+		long fileStartPosition = new File(fileState.getAbsoluteFullPathOfUploadedFile()).length() - bufferedCrc.getStreamLength();
+
+		// read the file
+		FileInputStream fileInputStream = new FileInputStream(file);
+		fileInputStream.skip(fileStartPosition);
+		final String fileCrc = crcHelper.getBufferedCrc(fileInputStream).getCrcAsString();
+		IOUtils.closeQuietly(fileInputStream);
+
+		// compare them
+		log.debug("validating chunk crc " + fileCrc + " against " + inputCrc);
+
+		// if not equal, we have an issue:
+		if (!fileCrc.equals(inputCrc)) {
+
+			// TODO
+			// TODO
+			// TODO
+			// TODO
+			// TODO
+			// TODO
+			/*
+			 * that shit fails, but I want to see whats wrong !!
+			 * maybe we just need to remove the last byte that was not successfully read!
+			 */
+			// TODO
+			// TODO
+			// TODO
+			// TODO
+			// TODO
+			// TODO
+
+			// try to show dif
+			showDif(IOUtils.toByteArray(inputStream), IOUtils.toByteArray(fileInputStream));
+
+			throw new InvalidCrcException(fileCrc, inputCrc);
+		}
+		// if correct, we can add these bytes as validated inside the file
+		else {
+			staticStateManager.setCrcBytesValidated(fileCrc, bufferedCrc.getStreamLength());
+		}
+
+	}
+
+
+	private void showDif(byte[] a, byte[] b) {
+
+		log.trace("comparing " + a + " to " + b);
+		log.trace("size: " + a.length + " " + b.length);
+		for (int i = 0; i < Math.max(a.length, b.length); i++) {
+			if (!Byte.valueOf(a[i]).equals(Byte.valueOf(b[i]))) {
+				log.trace("different byte at index " + i + " " + a[i] + " " + b[i]);
+			}
+		}
 
 	}
 }
