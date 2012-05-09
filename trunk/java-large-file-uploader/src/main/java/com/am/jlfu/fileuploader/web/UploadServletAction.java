@@ -17,6 +17,7 @@ public enum UploadServletAction {
 	resumeFile,
 	pauseFile,
 	verifyFirstChunk,
+	verifyCrcOfUncheckedPart,
 	clearAll;
 
 

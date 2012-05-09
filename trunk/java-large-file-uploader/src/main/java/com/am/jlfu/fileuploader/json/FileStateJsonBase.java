@@ -1,9 +1,6 @@
 package com.am.jlfu.fileuploader.json;
 
 
-
-
-
 public class FileStateJsonBase
 		implements JsonObject {
 
@@ -15,13 +12,16 @@ public class FileStateJsonBase
 	/** The original file size */
 	private Long originalFileSizeInBytes;
 
-
 	/**
 	 * The rate of the client in kilo bytes.<br>
-	 * Minimum should be set to 10kb/s.<br>
-	 * Maximum is {@link Long#MAX_VALUE}<br>
 	 * */
 	private Long rateInKiloBytes;
+
+	/**
+	 * Amount of bytes that were correctly validated.<br>
+	 * When resuming an upload, all bytes in the file that have not been validated are revalidated.
+	 */
+	private long crcedBytes;
 
 
 
@@ -61,5 +61,16 @@ public class FileStateJsonBase
 	public void setRateInKiloBytes(Long rateInKiloBytes) {
 		this.rateInKiloBytes = rateInKiloBytes;
 	}
+
+
+	public Long getCrcedBytes() {
+		return crcedBytes;
+	}
+
+
+	public void setCrcedBytes(Long crcedBytes) {
+		this.crcedBytes = crcedBytes;
+	}
+
 
 }

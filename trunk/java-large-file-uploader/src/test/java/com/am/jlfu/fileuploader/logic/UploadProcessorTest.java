@@ -13,18 +13,24 @@ import java.util.zip.CRC32;
 
 import javax.servlet.ServletException;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
+import com.am.jlfu.fileuploader.utils.CRCHelper;
+import com.am.jlfu.fileuploader.utils.CRCHelper.CRCResult;
 import com.am.jlfu.fileuploader.web.UploadServletAsync;
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
 import com.am.jlfu.staticstate.StaticStateManager;
@@ -37,6 +43,10 @@ import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 @RunWith(SpringJUnit4ClassRunner.class)
 public class UploadProcessorTest {
 
+	private static final Logger log = LoggerFactory.getLogger(UploadProcessorTest.class);
+
+	@Autowired
+	CRCHelper crcHelper;
 
 	@Autowired
 	UploadProcessor uploadProcessor;
@@ -58,6 +68,8 @@ public class UploadProcessorTest {
 
 	private Long fileSize;
 
+	private byte[] content;
+
 
 
 	@Before
@@ -70,7 +82,7 @@ public class UploadProcessorTest {
 
 		staticStateManager.clear();
 		fileId = null;
-		byte[] content = new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+		content = new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 		file = new MockMultipartFile("blob", content);
 		fileSize = Integer.valueOf(content.length).longValue();
 	}
@@ -115,14 +127,15 @@ public class UploadProcessorTest {
 
 
 
-	public static TestFileSplitResult getByteArrayFromFile(MockMultipartFile file, int start, int length)
+	public static TestFileSplitResult getByteArrayFromFile(MultipartFile file2, long start, long length)
 			throws IOException {
 		TestFileSplitResult testFileSplitResult = new TestFileSplitResult();
 
-		// read file
-		byte[] b = new byte[length - start];
-		InputStream inputStream = file.getInputStream();
+		InputStream inputStream = file2.getInputStream();
 		inputStream.skip(start);
+
+		// read file
+		byte[] b = new byte[Math.min((int) (length - start), inputStream.available())];
 		inputStream.read(b, 0, b.length);
 		inputStream.close();
 		testFileSplitResult.stream = new ByteArrayInputStream(b);
@@ -168,4 +181,21 @@ public class UploadProcessorTest {
 		Assert.assertNotNull(config.getInByte());
 	}
 
+
+	@Test
+	public void testCrcBuffered()
+			throws IOException {
+
+		// with method
+		CRCResult withMethod = crcHelper.getBufferedCrc(file.getInputStream());
+
+		// without buffer
+		CRC32 crc32 = new CRC32();
+		crc32.update(IOUtils.toByteArray(file.getInputStream()));
+		String hexString = Long.toHexString(crc32.getValue());
+
+		Assert.assertThat(withMethod.getCrcAsString(), is(hexString));
+		Assert.assertThat(withMethod.getStreamLength(), is(content.length));
+
+	}
 }

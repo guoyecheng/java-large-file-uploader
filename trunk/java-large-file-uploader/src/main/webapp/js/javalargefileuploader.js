@@ -92,7 +92,7 @@ function JavaLargeFileUploader() {
 	 * Pauses the fileUpload 
 	 */
 	this.pauseFileUpload = function (fileId, callback) {
-		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused == false) {
+		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused === false) {
 			pendingFiles[fileId].paused = true;
 			$.get(globalServletMapping + "?action=pauseFile&fileId=" + fileId,	function(e) {
 				if (callback) {
@@ -106,7 +106,7 @@ function JavaLargeFileUploader() {
 	 * Resumes the fileUpload 
 	 */
 	this.resumeFileUpload = function (fileId, callback) {
-		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused == true) {
+		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused === true) {
 			//set as not paused anymore
 			pendingFiles[fileId].paused = false;
 			//restart progress poller
@@ -186,6 +186,7 @@ function JavaLargeFileUploader() {
 			pendingFile.originalFileSize = pendingFiles[fileId].originalFileSize;
 			pendingFile.fileCompletionInBytes = pendingFiles[fileId].fileCompletionInBytes;
 			pendingFile.originalFileSizeInBytes = pendingFiles[fileId].originalFileSizeInBytes;
+			pendingFile.crcedBytes = pendingFiles[fileId].crcedBytes;
 			pendingFiles[fileId] = pendingFile;
 	
 			// compare to previously updated filename
@@ -200,7 +201,7 @@ function JavaLargeFileUploader() {
 			} 
 			
 			//process first file chunk validation
-			if (firstChunkValidation == true) {
+			if (firstChunkValidation === true) {
 				
 				//slice a little part of the file
 				var chunk = slice(blob, 0, 1024);
@@ -229,13 +230,13 @@ function JavaLargeFileUploader() {
 								exceptionCallback("The file uploaded does not appear to be the same, please check its content", pendingFile.referenceToFileElement);
 							} else {
 								// process the upload
-								fileUploadProcessStarter(pendingFile,blob);
+								fileResumeProcessStarter(pendingFile,blob);
 							}
 							
 							
 						}
 					}
-				}
+				};
 		        
 				//send xhr request validation
 				try {
@@ -253,7 +254,7 @@ function JavaLargeFileUploader() {
 			//otherwise process directly
 			else {
 				// process the upload
-				fileUploadProcessStarter(pendingFile,blob);
+				fileResumeProcessStarter(pendingFile,blob);
 			}
 			
 	
@@ -285,6 +286,91 @@ function JavaLargeFileUploader() {
 		}
 	
 	};
+	
+	function fileResumeProcessStarter(pendingFile,blob) {
+		
+	      //we have to ensure that the last chunk update that have not been validated is correct
+		var bytesToValidates = pendingFile.fileCompletionInBytes - pendingFile.crcedBytes;
+		
+		//if we have bytes to validate
+		if (bytesToValidates > 0) {
+			
+			//slice the not validated part
+			var chunk = slice(blob, pendingFile.crcedBytes, pendingFile.fileCompletionInBytes - pendingFile.crcedBytes);
+			
+			//append chunk to a formdata
+			var formData = new FormData();
+			formData.append("file", chunk);
+		
+			// prepare the checksum of the slice
+			var reader = new FileReader();
+			reader.onloadend = function(e) {
+			    if (e.target.readyState == FileReader.DONE) { // DONE == 2
+					//calculate crc of the chunk read
+			        var digest = crc32(e.target.result);
+			
+			        //TODO if that part is bad, remove it from file and come back here from completion of last successul slice
+			        
+					// prepare xhr request
+					var xhr = new XMLHttpRequest();
+					xhr.open('POST', globalServletMapping + '?action=verifyCrcOfUncheckedPart&fileId=' + pendingFile.id + '&crc=' + decimalToHexString(digest), true);
+			
+					// assign callback
+					xhr.onreadystatechange = function() {
+						if (xhr.readyState == 4) {
+			
+							if (xhr.status != 200) {
+								if (exceptionCallback) {
+									exceptionCallback("Error during upload.", pendingFile.referenceToFileElement);
+								}
+								return;
+							}
+							
+							//verify stuff!
+							if (xhr.responseTest) {
+								exceptionCallback("Resuming file upload with previous slice as the last part is invalid.", pendingFile.referenceToFileElement);
+								
+								//and assign the completion to last verified
+								pendingFile.fileCompletionInBytes = pendingFiles[fileId].crcedBytes;
+
+							} 
+							
+							//then process upload
+							fileUploadProcessStarter(pendingFile,blob);
+							
+			
+						}
+					};
+			
+					// send xhr request
+					try {
+						//only send if it is pending, because it could have been asked for cancellation while we were reading the file!
+						if (pendingFiles[pendingFile.id]) {
+							xhr.send(formData);
+						}
+					} catch (e) {
+						if (pendingFile.exceptionCallback) {
+							pendingFile.exceptionCallback(e.message, pendingFile.referenceToFileElement);
+						}
+						return;
+					}
+			    }
+				
+			};
+			//read the chunk to calculate the crc
+			reader.readAsBinaryString(chunk);
+			
+		} 
+		//if we dont have bytes to validate, process
+		else {
+			
+			//if everything is good, resume it:
+			fileUploadProcessStarter(pendingFile,blob);
+
+		}
+		
+		
+	}
 	
 	function fileUploadProcessStarter(pendingFile,blob) {
 		

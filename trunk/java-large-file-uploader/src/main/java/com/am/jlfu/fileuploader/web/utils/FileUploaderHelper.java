@@ -2,7 +2,6 @@ package com.am.jlfu.fileuploader.web.utils;
 
 
 import java.io.IOException;
-import java.io.InputStream;
 
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
@@ -30,51 +29,6 @@ import com.google.gson.Gson;
  */
 @Component
 public class FileUploaderHelper {
-
-	public class FileUploadConfiguration {
-
-		private String fileId;
-		private String crc;
-		private InputStream inputStream;
-
-
-
-		public FileUploadConfiguration() {
-		}
-
-
-		public String getFileId() {
-			return fileId;
-		}
-
-
-		public void setFileId(String fileId) {
-			this.fileId = fileId;
-		}
-
-
-		public String getCrc() {
-			return crc;
-		}
-
-
-		public void setCrc(String crc) {
-			this.crc = crc;
-		}
-
-
-		public InputStream getInputStream() {
-			return inputStream;
-		}
-
-
-		public void setInputStream(InputStream inputStream) {
-			this.inputStream = inputStream;
-		}
-
-
-	}
-
 
 
 	public FileUploadConfiguration extractFileUploadConfiguration(HttpServletRequest request)
@@ -139,5 +93,4 @@ public class FileUploaderHelper {
 		servletResponse.getWriter().print(new Gson().toJson(jsonObject));
 		servletResponse.getWriter().close();
 	}
-
 }

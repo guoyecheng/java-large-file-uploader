@@ -8,6 +8,8 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -18,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -51,6 +54,10 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * Has to be manually specified with the {@link #init(Class)} method.
 	 */
 	Class<T> entityType;
+
+
+	/** The executor that could write stuff asynchronously into the static state */
+	private ThreadPoolExecutor fileStateUpdaterExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 
 
 
@@ -266,6 +273,27 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 */
 	public void init(Class<T> clazz) {
 		entityType = clazz;
+	}
+
+
+	/**
+	 * Writes in the file that the last slice has been successfully uploaded.
+	 * 
+	 * @param fileId
+	 */
+	public void setCrcBytesValidated(final String fileId, final long validated) {
+		fileStateUpdaterExecutor.submit(new Runnable() {
+
+			@Override
+			public void run() {
+				log.debug("writing bytes validated to file");
+				final StaticStatePersistedOnFileSystemEntity entity = getEntity();
+				final StaticFileState staticFileState = entity.getFileStates().get(fileId);
+				staticFileState.getStaticFileStateJson().setCrcedBytes(
+						staticFileState.getStaticFileStateJson().getCrcedBytes() + validated);
+				processEntityTreatment((T) entity);
+			}
+		});
 	}
 
 
