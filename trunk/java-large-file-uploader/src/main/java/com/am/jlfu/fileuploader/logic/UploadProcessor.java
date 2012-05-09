@@ -26,6 +26,7 @@ import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
+import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.fileuploader.utils.UploadLockMap;
 import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper.FileUploadConfiguration;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
@@ -44,7 +45,7 @@ public class UploadProcessor {
 	private static final Logger log = LoggerFactory.getLogger(UploadProcessor.class);
 
 	@Autowired
-	UploadProcessingConfigurationManager uploadProcessingConfigurationManager;
+	RateLimiterConfigurationManager uploadProcessingConfigurationManager;
 
 	@Autowired
 	StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;

@@ -23,8 +23,8 @@ import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
-import com.am.jlfu.fileuploader.limiter.RateLimiter;
-import com.am.jlfu.fileuploader.logic.UploadProcessingConfigurationManager.UploadProcessingConfiguration;
+import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
+import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager.UploadProcessingConfiguration;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
@@ -34,10 +34,13 @@ import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 @Component
 public class UploadServletAsyncProcessor {
 
+	/** The size of the buffer in bytes */
+	private static final int SIZE_OF_THE_BUFFER_IN_BYTES = 8192;// 8KB
+
 	private static final Logger log = LoggerFactory.getLogger(UploadServletAsyncProcessor.class);
 
 	@Autowired
-	UploadProcessingConfigurationManager uploadProcessingConfigurationManager;
+	RateLimiterConfigurationManager uploadProcessingConfigurationManager;
 
 	@Autowired
 	private StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
@@ -152,8 +155,8 @@ public class UploadServletAsyncProcessor {
 		public Void call()
 				throws Exception {
 			try {
-				// if we can get a token
-				if (uploadProcessingConfiguration.getSemaphore().tryAcquire()) {
+				// if we have not exceeded our byte to write allowance
+				if (uploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0) {
 					// process
 					writeChunkWorthOneToken();
 				}
@@ -195,10 +198,12 @@ public class UploadServletAsyncProcessor {
 			// process the write for one token
 			log.trace("Processing chunk {} of request ({})", chunkNo++, fileId);
 
-			byte[] buffer = new byte[RateLimiter.SIZE_OF_THE_BUFFER_FOR_A_TOKEN_PROCESSING_IN_BYTES];
+			// define the size of what we read
+			byte[] buffer = new byte[Math.min((int) uploadProcessingConfiguration.getDownloadAllowanceForIteration(), SIZE_OF_THE_BUFFER_IN_BYTES)];
 
 			// read from stream
 			int bytesCount = inputStream.read(buffer);
+
 			// if we have something
 			if (bytesCount != -1) {
 
@@ -208,8 +213,8 @@ public class UploadServletAsyncProcessor {
 				// and update crc32
 				crc32.update(buffer, 0, bytesCount);
 
-				// update stats
-				uploadProcessingConfiguration.stats.update(bytesCount);
+				// and update allowance
+				uploadProcessingConfiguration.bytesConsumedFromAllowance(bytesCount);
 
 				// submit again
 				uploadWorkersPool.submit(this);
