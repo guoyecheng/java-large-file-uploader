@@ -27,7 +27,16 @@ public class StaticStateDirectoryManager {
 	 * @return
 	 */
 	public File getUUIDFileParent() {
-		String uuid = staticStateIdentifierManager.getIdentifier();
+		return getUUIDFileParent(staticStateIdentifierManager.getIdentifier());
+	}
+
+
+	/**
+	 * Retrieves the file parent of the session context less.
+	 * @param uuid
+	 * @return
+	 */
+	public File getUUIDFileParent(String uuid) {
 		File uuidFileParent = new File(staticStateRootFolderProvider.getRootFolder(), uuid);
 		if (!uuidFileParent.exists()) {
 			uuidFileParent.mkdirs();

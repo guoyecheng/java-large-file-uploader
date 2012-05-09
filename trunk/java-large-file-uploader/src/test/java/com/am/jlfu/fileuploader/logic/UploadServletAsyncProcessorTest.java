@@ -1,6 +1,5 @@
 package com.am.jlfu.fileuploader.logic;
 
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.lessThan;
 
@@ -8,6 +7,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
@@ -17,6 +17,7 @@ import java.util.concurrent.TimeoutException;
 import javax.servlet.ServletException;
 
 import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,12 +39,11 @@ import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.logic.UploadProcessorTest.TestFileSplitResult;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor.WriteChunkCompletionListener;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
+import com.am.jlfu.fileuploader.web.UploadServlet;
 import com.am.jlfu.fileuploader.web.utils.FileUploadConfiguration;
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
-
-
 
 @ContextConfiguration(locations = { "classpath:jlfu.test.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -63,21 +63,16 @@ public class UploadServletAsyncProcessorTest {
 	@Autowired
 	RequestComponentContainer requestComponentContainer;
 
-
 	@Autowired
 	StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
-
 
 	MockMultipartFile tinyFile;
 	Long tinyFileSize;
 
 	String fileName = "zenameofzefile.owf";
 
-
-
 	@Before
-	public void init()
-			throws IOException, InterruptedException, ExecutionException, TimeoutException {
+	public void init() throws IOException, InterruptedException, ExecutionException, TimeoutException {
 
 		// populate request component container
 		requestComponentContainer.populate(new MockHttpServletRequest(), new MockHttpServletResponse());
@@ -91,25 +86,18 @@ public class UploadServletAsyncProcessorTest {
 		tinyFileSize = Integer.valueOf(content.length).longValue();
 	}
 
-
-
-	private class Listener
-			implements WriteChunkCompletionListener {
+	private class Listener implements WriteChunkCompletionListener {
 
 		private Semaphore waitForMe;
-
-
 
 		public Listener(Semaphore waitForMe) {
 			this.waitForMe = waitForMe;
 		}
 
-
 		@Override
 		public void error(Exception exception) {
 			throw new RuntimeException(exception);
 		}
-
 
 		@Override
 		public void success() {
@@ -118,11 +106,8 @@ public class UploadServletAsyncProcessorTest {
 
 	}
 
-
-
 	@Test
-	public void testInvalidCrc()
-			throws IOException, IncorrectRequestException, MissingParameterException, FileUploadException, InvalidCrcException, InterruptedException {
+	public void testInvalidCrc() throws IOException, IncorrectRequestException, MissingParameterException, FileUploadException, InvalidCrcException, InterruptedException {
 
 		// begin a file upload process
 		String fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName);
@@ -138,7 +123,6 @@ public class UploadServletAsyncProcessorTest {
 				semaphore.release();
 			}
 
-
 			@Override
 			public void success() {
 				throw new RuntimeException();
@@ -146,18 +130,13 @@ public class UploadServletAsyncProcessorTest {
 
 		});
 
-
 		Assert.assertTrue(semaphore.tryAcquire(5, TimeUnit.SECONDS));
 	}
 
-
 	@Test
-	public void testClassicGranular()
-			throws ServletException, IOException, InvalidCrcException, IncorrectRequestException, MissingParameterException, FileUploadException,
-			InterruptedException {
+	public void testClassicGranular() throws ServletException, IOException, InvalidCrcException, IncorrectRequestException, MissingParameterException, FileUploadException, InterruptedException {
 		TestFileSplitResult splitResult;
 		final Semaphore waitForMe = new Semaphore(0);
-
 
 		// begin a file upload process
 		String fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName);
@@ -196,107 +175,210 @@ public class UploadServletAsyncProcessorTest {
 		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(100));
 	}
 
-
-	// TODO need to make test for first part and second part also
-
 	@Test
-	public void testStreamDisconnection()
-			throws IOException, InterruptedException, InvalidCrcException {
+	public void testStreamDisconnection() throws IOException, InterruptedException, InvalidCrcException {
 		processStreamDisconnection(true, false);
 	}
 
+	@Test
+	public void testStreamDisconnectionInSecondSlice() throws IOException, InterruptedException, InvalidCrcException {
+		processStreamDisconnection(false, false);
+	}
 
 	@Test(expected = InvalidCrcException.class)
-	public void testStreamDisconnectionWithBadCrcSignature()
-			throws IOException, InterruptedException, InvalidCrcException {
+	public void testStreamDisconnectionWithBadCrcSignature() throws IOException, InterruptedException, InvalidCrcException {
 		processStreamDisconnection(true, true);
 	}
 
+	@Test(expected = InvalidCrcException.class)
+	public void testStreamDisconnectionWithBadCrcSignatureSecondSlice() throws IOException, InterruptedException, InvalidCrcException {
+		processStreamDisconnection(false, true);
+	}
 
-	public void processStreamDisconnection(boolean disconnectInFirstPart, boolean failure)
-			throws IOException, InterruptedException, InvalidCrcException {
-		// init a file which is double the size of the slice to be able to disconnect in first or
+	private class ByteArrayInputStreamThatFails extends ByteArrayInputStream {
+
+		int i;
+
+		public ByteArrayInputStreamThatFails(byte[] buf) {
+			super(buf);
+		}
+
+		@Override
+		public int read(byte[] b) throws IOException {
+			if (i++ == UploadProcessor.sliceSizeInBytes / UploadServletAsyncProcessor.SIZE_OF_THE_BUFFER_IN_BYTES / 2) {
+				throw new IOException("Stream ended unexpectedly");
+			}
+			return super.read(b);
+		}
+	}
+
+	// That method is not dry at all :s
+	public void processStreamDisconnection(final boolean disconnectInFirstPart, boolean failure) throws IOException, InterruptedException, InvalidCrcException {
+		// init a file which is double the size of the slice to be able to
+		// disconnect in first or
 		// second part
 		long size = uploadProcessor.sliceSizeInBytes * 2;
 		byte[] fileContent = new byte[(int) size];
-		new Random().nextBytes(fileContent);
-		byte[] fileContentClone = fileContent.clone();
+		byte[] fileSlice1Content = new byte[(int) UploadProcessor.sliceSizeInBytes];
+		byte[] fileSlice2Content = new byte[(int) UploadProcessor.sliceSizeInBytes];
+		new Random().nextBytes(fileSlice1Content);
+		new Random().nextBytes(fileSlice2Content);
+		ByteBuffer wrap = ByteBuffer.wrap(fileContent);
+		wrap.put(fileSlice1Content);
+		wrap.put(fileSlice2Content);
+
 		MultipartFile file = new MockMultipartFile("blob", fileContent);
+		MultipartFile fileSlice1 = new MockMultipartFile("blob", fileSlice1Content);
+		MultipartFile fileSlice2 = new MockMultipartFile("blob", fileSlice2Content);
+
+		// TODO manage the two slices independantly
 
 		// define an input stream that emulates a stream that fails
-		ByteArrayInputStream byteStream = new ByteArrayInputStream(fileContentClone) {
-
-			int i;
-
-
-
-			@Override
-			public int read(byte[] b)
-					throws IOException {
-				if (i++ == 100) {
-					throw new IOException("Stream ended unexpectedly");
-				}
-				return super.read(b);
-			}
-
-
-		};
+		ByteArrayInputStream byteStream1 = (disconnectInFirstPart ? new ByteArrayInputStreamThatFails(fileSlice1Content.clone()) : new ByteArrayInputStream(fileSlice1Content.clone()));
+		ByteArrayInputStream byteStream2 = (!disconnectInFirstPart ? new ByteArrayInputStreamThatFails(fileSlice2Content.clone()) : new ByteArrayInputStream(fileSlice2Content.clone()));
 
 		// prepare an upload
 		String fileId = uploadProcessor.prepareUpload(size, fileName);
 
-		// begin to process it
-		String crcBuffered = crcHelper.getBufferedCrc(file.getInputStream()).getCrcAsString();
+		
+		String crcBuffered;
 		final Semaphore semaphore = new Semaphore(0);
-		uploadServletAsyncProcessor.process(fileId, crcBuffered, byteStream, new Listener(semaphore) {
+		Long completionInBytes;
+		Long crcedBytes;
+		TestFileSplitResult emulatedFrontEndFile;
+		FileUploadConfiguration fileUploadConfigurationOfFrontEndFile;
+		
+		// begin to process it
+		if (!disconnectInFirstPart) {
 
-			@Override
-			public void success() {
-				throw new RuntimeException();
+			TestFileSplitResult byteArrayFromFile = UploadProcessorTest.getByteArrayFromFile(file, 0, UploadProcessor.sliceSizeInBytes);
+			uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(semaphore));
+			semaphore.tryAcquire(10, TimeUnit.MINUTES);
+			completionInBytes = uploadProcessor.getConfig().getPendingFiles().get(fileId).getFileCompletionInBytes();
+
+			
+		} else {
+
+			crcBuffered = crcHelper.getBufferedCrc(fileSlice1.getInputStream()).getCrcAsString();
+			uploadServletAsyncProcessor.process(fileId, crcBuffered, byteStream1, new Listener(semaphore) {
+
+				@Override
+				public void success() {
+					if (disconnectInFirstPart) {
+						throw new RuntimeException();
+					} else {
+						semaphore.release();
+					}
+				}
+
+				@Override
+				public void error(Exception exception) {
+					if (disconnectInFirstPart && exception.getMessage().equals("User has stopped streaming")) {
+						semaphore.release();
+					} else {
+						throw new RuntimeException();
+					}
+				}
+			});
+
+			// and wait until error has been detected
+			semaphore.tryAcquire(10, TimeUnit.MINUTES);
+
+			// now get the state from file
+			completionInBytes = uploadProcessor.getConfig().getPendingFiles().get(fileId).getFileCompletionInBytes();
+
+			// we need to make a uncrced byte verification
+			crcedBytes = uploadProcessor.getConfig().getPendingFiles().get(fileId).getCrcedBytes();
+			Assert.assertThat(crcedBytes, lessThan(completionInBytes));
+
+			// calculate the crc of the bytes not validated
+			// if we are emulating a bad input stream, mess with it a bit:
+			if (failure) {
+				completionInBytes -= 10;
+			}
+			emulatedFrontEndFile = UploadProcessorTest.getByteArrayFromFile(file, crcedBytes, completionInBytes - crcedBytes);
+			fileUploadConfigurationOfFrontEndFile = new FileUploadConfiguration();
+			fileUploadConfigurationOfFrontEndFile.setInputStream(emulatedFrontEndFile.stream);
+			fileUploadConfigurationOfFrontEndFile.setFileId(fileId);
+
+			// verify
+			uploadProcessor.verifyCrcOfUncheckedPart(fileUploadConfigurationOfFrontEndFile);
+			if (failure) {
+				Assert.fail("shall get an exception here");
 			}
 
-
-			@Override
-			public void error(Exception exception) {
-				if (exception.getMessage().equals("User has stopped streaming")) {
-					semaphore.release();
-				}
-				else {
-					throw new RuntimeException();
-				}
-			}
-		});
-
-		// and wait until error has been detected
-		semaphore.tryAcquire(10, TimeUnit.MINUTES);
-
-		// now get the state from file
-		FileStateJson fileStateJson = uploadProcessor.getConfig().getPendingFiles().get(fileId);
-		Long completionInBytes = fileStateJson.getFileCompletionInBytes();
-
-		// we need to make a uncrced byte verification
-		Long crcedBytes = fileStateJson.getCrcedBytes();
-		Assert.assertThat(crcedBytes, lessThan(completionInBytes));
-
-		// calculate the crc of the bytes not validated
-		// if we are emulating a bad input stream, mess with it a bit:
-		if (failure) {
-			completionInBytes -= 10;
 		}
-		TestFileSplitResult emulatedFrontEndFile = UploadProcessorTest.getByteArrayFromFile(file, crcedBytes, completionInBytes - crcedBytes);
-		FileUploadConfiguration fileUploadConfigurationOfFrontEndFile = new FileUploadConfiguration();
-		fileUploadConfigurationOfFrontEndFile.setInputStream(emulatedFrontEndFile.stream);
-		fileUploadConfigurationOfFrontEndFile.setFileId(fileId);
 
-		// verify
-		uploadProcessor.verifyCrcOfUncheckedPart(fileUploadConfigurationOfFrontEndFile);
+		// and resume the stream from here to process the second part
+		// begin to process it
+		if (disconnectInFirstPart) {
 
-		// and resume the stream from here
-		TestFileSplitResult byteArrayFromFile = UploadProcessorTest.getByteArrayFromFile(file, completionInBytes, size);
-		uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(semaphore));
+			TestFileSplitResult byteArrayFromFile = UploadProcessorTest.getByteArrayFromFile(file, completionInBytes, size);
+			uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(semaphore));
+			semaphore.tryAcquire(10, TimeUnit.MINUTES);
 
-		// wait for it
-		semaphore.tryAcquire(10, TimeUnit.MINUTES);
+		} else {
+
+			crcBuffered = crcHelper.getBufferedCrc(fileSlice2.getInputStream()).getCrcAsString();
+			uploadServletAsyncProcessor.process(fileId, crcBuffered, byteStream2, new Listener(semaphore) {
+
+				@Override
+				public void success() {
+					if (!disconnectInFirstPart) {
+						throw new RuntimeException();
+					} else {
+						semaphore.release();
+					}
+				}
+
+				@Override
+				public void error(Exception exception) {
+					if (!disconnectInFirstPart && exception.getMessage().equals("User has stopped streaming")) {
+						semaphore.release();
+					} else {
+						throw new RuntimeException();
+					}
+				}
+			});
+
+			// and wait until error has been detected
+			semaphore.tryAcquire(10, TimeUnit.MINUTES);
+
+			// now get the state from file
+			completionInBytes = uploadProcessor.getConfig().getPendingFiles().get(fileId).getFileCompletionInBytes();
+
+			// we need to make a uncrced byte verification // TODO CRC is not setted up
+			crcedBytes = uploadProcessor.getConfig().getPendingFiles().get(fileId).getCrcedBytes();
+			Assert.assertThat(crcedBytes, lessThan(completionInBytes));
+
+			// calculate the crc of the bytes not validated
+			// if we are emulating a bad input stream, mess with it a bit:
+			if (failure) {
+				completionInBytes -= 10;
+			}
+			emulatedFrontEndFile = UploadProcessorTest.getByteArrayFromFile(fileSlice2, 0, completionInBytes - crcedBytes);
+			fileUploadConfigurationOfFrontEndFile = new FileUploadConfiguration();
+			fileUploadConfigurationOfFrontEndFile.setInputStream(emulatedFrontEndFile.stream);
+			fileUploadConfigurationOfFrontEndFile.setFileId(fileId);
+
+			// verify
+			uploadProcessor.verifyCrcOfUncheckedPart(fileUploadConfigurationOfFrontEndFile);
+			if (failure) {
+				Assert.fail("shall get an exception here");
+			}
+			
+			
+			//then finish the rest
+
+			TestFileSplitResult byteArrayFromFile = UploadProcessorTest.getByteArrayFromFile(file, completionInBytes, size);
+			uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(semaphore));
+			semaphore.tryAcquire(10, TimeUnit.MINUTES);
+
+		}
+
+		// ////
+		// ////
+		// ////
 
 		// compare the crcs
 		// now calculates the crc of sent file
@@ -311,12 +393,11 @@ public class UploadServletAsyncProcessorTest {
 
 	}
 
-
 	@Test
-	public void testBigFileComplete()
-			throws IOException, InterruptedException {
+	public void testBigFileComplete() throws IOException, InterruptedException {
 
-		// init a file which is about 115 MB (we want to check out-of-buffer granularity, so not an
+		// init a file which is about 115 MB (we want to check out-of-buffer
+		// granularity, so not an
 		// exact value)
 		long size = 121123456;
 		byte[] fileContent = new byte[(int) size];
@@ -325,8 +406,7 @@ public class UploadServletAsyncProcessorTest {
 
 		// prepare upload
 		String fileId = uploadProcessor.prepareUpload(size, fileName);
-		String absoluteFullPathOfUploadedFile =
-				staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
+		String absoluteFullPathOfUploadedFile = staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
 
 		// set a 100mb rate big rate
 		uploadProcessor.setUploadRate(fileId, 102400l);
@@ -367,18 +447,15 @@ public class UploadServletAsyncProcessorTest {
 			Assert.assertTrue(wait.tryAcquire(1, TimeUnit.MINUTES));
 		}
 
-
 		// now calculates the crc of sent file
 		String valueSource = crcHelper.getBufferedCrc(new ByteArrayInputStream(fileContent)).getCrcAsString();
 
 		// and the one of received file
 		String valueCopied = crcHelper.getBufferedCrc(new FileInputStream(new File(absoluteFullPathOfUploadedFile))).getCrcAsString();
 
-
 		// assert the same
 		Assert.assertThat(valueCopied, is(valueSource));
 
 	}
-
 
 }
