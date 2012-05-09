@@ -318,7 +318,7 @@ public class UploadProcessor {
 			throws IOException, InvalidCrcException {
 		log.debug("validating the bytes that have not been validated from the previous interrupted upload for file " +
 				extractFileUploadConfiguration.getFileId());
-
+		
 		// get entity
 		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
 
@@ -335,19 +335,26 @@ public class UploadProcessor {
 			throw new FileNotFoundException("File with id " + extractFileUploadConfiguration.getFileId() + " not found");
 		}
 
-		// get crc of input
+		//get streams
 		InputStream inputStream = extractFileUploadConfiguration.getInputStream();
-		CRCResult bufferedCrc = crcHelper.getBufferedCrc(inputStream);
+		byte[] byteArray = IOUtils.toByteArray(inputStream);
+		
+		// get crc of input
+		CRCResult bufferedCrc = crcHelper.getBufferedCrc(new ByteArrayInputStream(byteArray));
 		final String inputCrc = bufferedCrc.getCrcAsString();
 		IOUtils.closeQuietly(inputStream);
 
 		// compute the crc of the not validated part of the file
 		long fileStartPosition = new File(fileState.getAbsoluteFullPathOfUploadedFile()).length() - bufferedCrc.getStreamLength();
 
-		// read the file
+		//showdif
 		FileInputStream fileInputStream = new FileInputStream(file);
 		fileInputStream.skip(fileStartPosition);
-		final String fileCrc = crcHelper.getBufferedCrc(fileInputStream).getCrcAsString();
+		byte[] byteArray2 = IOUtils.toByteArray(fileInputStream);
+//		showDif(byteArray2, byteArray);
+
+		// read the file
+		final String fileCrc = crcHelper.getBufferedCrc(new ByteArrayInputStream(byteArray2)).getCrcAsString();
 		IOUtils.closeQuietly(fileInputStream);
 
 		// compare them
@@ -355,32 +362,11 @@ public class UploadProcessor {
 
 		// if not equal, we have an issue:
 		if (!fileCrc.equals(inputCrc)) {
-
-			// TODO
-			// TODO
-			// TODO
-			// TODO
-			// TODO
-			// TODO
-			/*
-			 * that shit fails, but I want to see whats wrong !!
-			 * maybe we just need to remove the last byte that was not successfully read!
-			 */
-			// TODO
-			// TODO
-			// TODO
-			// TODO
-			// TODO
-			// TODO
-
-			// try to show dif
-			showDif(IOUtils.toByteArray(inputStream), IOUtils.toByteArray(fileInputStream));
-
 			throw new InvalidCrcException(fileCrc, inputCrc);
 		}
 		// if correct, we can add these bytes as validated inside the file
 		else {
-			staticStateManager.setCrcBytesValidated(fileCrc, bufferedCrc.getStreamLength());
+			staticStateManager.setCrcBytesValidated(staticStateIdentifierManager.getIdentifier(), extractFileUploadConfiguration.getFileId(), bufferedCrc.getStreamLength());
 		}
 
 	}
@@ -388,11 +374,11 @@ public class UploadProcessor {
 
 	private void showDif(byte[] a, byte[] b) {
 
-		log.trace("comparing " + a + " to " + b);
-		log.trace("size: " + a.length + " " + b.length);
+		log.debug("comparing " + a + " to " + b);
+		log.debug("size: " + a.length + " " + b.length);
 		for (int i = 0; i < Math.max(a.length, b.length); i++) {
 			if (!Byte.valueOf(a[i]).equals(Byte.valueOf(b[i]))) {
-				log.trace("different byte at index " + i + " " + a[i] + " " + b[i]);
+				log.debug("different byte at index " + i + " " + a[i] + " " + b[i]);
 			}
 		}
 

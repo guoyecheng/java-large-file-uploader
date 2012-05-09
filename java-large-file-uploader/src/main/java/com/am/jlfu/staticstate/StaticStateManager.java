@@ -150,17 +150,26 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 
 	/**
-	 * Persist modifications to file.
+	 * Persist modifications to file and cache.
 	 * 
-	 * @param uuid
 	 * @param entity
 	 * @return
 	 * @throws ExecutionException
 	 */
 	public void processEntityTreatment(T entity) {
 		String uuid = staticStateIdentifierManager.getIdentifier();
+		log.debug("writing state for "+uuid);
 		cache.put(uuid, entity);
 		write(entity, new File(staticStateDirectoryManager.getUUIDFileParent(), FILENAME));
+	}
+	
+	/**
+	 * Persists modifications onto filesystem only.
+	 * @param entity
+	 */
+	public void writeEntity(String uuid, T entity) {
+		write(entity, new File(staticStateDirectoryManager.getUUIDFileParent(uuid), FILENAME));
+
 	}
 
 
@@ -280,18 +289,21 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * Writes in the file that the last slice has been successfully uploaded.
 	 * 
 	 * @param fileId
+	 * @param fileId2 
 	 */
-	public void setCrcBytesValidated(final String fileId, final long validated) {
-		fileStateUpdaterExecutor.submit(new Runnable() {
+	public void setCrcBytesValidated(final String clientId, String fileId, final long validated) {
+		log.debug(validated + " bytes have been validated for file "+fileId +" for client id "+clientId);
+		
+		final T entity = cache.getUnchecked(clientId);
+		final StaticFileState staticFileState = entity.getFileStates().get(fileId);
+		staticFileState.getStaticFileStateJson().setCrcedBytes(
+				staticFileState.getStaticFileStateJson().getCrcedBytes() + validated);
 
+		fileStateUpdaterExecutor.submit(new Runnable() {
 			@Override
 			public void run() {
-				log.debug("writing bytes validated to file");
-				final StaticStatePersistedOnFileSystemEntity entity = getEntity();
-				final StaticFileState staticFileState = entity.getFileStates().get(fileId);
-				staticFileState.getStaticFileStateJson().setCrcedBytes(
-						staticFileState.getStaticFileStateJson().getCrcedBytes() + validated);
-				processEntityTreatment((T) entity);
+				//TODO write this later on.
+				writeEntity(clientId, entity);
 			}
 		});
 	}

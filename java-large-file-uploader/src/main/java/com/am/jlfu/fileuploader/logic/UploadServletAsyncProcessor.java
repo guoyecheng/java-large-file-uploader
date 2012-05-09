@@ -23,6 +23,7 @@ import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager.UploadProcessingConfiguration;
+import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
@@ -43,6 +44,9 @@ public class UploadServletAsyncProcessor {
 	@Autowired
 	private StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
 
+	@Autowired
+	private StaticStateIdentifierManager staticStateIdentifierManager;
+
 	/** The executor that writes the file */
 	private ThreadPoolExecutor uploadWorkersPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 
@@ -52,6 +56,9 @@ public class UploadServletAsyncProcessor {
 			WriteChunkCompletionListener completionListener)
 			throws FileNotFoundException
 	{
+		
+		//get identifier
+		String clientId = staticStateIdentifierManager.getIdentifier();
 
 		// get entity
 		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
@@ -102,7 +109,7 @@ public class UploadServletAsyncProcessor {
 
 		// init the task
 		final WriteChunkToFileTask task =
-				new WriteChunkToFileTask(fileId, uploadProcessingConfiguration, crc, inputStream, outputStream, crc32, completionListener);
+				new WriteChunkToFileTask(fileId, uploadProcessingConfiguration, crc, inputStream, outputStream, crc32, completionListener, clientId);
 
 
 		// then submit it to the workers pool
@@ -126,6 +133,7 @@ public class UploadServletAsyncProcessor {
 		private final InputStream inputStream;
 		private final OutputStream outputStream;
 		private final String fileId;
+		private final String clientId;
 		private final String crc;
 
 		private final WriteChunkCompletionListener completionListener;
@@ -138,7 +146,7 @@ public class UploadServletAsyncProcessor {
 
 		public WriteChunkToFileTask(String fileId, UploadProcessingConfiguration uploadProcessingConfiguration, String crc,
 				InputStream inputStream,
-				OutputStream outputStream, CRC32 crc32, WriteChunkCompletionListener completionListener) {
+				OutputStream outputStream, CRC32 crc32, WriteChunkCompletionListener completionListener, String clientId) {
 			this.fileId = fileId;
 			this.uploadProcessingConfiguration = uploadProcessingConfiguration;
 			this.crc = crc;
@@ -146,6 +154,7 @@ public class UploadServletAsyncProcessor {
 			this.outputStream = outputStream;
 			this.crc32 = crc32;
 			this.completionListener = completionListener;
+			this.clientId = clientId;
 		}
 
 
@@ -156,7 +165,7 @@ public class UploadServletAsyncProcessor {
 				// if we have not exceeded our byte to write allowance
 				if (uploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0) {
 					// process
-					writeChunkWorthOneToken();
+					write();
 				}
 				// if we cant
 				else {
@@ -178,7 +187,7 @@ public class UploadServletAsyncProcessor {
 		}
 
 
-		private void writeChunkWorthOneToken()
+		private void write()
 				throws IOException {
 
 			// check if user wants to cancel
@@ -227,7 +236,7 @@ public class UploadServletAsyncProcessor {
 				}
 
 				// if the crc is valid, specify the validation to the state
-				staticStateManager.setCrcBytesValidated(fileId, UploadProcessor.sliceSizeInBytes);
+				staticStateManager.setCrcBytesValidated(clientId, fileId, UploadProcessor.sliceSizeInBytes);
 
 				// and specify as complete
 				success();
@@ -237,6 +246,9 @@ public class UploadServletAsyncProcessor {
 
 		public void completeWithError(Exception e) {
 			log.debug("error for " + fileId + ". closing file stream");
+			
+			//remove the last bytes
+			
 			IOUtils.closeQuietly(outputStream);
 			completionListener.error(e);
 		}
