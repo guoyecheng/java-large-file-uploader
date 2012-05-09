@@ -112,23 +112,32 @@ function getFileId(div) {
 	<div  id="container1">
 		<input type="file"/><br/> 
 		<em></em><br>
-		Limit the upload bandwith to <input type="text"/> KB <button onclick="setRate(this);">Set rate</button>		
-	</div>
+		Limit the upload bandwith to <input type="text"/> KB <button onclick="jlfu.setRateInKiloBytes(getFileId(this.parentElement), this.parentElement.children[4].value);">Set rate</button>	<br>	
+  		<a href='javascript:void(0)' onclick='jlfu.cancelFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "");'>Cancel</a>
+  		<a href='javascript:void(0)' onclick='jlfu.pauseFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Paused");'>Pause</a>
+  		<a href='javascript:void(0)' onclick='jlfu.resumeFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Resuming...");'>Resume</a>
+ 	</div>
 
 	<hr>
 	
 	<div  id="container2">
 		<input type="file"/><br/> 
 		<em></em><br>
-		Limit the upload bandwith to <input type="text"/> KB <button onclick="setRate(this);">Set rate</button>		
-	</div>
+		Limit the upload bandwith to <input type="text"/> KB <button onclick="jlfu.setRateInKiloBytes(getFileId(this.parentElement), this.parentElement.children[4].value);">Set rate</button>	<br>	
+  		<a href='javascript:void(0)' onclick='jlfu.cancelFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "");'>Cancel</a>
+  		<a href='javascript:void(0)' onclick='jlfu.pauseFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Paused");'>Pause</a>
+  		<a href='javascript:void(0)' onclick='jlfu.resumeFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Resuming...");'>Resume</a>
+ 	</div>
 	
 	<hr>
 
 	<div  id="container3">
 		<input type="file"/><br/> 
 		<em></em><br>
-		Limit the upload bandwith to <input type="text"/> KB <button onclick="setRate(this);">Set rate</button>		
+		Limit the upload bandwith to <input type="text"/> KB <button onclick="jlfu.setRateInKiloBytes(getFileId(this.parentElement), this.parentElement.children[4].value);">Set rate</button>	<br>	
+  		<a href='javascript:void(0)' onclick='jlfu.cancelFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "");'>Cancel</a>
+  		<a href='javascript:void(0)' onclick='jlfu.pauseFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Paused");'>Pause</a>
+  		<a href='javascript:void(0)' onclick='jlfu.resumeFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Resuming...");'>Resume</a>
 	</div>
 	
 	<hr>

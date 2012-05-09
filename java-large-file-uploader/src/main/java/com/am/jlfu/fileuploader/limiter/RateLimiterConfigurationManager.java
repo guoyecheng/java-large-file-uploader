@@ -1,18 +1,14 @@
-package com.am.jlfu.fileuploader.logic;
+package com.am.jlfu.fileuploader.limiter;
 
 
-import java.util.Date;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import com.am.jlfu.fileuploader.limiter.RateLimiter;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -20,9 +16,9 @@ import com.google.common.cache.LoadingCache;
 
 
 @Component
-public class UploadProcessingConfigurationManager {
+public class RateLimiterConfigurationManager {
 
-	private static final Logger log = LoggerFactory.getLogger(UploadProcessingConfigurationManager.class);
+	private static final Logger log = LoggerFactory.getLogger(RateLimiterConfigurationManager.class);
 
 	final LoadingCache<String, UploadProcessingConfiguration> requestConfigMap = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES)
 			.build(new CacheLoader<String, UploadProcessingConfiguration>() {
@@ -40,95 +36,40 @@ public class UploadProcessingConfigurationManager {
 	public class UploadProcessingConfiguration {
 
 		/**
-		 * Semaphore used by {@link RateLimiter}
+		 * Specifies the amount of bytes that can be uploaded for an iteration of the refill process
+		 * of {@link RateLimiter}
 		 * */
-		private Semaphore semaphore = new Semaphore(0, false);
+		private long downloadAllowanceForIteration;
+		private Object downloadAllowanceForIterationLock = new Object();
 
 		/**
 		 * Boolean specifying whether that request shall be cancelled (and the relating streams
 		 * closed)<br>
 		 * 
-		 * @see UploadProcessingConfigurationManager#markRequestHasShallBeCancelled(String)
+		 * @see RateLimiterConfigurationManager#markRequestHasShallBeCancelled(String)
 		 * @see UploadProcessingConfigurationManager#requestHasToBeCancelled(String))
 		 * */
 		private volatile boolean cancelRequest;
 
 		/**
-		 * The statistics, populated while writing the file by {@link UploadServletAsyncProcessor}
-		 */
-		Statistics stats = new Statistics();
-
-		/**
 		 * The desired upload rate for this request. <br>
 		 * Can be null (the default rate is applied).
 		 */
-		private Long rateInKiloBytes;
+		private volatile Long rateInKiloBytes;
 
 		/**
 		 * Boolean specifying whether the upload is paused or not.
 		 */
-		private boolean isPaused = false;
+		private volatile boolean isPaused = false;
 
 
+		/**
+		 * The statistics.
+		 * 
+		 * @return
+		 */
+		private long instantRateInBytes;
 
-		public Long getStats() {
-			synchronized (stats) {
-				// if counter is to 0
-				if (stats.totalBytesWritten == 0) {
-					// we dont have anything to measure rate
-					return 0l;
-				}
-				else {
-
-					// get the total
-					// divide by the time
-					long stat = stats.totalBytesWritten * DateUtils.MILLIS_PER_SECOND / (new Date().getTime() - stats.startTime) ;
-
-					// reset
-					stats.reset();
-
-					// return
-					return stat;
-				}
-
-			}
-		}
-
-
-
-		class Statistics {
-
-			private long totalBytesWritten;
-			private long startTime;
-
-
-
-			public Statistics() {
-				reset();
-			}
-
-
-			void reset() {
-				totalBytesWritten = 0;
-				startTime = new Date().getTime();
-			}
-
-
-			void update(int numberOfBytesWritten) {
-				synchronized (Statistics.this) {
-					// this is the number of bytes written for the consumption of one token
-					totalBytesWritten += numberOfBytesWritten;
-				}
-			}
-
-
-		}
-
-
-
-		public Semaphore getSemaphore() {
-			return semaphore;
-		}
 
 
 		public Long getRateInKiloBytes() {
@@ -140,6 +81,41 @@ public class UploadProcessingConfigurationManager {
 			return isPaused;
 		}
 
+
+		public long getDownloadAllowanceForIteration() {
+			synchronized (downloadAllowanceForIterationLock) {
+				return downloadAllowanceForIteration;
+			}
+		}
+
+
+		public void setDownloadAllowanceForIteration(long downloadAllowanceForIteration) {
+			synchronized (downloadAllowanceForIterationLock) {
+				this.downloadAllowanceForIteration = downloadAllowanceForIteration;
+			}
+		}
+
+
+		/**
+		 * Specifies the bytes that have been read from the files.
+		 * 
+		 * @param bytesConsumed
+		 */
+		public void bytesConsumedFromAllowance(long bytesConsumed) {
+			synchronized (downloadAllowanceForIterationLock) {
+				downloadAllowanceForIteration -= bytesConsumed;
+			}
+		}
+
+
+		public void setInstantRateInBytes(long instantRateInBytes) {
+			this.instantRateInBytes = instantRateInBytes;
+		}
+
+
+		public long getInstantRateInBytes() {
+			return instantRateInBytes;
+		}
 
 	}
 
@@ -172,14 +148,13 @@ public class UploadProcessingConfigurationManager {
 
 	public void reset(String fileId) {
 		final UploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
-		unchecked.semaphore = new Semaphore(0, false);
 		unchecked.cancelRequest = false;
 		unchecked.isPaused = false;
 	}
 
 
-	public boolean tryAcquire(String fileId) {
-		return requestConfigMap.getUnchecked(fileId).semaphore.tryAcquire();
+	public long getAllowance(String fileId) {
+		return requestConfigMap.getUnchecked(fileId).getDownloadAllowanceForIteration();
 	}
 
 
@@ -188,14 +163,8 @@ public class UploadProcessingConfigurationManager {
 	}
 
 
-	public Long getRateOfRequest(String fileId) {
-		return requestConfigMap.getUnchecked(fileId).rateInKiloBytes;
-	}
-
-
 	public Long getUploadState(String requestIdentifier) {
-		UploadProcessingConfiguration config = requestConfigMap.getUnchecked(requestIdentifier);
-		return config.getStats();
+		return requestConfigMap.getUnchecked(requestIdentifier).instantRateInBytes;
 	}
 
 

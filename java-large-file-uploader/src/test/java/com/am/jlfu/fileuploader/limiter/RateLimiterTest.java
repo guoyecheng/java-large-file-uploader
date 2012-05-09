@@ -1,9 +1,11 @@
 package com.am.jlfu.fileuploader.limiter;
 
 
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThan;
+
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -12,8 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.am.jlfu.fileuploader.logic.UploadProcessingConfigurationManager;
-import com.am.jlfu.fileuploader.logic.UploadProcessingConfigurationManager.UploadProcessingConfiguration;
+import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager.UploadProcessingConfiguration;
 
 
 
@@ -22,7 +23,7 @@ import com.am.jlfu.fileuploader.logic.UploadProcessingConfigurationManager.Uploa
 public class RateLimiterTest {
 
 	@Autowired
-	UploadProcessingConfigurationManager uploadProcessingConfigurationManager;
+	RateLimiterConfigurationManager uploadProcessingConfigurationManager;
 
 
 
@@ -32,13 +33,21 @@ public class RateLimiterTest {
 
 		// init config
 		final UploadProcessingConfiguration uploadProcessingConfiguration = uploadProcessingConfigurationManager.getUploadProcessingConfiguration(id);
+		final long originalDownloadAllowanceForIteration = uploadProcessingConfiguration.getDownloadAllowanceForIteration();
 		uploadProcessingConfigurationManager.assignRateToRequest(id, rate);
 
+		// wait for the rate modification to occur
+		while (uploadProcessingConfiguration.getDownloadAllowanceForIteration() == originalDownloadAllowanceForIteration) {
+		}
+
 		// emulate an upload of a file
-		Date reference = new Date();
-		for (int i = 0; i < upload; i++) {
-			Assert.assertTrue(uploadProcessingConfiguration.getSemaphore()
-					.tryAcquire(10, TimeUnit.MINUTES));
+		long totalUpload = upload * 1024;
+		final Date reference = new Date();
+		long allowance;
+		while (totalUpload != 0) {
+			allowance = uploadProcessingConfiguration.getDownloadAllowanceForIteration();
+			uploadProcessingConfiguration.bytesConsumedFromAllowance(allowance);
+			totalUpload -= allowance;
 		}
 		long itTookThatLong = new Date().getTime() - reference.getTime();
 
@@ -46,8 +55,8 @@ public class RateLimiterTest {
 		uploadProcessingConfigurationManager.reset(id);
 
 		// verify that it took around that duration
-		Assert.assertTrue(itTookThatLong < duration + 100);
-		Assert.assertTrue(itTookThatLong > duration - 100);
+		Assert.assertThat(itTookThatLong, lessThan(duration + 150l));
+		Assert.assertThat(itTookThatLong, greaterThan(duration - 150l));
 
 	}
 
