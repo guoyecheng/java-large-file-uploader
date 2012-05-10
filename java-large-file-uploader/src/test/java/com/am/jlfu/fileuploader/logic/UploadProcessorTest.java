@@ -127,11 +127,10 @@ public class UploadProcessorTest {
 
 
 
-	public static TestFileSplitResult getByteArrayFromFile(MultipartFile file2, long start, long length)
+	public static TestFileSplitResult getByteArrayFromInputStream(InputStream inputStream, long start, long length)
 			throws IOException {
 		TestFileSplitResult testFileSplitResult = new TestFileSplitResult();
 
-		InputStream inputStream = file2.getInputStream();
 		inputStream.skip(start);
 
 		// read file
@@ -146,6 +145,13 @@ public class UploadProcessorTest {
 		testFileSplitResult.crc = Long.toHexString(crc32.getValue());
 
 		return testFileSplitResult;
+	}
+
+
+	public static TestFileSplitResult getByteArrayFromFile(MultipartFile file2, long start, long length)
+			throws IOException {
+		InputStream inputStream = file2.getInputStream();
+		return getByteArrayFromInputStream(inputStream, start, length);
 	}
 
 
