@@ -38,11 +38,12 @@ function JavaLargeFileUploader() {
 				if (!jQuery.isEmptyObject(data.pendingFiles)) {
 					pendingFiles = data.pendingFiles;
 					$.each(data.pendingFiles, function(key, pendingFile) {
+						pendingFile.id = key;
 						pendingFile.fileCompletion = getFormattedSize(pendingFile.fileCompletionInBytes);
 						pendingFile.originalFileSize = getFormattedSize(pendingFile.originalFileSizeInBytes);
 					});
 				}
-				callback(data.pendingFiles);
+				callback(pendingFiles);
 	
 			} else {
 				if (exceptionCallback) {
@@ -121,18 +122,6 @@ function JavaLargeFileUploader() {
 	};
 	
 	/*
-	 * Extracts the name from a file
-	 */
-	function extractFileName(file) {
-		var startIndex = (file.indexOf('\\') >= 0 ? file.lastIndexOf('\\') : file.lastIndexOf('/'));
-		var currentFileName = file.substring(startIndex);
-		if (currentFileName.indexOf('\\') === 0	|| currentFileName.indexOf('/') === 0) {
-			currentFileName = currentFileName.substring(1);
-		}
-		return currentFileName;
-	}
-	
-	/*
 	 * referenceToFileElement: reference to the file element 
 	 * 
 	 * startcallback:
@@ -149,124 +138,136 @@ function JavaLargeFileUploader() {
 	 * exceptionCallback:
 	 * a callback triggered when an exception occurred. params: 1 exception description, 2 the reference to the file element 
 	 * 
-	 * fileId: a parameter to resume a pending file upload (null/undefined for a new upload)
 	 */
 	this.fileUploadProcess = function (referenceToFileElement, startCallback, progressCallback,
-			finishCallback, exceptionCallback, fileId) {
+			finishCallback, exceptionCallback) {
 	
+		//extract files
 		var files = referenceToFileElement.files;
-	
 		if (!files.length) {
 			if (exceptionCallback) {
-				exceptionCallback("Please select a file!", referenceToFileElement);
+				exceptionCallback("Please select at least one file!", referenceToFileElement);
 			}
 			return;
 		}
 
-		//extract blob
-		var blob = files[0];
-		
-		//init the pending file object
-		var pendingFile = new Object();
-		pendingFile.fileName = extractFileName(referenceToFileElement.value); 
-		pendingFile.size = blob.size;  
-		pendingFile.progressCallback=progressCallback;
-		pendingFile.referenceToFileElement= referenceToFileElement;
-		pendingFile.finishCallback= finishCallback;
-		pendingFile.exceptionCallback= exceptionCallback;
-		pendingFile.paused=false;
-		
-		// if we are resuming an upload
-		if (fileId && pendingFiles[fileId]) {
-			pendingFile.id = fileId;
-			
-			//populate stuff retrieved in initialization 
-			//TODO thats is bad, just add that config to the one already in the array!
-			pendingFile.originalFileName = pendingFiles[fileId].originalFileName;
-			pendingFile.originalFileSize = pendingFiles[fileId].originalFileSize;
-			pendingFile.fileCompletionInBytes = pendingFiles[fileId].fileCompletionInBytes;
-			pendingFile.originalFileSizeInBytes = pendingFiles[fileId].originalFileSizeInBytes;
-			pendingFile.crcedBytes = pendingFiles[fileId].crcedBytes;
-			pendingFile.firstChunkCrc = pendingFiles[fileId].firstChunkCrc;
-			pendingFiles[fileId] = pendingFile;
-	
-			// compare to previously updated filename
-			if (pendingFile.originalFileName != pendingFile.fileName || pendingFile.originalFileSizeInBytes != pendingFile.size) {
-				if (exceptionCallback) {
-					exceptionCallback("You want to upload a file named '" + pendingFile.fileName + "'("	+ getFormattedSize(pendingFile.size)+ ") but there" +
-							" is already a pending upload for a file named '"	+ pendingFile.originalFileName	+ "'(" +
-							getFormattedSize(pendingFile.fileCompletionInBytes)	+ "/" + getFormattedSize(pendingFile.originalFileSizeInBytes) +
-							"). \r\nReselect this file to resume the upload or cancel this upload before selecting a new file.", referenceToFileElement);
-				}
-				return;
-			} 
-			
-			//process first file chunk validation
-			if (firstChunkValidation === true) {
-				
-				// prepare the checksum of the slice
-				var reader = new FileReader();
-				reader.onloadend = function(e) {
-				    if (e.target.readyState == FileReader.DONE) { // DONE == 2
+		//extract the information from the files element in input
+		//try to corrolate with our pending files
+		//corrolate only with filename and size
+		//start resuming if we have a match
+		//still return exception if we have a bad first chunk
+		//if we dont have any name/size math, we process an upload 
 
-				        //calculate crc of the chunk read
-				        //compare it 
-				        if (decimalToHexString(crc32(e.target.result)) != pendingFile.firstChunkCrc) {
-					        //if different
-					        if (exceptionCallback) {
-								exceptionCallback("Error while verifying the first chunk.", pendingFile.referenceToFileElement);
-							}
-							return;
-				        }
-						//otherwise, proceed
-						else {
-							// process the upload
-							fileResumeProcessStarter(pendingFile,blob);
+		//read the file information from input
+		for (fileKey in files) {
+			var file = files[fileKey];
+			if (file.name && file.size) {
+					
+				var fileName = file.name; 
+				var fileSize = file.size;
+				
+				//init the pending file object
+				var pendingFile = new Object();
+				pendingFile.fileName = fileName; 
+				pendingFile.size = fileSize;  
+				pendingFile.blob = file;  
+				pendingFile.progressCallback=progressCallback;
+				pendingFile.referenceToFileElement= referenceToFileElement;
+				pendingFile.finishCallback= finishCallback;
+				pendingFile.exceptionCallback= exceptionCallback;
+				pendingFile.paused=false;
+				
+				//look for a match in the pending files
+				for (pendingFileKey in pendingFiles) {
+					var pendingFileToCheck = pendingFiles[pendingFileKey];
+					
+					if (pendingFileToCheck.originalFileName == fileName && 
+							pendingFileToCheck.originalFileSizeInBytes == file.size) {
+						
+						//fill pending file to check with new info
+						//populate stuff retrieved in initialization 
+						//TODO thats is bad, just add that config to the one already in the array!
+						pendingFile.originalFileName = pendingFileToCheck.originalFileName;
+						pendingFile.originalFileSize = pendingFileToCheck.originalFileSize;
+						pendingFile.fileCompletionInBytes = pendingFileToCheck.fileCompletionInBytes;
+						pendingFile.originalFileSizeInBytes = pendingFileToCheck.originalFileSizeInBytes;
+						pendingFile.crcedBytes = pendingFileToCheck.crcedBytes;
+						pendingFile.firstChunkCrc = pendingFileToCheck.firstChunkCrc;
+						pendingFile.id = pendingFileKey;
+						pendingFiles[pendingFileKey] = pendingFile;
+						
+						//and process it
+						setTimeout(firstChunkValidationProcess, 5,pendingFile);
+						
+					} 
+				}
+				
+				//if the id is still undefined, it means we dont have a match 
+				// we need to prepare the upload
+				if (!pendingFile.id) {
+					$.get(globalServletMapping + "?action=prepareUpload&fileName="+ pendingFile.fileName + "&size=" + pendingFile.size, function(response) {
+						
+						//now that we have the file id, we can assign the object
+						fileId = response.value;
+						pendingFiles[fileId] = pendingFile;
+						pendingFile.id = fileId;
+						pendingFile.fileComplete = false;
+						pendingFile.originalFileSize = pendingFile.size;
+						pendingFile.originalFileName = pendingFile.fileName;
+						pendingFile.fileCompletionInBytes = 0;
+						
+						//call callback
+						if (startCallback) {
+							startCallback(fileId, referenceToFileElement);
 						}
-				    }
-				};
-				//read the first part chunk to calculate the crc
-				reader.readAsBinaryString(slice(blob, 0, 1024));
-
-			}
-			
-			//otherwise process directly
-			else {
-				// process the upload
-				fileResumeProcessStarter(pendingFile,blob);
-			}
-			
-	
-		}
-		// if file id is undefined:
-		else {
-			// if file id is undefined, we need to prepare the upload
-			$.get(globalServletMapping + "?action=prepareUpload&fileName="+ pendingFile.fileName + "&size=" + pendingFile.size, function(response) {
-	
-				//now that we have the file id, we can assign the object
-				fileId = response.value;
-				pendingFiles[fileId] = pendingFile;
-				pendingFile.id = fileId;
-				pendingFile.fileComplete = false;
-				pendingFile.originalFileSize = pendingFile.size;
-				pendingFile.originalFileName = pendingFile.fileName;
-				pendingFile.fileCompletionInBytes = 0;
-				
-				//call callback
-				if (startCallback) {
-					startCallback(fileId, referenceToFileElement);
+						
+						// and process the upload
+						fileUploadProcessStarter(pendingFile);
+						
+					});
 				}
-	
-				// and process the upload
-				fileUploadProcessStarter(pendingFile, blob);
-	
-			});
-	
+			}
 		}
-	
 	};
 	
-	function fileResumeProcessStarter(pendingFile,blob) {
+	function firstChunkValidationProcess(pendingFile) {
+		//process first file chunk validation
+		if (firstChunkValidation === true) {
+			
+			// prepare the checksum of the slice
+			var reader = new FileReader();
+			reader.onloadend = function(e) {
+			    if (e.target.readyState == FileReader.DONE) { // DONE == 2
+
+			        //calculate crc of the chunk read
+			        //compare it 
+			        if (decimalToHexString(crc32(e.target.result)) != pendingFile.firstChunkCrc) {
+				        //if different
+				        if (exceptionCallback) {
+							exceptionCallback("Error while verifying the first chunk.", pendingFile.referenceToFileElement);
+						}
+						return;
+			        }
+					//otherwise, proceed
+					else {
+						// process the upload
+						fileResumeProcessStarter(pendingFile);
+					}
+			    }
+			};
+			//read the first part chunk to calculate the crc
+			reader.readAsBinaryString(slice(pendingFile.blob, 0, 1024));
+
+		}
+		
+		//otherwise process directly
+		else {
+			// process the upload
+			fileResumeProcessStarter(pendingFile);
+		}
+	}
+	
+	function fileResumeProcessStarter(pendingFile) {
 		
 	      //we have to ensure that the last chunk update that have not been validated is correct
 		var bytesToValidates = pendingFile.fileCompletionInBytes - pendingFile.crcedBytes;
@@ -275,7 +276,7 @@ function JavaLargeFileUploader() {
 		if (bytesToValidates > 0) {
 			
 			//slice the not validated part
-			var chunk = slice(blob, pendingFile.crcedBytes , pendingFile.fileCompletionInBytes);
+			var chunk = slice(pendingFile.blob, pendingFile.crcedBytes , pendingFile.fileCompletionInBytes);
 			
 			//append chunk to a formdata
 			var formData = new FormData();
@@ -299,7 +300,7 @@ function JavaLargeFileUploader() {
 
 						} 
 						//then process upload
-						fileUploadProcessStarter(pendingFile,blob);
+						fileUploadProcessStarter(pendingFile);
 					});
 			    }
 				
@@ -312,14 +313,14 @@ function JavaLargeFileUploader() {
 		else {
 			
 			//if everything is good, resume it:
-			fileUploadProcessStarter(pendingFile,blob);
+			fileUploadProcessStarter(pendingFile);
 
 		}
 		
 		
 	}
 	
-	function fileUploadProcessStarter(pendingFile,blob) {
+	function fileUploadProcessStarter(pendingFile) {
 		
 		// start
 		pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
@@ -330,7 +331,7 @@ function JavaLargeFileUploader() {
 		}
 	
 		// then process the recursive function
-		go(pendingFile,blob);
+		go(pendingFile);
 	
 	}
 	
@@ -342,10 +343,10 @@ function JavaLargeFileUploader() {
 		}
 	}
 	
-	function go(pendingFile, blob) {
+	function go(pendingFile) {
 	
 		//if file id is in the pending files:
-		var chunk = slice(blob, pendingFile.fileCompletionInBytes, pendingFile.end);
+		var chunk = slice(pendingFile.blob, pendingFile.fileCompletionInBytes, pendingFile.end);
 	
 		//append chunk to a formdata
 		var formData = new FormData();
@@ -380,7 +381,7 @@ function JavaLargeFileUploader() {
 						// check if we need to go on
 						if (pendingFile.fileCompletionInBytes < pendingFile.size) {
 							// recursive call
-							setTimeout(go, 5, pendingFile, blob);
+							setTimeout(go, 5, pendingFile);
 						} else {
 							// finish callback
 							if (pendingFile.finishCallback) {

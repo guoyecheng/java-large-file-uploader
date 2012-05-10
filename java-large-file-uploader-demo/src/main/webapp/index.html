@@ -12,139 +12,188 @@ $(document).ready(function() {
 	jlfu.initialize(
 			true, //Yes I want first chunk of file validation
 			function(pendingFiles) {
-		
-		//if we have some pending uploads 
-    	if (!jQuery.isEmptyObject(pendingFiles)) {
-    		
-    		var i = 0;
-			//iterate over all the pending file uploads
-    		$.each(pendingFiles, function(fileId,pendingFile) {
-    			
-		  		//get container div element
-		  		var div = document.getElementById('container'+i);
+				
+		//iterate over all the pending files
+		for (key in pendingFiles) {
+			var pendingFile = pendingFiles[key];
+
+			//create a control element for each of them
+			appendUploadControls(pendingFile.id);  					
+
+			//if the file is complete
+		  	if (pendingFile.fileComplete) {
+		  		//specify it in the em element
+		  		document.getElementById(pendingFile.id).children[0].textContent =
+		  			"The file '"+pendingFile.originalFileName+"' has been fully uploaded ("+pendingFile.fileCompletion+"/"+pendingFile.originalFileSize+").";
+		  	} 
+			//else if incomplete and pending 
+		  	else if (pendingFile.fileCompletion) {
 		  		
-    			//if the file is complete
-			  	if (pendingFile.fileComplete) {
-			  		//specify it in the em element
-			  		setTextToEm(div, "The file '"+pendingFile.originalFileName+"' has been fully uploaded ("+pendingFile.fileCompletion+"/"+pendingFile.originalFileSize+").");
-			  	} 
-    			
-    			//if incomplete and pending 
-			  	else if (pendingFile.fileCompletion) {
+		  		//describe the file so that the user can select it again
+			  	document.getElementById(pendingFile.id).children[0].textContent =
+			  		"The file '"+pendingFile.originalFileName+"' has been partially uploaded ("+pendingFile.fileCompletion+"/"+pendingFile.originalFileSize+"). Reselect it to continue uploading it or cancel it.";
 			  		
-			  		//describe the file so that the user can select it again
-				  	setTextToEm(div, 
-				  		"The file '"+pendingFile.originalFileName+"' has been partially uploaded ("+pendingFile.fileCompletion+"/"+pendingFile.originalFileSize+"). Reselect it to continue uploading it or cancel it.");
-				  		
-			  		//and assign the fileId as the name of the fileupload html element
-				  	div.children[0].name = fileId;
-			  		
-			  		//set if there is a rate configured
-				  	 div.children[4].value = pendingFile.rateInKiloBytes;
-			  		
-			  	}
-    			i++;
-		   	}); 
-    	}
-    	
+		  		//set if there is a rate configured
+			  	 document.getElementById(pendingFile.id).children[3].value = pendingFile.rateInKiloBytes;
+		  		
+		  	}
+			
+		}
+		
 	}, function(message) {
 		alert(message);
 	});
 	
-	//add the listeners on all the file upload elements
-	for (i=0;i<=3;i++) {
-		
-		//add a change listener on the fileupload to manage a file upload directly when the user selects the file
-	  	document.getElementById("container"+i).children[0].addEventListener("change", function(e) {
-	  		
-	  		//process the file upload
-	  		jlfu.fileUploadProcess(e.target, 
-	  			
-	  			//define a start callback
-	  			function(theFileId, origin) {
-	  				//assign the name of the element to keep a reference to the file id
-	  				origin.name = theFileId;
-	  			},		
-	  				
-	  			//define a progressCallback showing the progress in the em element 
-				function(theFileId, percentageCompleted, uploadRate, origin) {
-	  				setTextToEm(origin.parentElement, "Uploading... ("+percentageCompleted+"% complete) | Uploading at "+uploadRate + " per second.");
-		  		}, 
-	  			
-		  		//define a finishCallback showing the completion in the em element 
-		  		function(theFileId, origin) {
-		  			setTextToEm(origin.parentElement, "Upload completed.");
-		  		}, 
-		  		
-		  		//define an exception callback
-		  		function(message, origin) {
-		  			setTextToEm(origin.parentElement, message);
-		  		},
-		  		
-		  		e.target.name);
-	  		
-	  	}, false);
-	}
-	
+	//add a file upload element
+	appendFileInputElement();	
  
 });
-function setTextToEm(div, text) {
-	div.children[2].textContent=text;
+function getFileId(element) {
+	return element.parentElement.id;
 }
-function getFileId(div) {
-	return div.children[0].name;
+function appendFileInputElement() {
+	
+	//get handle to main container
+	var mainContainer = document.getElementById('fileContainer');
+	
+	//hide the last children
+	if (mainContainer.children.length > 0) {
+		mainContainer.children[mainContainer.children.length-1].hidden = true;
+	}
+	
+	//generate a new file input control
+    var fileInput = document.createElement("input"); 
+    fileInput.type = "file";
+    fileInput.setAttribute('multiple', 'multiple');
+	mainContainer.appendChild(fileInput); 
+	
+    //add a listener
+    fileInput.addEventListener("change", function(e) {
+    	
+    	//hide the fileupload and append a new one
+    	appendFileInputElement();
+
+  		//process the file upload
+  		jlfu.fileUploadProcess(e.target, 
+  			
+  			//define a start callback to create the UI that will interact with the file upload
+  			function(fileId, origin) {
+				appendUploadControls(fileId);  					
+  			},		
+  				
+  			//define a progressCallback to show the progress in the em elements 
+			function(fileId, percentageCompleted, uploadRate, origin) {
+ 				document.getElementById(fileId).children[0].textContent = 
+  					"Uploading... ("+percentageCompleted+"% complete) | Uploading at "+uploadRate + " per second.";
+	  		}, 
+  			
+	  		//define a finishCallback showing the completion in the em element 
+	  		function(theFileId, origin) {
+	  			document.getElementById(fileId).children[0].textContent = "Upload completed.";
+	  		}, 
+	  		
+	  		//define an exception callback
+	  		function(message, origin, fileId /* file id can be null! if null, it is a general error */) {
+	  			if (fileId) {
+	  				document.getElementById(fileId).children[0].textContent = message;
+	  			} else {
+	  				document.getElementById("error").textContent = message;
+	  			}
+	  		}
+  		);
+  		
+  	}, false);
+    
 }
+function appendUploadControls(fileId) {
+	
+	//get the ui container
+	var uiContainer = document.getElementById('uiContainer');
+	
+	//append a div
+    var div = document.createElement("div"); 
+    div.setAttribute('id', fileId);
+    uiContainer.appendChild(div);
+    
+    ////
+    //create the controls
+
+    // rate input
+    var rateInput = document.createElement("input"); 
+    rateInput.type = "text";
+    
+    // rate button
+   	var rateButton = document.createElement("button"); 
+	rateButton.addEventListener("click", function(e) {
+		jlfu.setRateInKiloBytes(getFileId(this), this.parentElement.children[2].value);
+	});
+   	rateButton.appendChild(document.createTextNode('Apply'));
+	
+	// cancel link
+   	var cancel = document.createElement("A"); 
+   	cancel.setAttribute("href","javascript:void(0);");
+   	cancel.addEventListener("click", function(e) {
+		div.children[0].textContent="Cancelling...";
+		this.parentElement.parentElement.removeChild(this.parentElement);
+		jlfu.cancelFileUpload(getFileId(this));
+	});
+   	cancel.appendChild(document.createTextNode('Cancel'));
+	
+	// pause link
+   	var pause = document.createElement("A"); 
+   	pause.setAttribute("href","javascript:void(0);");
+   	pause.addEventListener("click", function(e) {
+   		jlfu.pauseFileUpload(getFileId(this));
+		div.children[0].textContent="Paused";
+	});
+   	pause.appendChild(document.createTextNode('Pause'));
+	
+	// resume link
+   	var resume = document.createElement("A"); 
+   	resume.setAttribute("href","javascript:void(0);");
+   	resume.addEventListener("click", function(e) {
+		jlfu.resumeFileUpload(getFileId(this));
+		div.children[0].textContent="Resuming...";
+	});
+   	resume.appendChild(document.createTextNode('Resume'));
+
+    
+    ////
+    //append the controls to the div
+    div.appendChild(document.createElement("em"));
+    div.appendChild(document.createElement("br"));
+    div.appendChild(document.createTextNode('Limit the upload rate to '));
+    div.appendChild(rateInput);
+    div.appendChild(document.createTextNode(' KB '));
+    div.appendChild(rateButton);
+    div.appendChild(document.createElement("br"));
+    div.appendChild(cancel);
+    div.appendChild(document.createTextNode(' | '));
+    div.appendChild(pause);
+    div.appendChild(document.createTextNode(' | '));
+    div.appendChild(resume);
+	
+}
+
 </script>
 </head>
 <body>
-
-	<div id="container0">
-		<input type="file"/><br/> 
-		<em></em><br>
-		Limit the upload bandwith to <input type="text"/> KB <button onclick="jlfu.setRateInKiloBytes(getFileId(this.parentElement), this.parentElement.children[4].value);">Set rate</button>	<br>	
-  		<a href='javascript:void(0)' onclick='jlfu.cancelFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "");'>Cancel</a>
-  		<a href='javascript:void(0)' onclick='jlfu.pauseFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Paused");'>Pause</a>
-  		<a href='javascript:void(0)' onclick='jlfu.resumeFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Resuming...");'>Resume</a>
+	
+	<div id="fileContainer">
 	</div>
-	
-	<hr>
-	
-	<div  id="container1">
-		<input type="file"/><br/> 
-		<em></em><br>
-		Limit the upload bandwith to <input type="text"/> KB <button onclick="jlfu.setRateInKiloBytes(getFileId(this.parentElement), this.parentElement.children[4].value);">Set rate</button>	<br>	
-  		<a href='javascript:void(0)' onclick='jlfu.cancelFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "");'>Cancel</a>
-  		<a href='javascript:void(0)' onclick='jlfu.pauseFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Paused");'>Pause</a>
-  		<a href='javascript:void(0)' onclick='jlfu.resumeFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Resuming...");'>Resume</a>
- 	</div>
 
 	<hr>
-	
-	<div  id="container2">
-		<input type="file"/><br/> 
-		<em></em><br>
-		Limit the upload bandwith to <input type="text"/> KB <button onclick="jlfu.setRateInKiloBytes(getFileId(this.parentElement), this.parentElement.children[4].value);">Set rate</button>	<br>	
-  		<a href='javascript:void(0)' onclick='jlfu.cancelFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "");'>Cancel</a>
-  		<a href='javascript:void(0)' onclick='jlfu.pauseFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Paused");'>Pause</a>
-  		<a href='javascript:void(0)' onclick='jlfu.resumeFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Resuming...");'>Resume</a>
- 	</div>
-	
-	<hr>
 
-	<div  id="container3">
-		<input type="file"/><br/> 
-		<em></em><br>
-		Limit the upload bandwith to <input type="text"/> KB <button onclick="jlfu.setRateInKiloBytes(getFileId(this.parentElement), this.parentElement.children[4].value);">Set rate</button>	<br>	
-  		<a href='javascript:void(0)' onclick='jlfu.cancelFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "");'>Cancel</a>
-  		<a href='javascript:void(0)' onclick='jlfu.pauseFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Paused");'>Pause</a>
-  		<a href='javascript:void(0)' onclick='jlfu.resumeFileUpload(getFileId(this.parentElement)); setTextToEm(this.parentElement, "Resuming...");'>Resume</a>
+	<div id="uiContainer">
 	</div>
-	
+
 	<hr>
 
 	<div>
 		<a href='javascript:void(0)' onclick='jlfu.clearFileUpload(function(e) {window.location.reload();});'>Clear all</a>
 	</div>
+	
+	<em id="error"></em>
 	
 </body>
 </html>
