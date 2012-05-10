@@ -195,7 +195,7 @@ public class UploadProcessorTest {
 		String hexString = Long.toHexString(crc32.getValue());
 
 		Assert.assertThat(withMethod.getCrcAsString(), is(hexString));
-		Assert.assertThat(withMethod.getStreamLength(), is(content.length));
+		Assert.assertThat(withMethod.getTotalRead(), is(content.length));
 
 	}
 }

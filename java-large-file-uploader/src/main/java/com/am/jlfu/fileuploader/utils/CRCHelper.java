@@ -23,7 +23,7 @@ public class CRCHelper {
 	public class CRCResult {
 
 		private String crcAsString;
-		private int streamLength;
+		private int totalRead;
 
 
 
@@ -37,13 +37,13 @@ public class CRCHelper {
 		}
 
 
-		public int getStreamLength() {
-			return streamLength;
+		public int getTotalRead() {
+			return totalRead;
 		}
 
 
-		public void setStreamLength(int streamLength) {
-			this.streamLength = streamLength;
+		public void setTotalRead(int streamLength) {
+			this.totalRead = streamLength;
 		}
 
 
@@ -67,7 +67,7 @@ public class CRCHelper {
 
 		CRCResult crcResult = new CRCResult();
 		crcResult.setCrcAsString(Long.toHexString(crc32.getValue()));
-		crcResult.setStreamLength(totalRead);
+		crcResult.setTotalRead(totalRead);
 		return crcResult;
 
 	}

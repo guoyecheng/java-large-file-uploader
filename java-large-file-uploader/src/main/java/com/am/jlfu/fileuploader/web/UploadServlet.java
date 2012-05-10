@@ -88,7 +88,8 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				returnObject = uploadProcessor.getConfig();
 				break;
 			case verifyCrcOfUncheckedPart:
-				verifyCrcOfUncheckedPart(request);
+				uploadProcessor.verifyCrcOfUncheckedPart(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId),
+						fileUploaderHelper.getParameterValue(request, UploadServletParameter.crc));
 				break;
 			case verifyFirstChunk:
 				verifyFirstChunk(request);
@@ -128,18 +129,6 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				break;
 		}
 		return returnObject;
-	}
-
-
-	private void verifyCrcOfUncheckedPart(HttpServletRequest request)
-			throws IncorrectRequestException, MissingParameterException, FileUploadException, IOException, InvalidCrcException {
-
-		// get config
-		final FileUploadConfiguration extractFileUploadConfiguration = fileUploaderHelper.extractFileUploadConfiguration(request);
-
-		// verify first chunk
-		uploadProcessor.verifyCrcOfUncheckedPart(extractFileUploadConfiguration);
-
 	}
 
 

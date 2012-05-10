@@ -296,7 +296,7 @@ function JavaLargeFileUploader() {
 		if (bytesToValidates > 0) {
 			
 			//slice the not validated part
-			var chunk = slice(blob, pendingFile.crcedBytes, pendingFile.fileCompletionInBytes - pendingFile.crcedBytes);
+			var chunk = slice(blob, pendingFile.crcedBytes , pendingFile.fileCompletionInBytes);
 			
 			//append chunk to a formdata
 			var formData = new FormData();
@@ -311,49 +311,19 @@ function JavaLargeFileUploader() {
 			
 			        //TODO if that part is bad, remove it from file and come back here from completion of last successul slice
 			        
-					// prepare xhr request
-					var xhr = new XMLHttpRequest();
-					xhr.open('POST', globalServletMapping + '?action=verifyCrcOfUncheckedPart&fileId=' + pendingFile.id + '&crc=' + decimalToHexString(digest), true);
-			
-					// assign callback
-					xhr.onreadystatechange = function() {
-						if (xhr.readyState == 4) {
-			
-							if (xhr.status != 200) {
-								if (exceptionCallback) {
-									exceptionCallback("Error during upload.", pendingFile.referenceToFileElement);
-								}
-								return;
-							}
+			        //and send it
+					$.get(globalServletMapping + "?action=verifyCrcOfUncheckedPart&fileId=" + pendingFile.id + "&crc=" + decimalToHexString(digest),	function(data) {
+						//verify stuff!
+						if (data) {
+							pendingFile.exceptionCallback("Resuming file upload with previous slice as the last part is invalid.", pendingFile.referenceToFileElement);
 							
-							//verify stuff!
-							if (xhr.responseTest) {
-								exceptionCallback("Resuming file upload with previous slice as the last part is invalid.", pendingFile.referenceToFileElement);
-								
-								//and assign the completion to last verified
-								pendingFile.fileCompletionInBytes = pendingFiles[fileId].crcedBytes;
+							//and assign the completion to last verified
+							pendingFile.fileCompletionInBytes = pendingFile.crcedBytes;
 
-							} 
-							
-							//then process upload
-							fileUploadProcessStarter(pendingFile,blob);
-							
-			
-						}
-					};
-			
-					// send xhr request
-					try {
-						//only send if it is pending, because it could have been asked for cancellation while we were reading the file!
-						if (pendingFiles[pendingFile.id]) {
-							xhr.send(formData);
-						}
-					} catch (e) {
-						if (pendingFile.exceptionCallback) {
-							pendingFile.exceptionCallback(e.message, pendingFile.referenceToFileElement);
-						}
-						return;
-					}
+						} 
+						//then process upload
+						fileUploadProcessStarter(pendingFile,blob);
+					});
 			    }
 				
 			};
