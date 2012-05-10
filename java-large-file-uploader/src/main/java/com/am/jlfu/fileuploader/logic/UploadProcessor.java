@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -30,7 +29,6 @@ import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
 import com.am.jlfu.fileuploader.utils.CRCHelper.CRCResult;
 import com.am.jlfu.fileuploader.utils.UploadLockMap;
-import com.am.jlfu.fileuploader.web.utils.FileUploadConfiguration;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
@@ -91,12 +89,20 @@ public class UploadProcessor {
 					Long fileSize = file.length();
 					FileStateJsonBase staticFileStateJson = value.getStaticFileStateJson();
 					FileStateJson fileStateJson = new FileStateJson();
-					fileStateJson.setFileComplete(fileSize.equals(staticFileStateJson.getOriginalFileSizeInBytes()));
+					fileStateJson.setFileComplete(staticFileStateJson.getCrcedBytes().equals(staticFileStateJson.getOriginalFileSizeInBytes()));
 					fileStateJson.setFileCompletionInBytes(fileSize);
 					fileStateJson.setOriginalFileName(staticFileStateJson.getOriginalFileName());
 					fileStateJson.setOriginalFileSizeInBytes(staticFileStateJson.getOriginalFileSizeInBytes());
 					fileStateJson.setRateInKiloBytes(staticFileStateJson.getRateInKiloBytes());
 					fileStateJson.setCrcedBytes(staticFileStateJson.getCrcedBytes());
+					if (!fileStateJson.getFileComplete()) {
+						try {
+							fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
+						}
+						catch (IOException e) {
+							log.error("Cannot calculate the first chunk crc of file " + file, e);
+						}
+					}
 					log.debug("returning pending file " + fileStateJson.getOriginalFileName() + " with target size " +
 							fileStateJson.getOriginalFileSizeInBytes() + " out of " + fileSize + " completed which includes " +
 							fileStateJson.getCrcedBytes() + " bytes validated and " + (fileSize - fileStateJson.getCrcedBytes()) + " unvalidated.");
@@ -277,30 +283,14 @@ public class UploadProcessor {
 	}
 
 
-	public void verifyFirstChunk(FileUploadConfiguration extractFileUploadConfiguration)
-			throws IOException, InvalidCrcException {
-		log.debug("resuming file " + extractFileUploadConfiguration.getFileId() + ", processing crc validation of first chunk.");
-
-		// get entity
-		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
-
-		// get the file
-		StaticFileState fileState = model.getFileStates().get(extractFileUploadConfiguration.getFileId());
-		if (fileState == null) {
-			throw new FileNotFoundException("File with id " + extractFileUploadConfiguration.getFileId() + " not found");
-		}
-		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
-
+	public String getCRCOfFirstChunk(File file)
+			throws IOException {
+		log.debug("resuming file " + file.getName() + ". processing crc validation of first chunk.");
 
 		// if the file does not exist, there is an issue!
 		if (!file.exists()) {
-			throw new FileNotFoundException("File with id " + extractFileUploadConfiguration.getFileId() + " not found");
+			throw new FileNotFoundException("File " + file + " not found");
 		}
-
-		// get crc of input
-		InputStream inputInputStream = extractFileUploadConfiguration.getInputStream();
-		final String inputCrc = crcHelper.getBufferedCrc(inputInputStream).getCrcAsString();
-		IOUtils.closeQuietly(inputInputStream);
 
 		// extract from the file input stream to get the crc of the same part:
 		byte[] b = new byte[1024];
@@ -310,11 +300,7 @@ public class UploadProcessor {
 		IOUtils.closeQuietly(fileInputStream);
 
 		// compare them
-		log.debug("validating chunk crc " + fileCrc + " against " + inputCrc);
-		if (!fileCrc.equals(inputCrc)) {
-			throw new InvalidCrcException(fileCrc, inputCrc);
-		}
-
+		return fileCrc;
 	}
 
 

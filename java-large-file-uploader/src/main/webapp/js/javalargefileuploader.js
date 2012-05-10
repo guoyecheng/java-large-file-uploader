@@ -187,6 +187,7 @@ function JavaLargeFileUploader() {
 			pendingFile.fileCompletionInBytes = pendingFiles[fileId].fileCompletionInBytes;
 			pendingFile.originalFileSizeInBytes = pendingFiles[fileId].originalFileSizeInBytes;
 			pendingFile.crcedBytes = pendingFiles[fileId].crcedBytes;
+			pendingFile.firstChunkCrc = pendingFiles[fileId].firstChunkCrc;
 			pendingFiles[fileId] = pendingFile;
 	
 			// compare to previously updated filename
@@ -203,51 +204,29 @@ function JavaLargeFileUploader() {
 			//process first file chunk validation
 			if (firstChunkValidation === true) {
 				
-				//slice a little part of the file
-				var chunk = slice(blob, 0, 1024);
-				
-				//append chunk to a formdata
-				var formData = new FormData();
-				formData.append("file", chunk);
-		        
-				// prepare xhr request
-				var xhr = new XMLHttpRequest();
-				xhr.open('POST', globalServletMapping + '?action=verifyFirstChunk&fileId=' + pendingFile.id, true);
-		
-				// assign callback
-				xhr.onreadystatechange = function() {
-					if (xhr.readyState == 4) {
-		
-						if (xhr.status != 200) {
-							if (exceptionCallback) {
+				// prepare the checksum of the slice
+				var reader = new FileReader();
+				reader.onloadend = function(e) {
+				    if (e.target.readyState == FileReader.DONE) { // DONE == 2
+
+				        //calculate crc of the chunk read
+				        //compare it 
+				        if (decimalToHexString(crc32(e.target.result)) != pendingFile.firstChunkCrc) {
+					        //if different
+					        if (exceptionCallback) {
 								exceptionCallback("Error while verifying the first chunk.", pendingFile.referenceToFileElement);
 							}
 							return;
-						} else {
-							
-							//verify stuff!
-							if (xhr.responseTest) {
-								exceptionCallback("The file uploaded does not appear to be the same, please check its content", pendingFile.referenceToFileElement);
-							} else {
-								// process the upload
-								fileResumeProcessStarter(pendingFile,blob);
-							}
-							
-							
+				        }
+						//otherwise, proceed
+						else {
+							// process the upload
+							fileResumeProcessStarter(pendingFile,blob);
 						}
-					}
+				    }
 				};
-		        
-				//send xhr request validation
-				try {
-					xhr.send(formData);
-				} catch (e) {
-					if (pendingFile.exceptionCallback) {
-						pendingFile.exceptionCallback(e.message, pendingFile.referenceToFileElement);
-					}
-					return;
-				}
-
+				//read the first part chunk to calculate the crc
+				reader.readAsBinaryString(slice(blob, 0, 1024));
 
 			}
 			
