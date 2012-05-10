@@ -288,8 +288,6 @@ function JavaLargeFileUploader() {
 					//calculate crc of the chunk read
 			        var digest = crc32(e.target.result);
 			
-			        //TODO if that part is bad, remove it from file and come back here from completion of last successul slice
-			        
 			        //and send it
 					$.get(globalServletMapping + "?action=verifyCrcOfUncheckedPart&fileId=" + pendingFile.id + "&crc=" + decimalToHexString(digest),	function(data) {
 						//verify stuff!

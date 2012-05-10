@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
+import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.JsonObject;
 import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.json.SimpleJsonObject;
@@ -83,8 +84,14 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				returnObject = uploadProcessor.getConfig();
 				break;
 			case verifyCrcOfUncheckedPart:
-				uploadProcessor.verifyCrcOfUncheckedPart(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId),
-						fileUploaderHelper.getParameterValue(request, UploadServletParameter.crc));
+				try {
+					uploadProcessor.verifyCrcOfUncheckedPart(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId),
+							fileUploaderHelper.getParameterValue(request, UploadServletParameter.crc));
+				}
+				catch (InvalidCrcException e) {
+					// no need to log this exception, a fallback behaviour is defined in the
+					// throwing method.
+				}
 				break;
 			case prepareUpload:
 				String fileName = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileName);
