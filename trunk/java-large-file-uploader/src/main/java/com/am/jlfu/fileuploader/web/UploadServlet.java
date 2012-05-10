@@ -7,7 +7,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.fileupload.FileUploadException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,14 +14,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
-import com.am.jlfu.fileuploader.exception.IncorrectRequestException;
-import com.am.jlfu.fileuploader.exception.InvalidCrcException;
-import com.am.jlfu.fileuploader.exception.MissingParameterException;
 import com.am.jlfu.fileuploader.json.JsonObject;
 import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.json.SimpleJsonObject;
 import com.am.jlfu.fileuploader.logic.UploadProcessor;
-import com.am.jlfu.fileuploader.web.utils.FileUploadConfiguration;
 import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper;
 
 
@@ -91,9 +86,6 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				uploadProcessor.verifyCrcOfUncheckedPart(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId),
 						fileUploaderHelper.getParameterValue(request, UploadServletParameter.crc));
 				break;
-			case verifyFirstChunk:
-				verifyFirstChunk(request);
-				break;
 			case prepareUpload:
 				String fileName = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileName);
 				Long size = Long.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.size));
@@ -129,17 +121,6 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				break;
 		}
 		return returnObject;
-	}
-
-
-	private void verifyFirstChunk(HttpServletRequest request)
-			throws MissingParameterException, IncorrectRequestException, FileUploadException, IOException, InvalidCrcException {
-
-		// get config
-		final FileUploadConfiguration extractFileUploadConfiguration = fileUploaderHelper.extractFileUploadConfiguration(request);
-
-		// verify first chunk
-		uploadProcessor.verifyFirstChunk(extractFileUploadConfiguration);
 	}
 
 

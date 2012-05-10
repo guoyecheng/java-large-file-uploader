@@ -63,11 +63,13 @@ public class CRCHelper {
 			totalRead += read;
 		}
 		inputStream.close();
-		log.debug("obtained crc for stream with length " + totalRead);
 
 		CRCResult crcResult = new CRCResult();
 		crcResult.setCrcAsString(Long.toHexString(crc32.getValue()));
 		crcResult.setTotalRead(totalRead);
+
+		log.debug("obtained crc for stream with length " + totalRead + " : " + crcResult.getCrcAsString());
+
 		return crcResult;
 
 	}

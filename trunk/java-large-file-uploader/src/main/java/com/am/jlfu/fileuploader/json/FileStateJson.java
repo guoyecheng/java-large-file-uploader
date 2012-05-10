@@ -12,6 +12,9 @@ public class FileStateJson
 	/** Bytes which have been completed. */
 	private Long fileCompletionInBytes;
 
+	/** The CRC of the first chunk */
+	private String firstChunkCrc;
+
 
 
 	/**
@@ -42,6 +45,14 @@ public class FileStateJson
 	}
 
 
+	public String getFirstChunkCrc() {
+		return firstChunkCrc;
+	}
+
+
+	public void setFirstChunkCrc(String firstChunkCrc) {
+		this.firstChunkCrc = firstChunkCrc;
+	}
 
 
 }

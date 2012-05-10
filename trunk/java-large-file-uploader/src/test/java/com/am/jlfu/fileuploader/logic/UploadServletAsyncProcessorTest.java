@@ -289,8 +289,6 @@ public class UploadServletAsyncProcessorTest {
 						(currentSlice * UploadProcessor.sliceSizeInBytes);
 				Assert.assertThat(size, is(completedPart));
 
-				// TODO process with exception on crc and truncation
-
 				// process the crc of the part that has not been completed
 				byteArrayFromFile =
 						UploadProcessorTest.getByteArrayFromInputStream(new FileInputStream(file), crcedBytesBeforeVerification, completedPart);
@@ -458,7 +456,7 @@ public class UploadServletAsyncProcessorTest {
 
 					// wait a bit
 					try {
-						Thread.sleep(200);
+						Thread.sleep(100);
 					}
 					catch (InterruptedException e) {
 						throw new RuntimeException(e);
