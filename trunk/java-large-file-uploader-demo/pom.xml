@@ -7,7 +7,7 @@
 
 	<groupId>com.am</groupId>
 	<artifactId>java-large-file-uploader-demo</artifactId>
-	<version>0.3-SNAPSHOT</version>
+	<version>0.3.1-SNAPSHOT</version>
 
 	<dependencies>
 
@@ -22,7 +22,7 @@
 		<dependency>
 			<groupId>com.am</groupId>
 			<artifactId>java-large-file-uploader</artifactId>
-			<version>0.3-SNAPSHOT</version>
+			<version>0.3.1-SNAPSHOT</version>
 			<type>war</type>
 			<scope>runtime</scope>
 		</dependency>
