@@ -1,6 +1,10 @@
 package com.am.jlfu.fileuploader.json;
 
 
+import com.am.jlfu.fileuploader.logic.UploadProcessor;
+
+
+
 public class FileStateJson
 		extends FileStateJsonBase {
 
@@ -14,6 +18,12 @@ public class FileStateJson
 
 	/** The CRC of the first chunk */
 	private String firstChunkCrc;
+
+	/**
+	 * The length of the first chunk CRC, equal or smaller to
+	 * {@link UploadProcessor#SIZE_OF_FIRST_CHUNK_VALIDATION}
+	 */
+	private int firstChunkCrcLength;
 
 
 
@@ -52,6 +62,16 @@ public class FileStateJson
 
 	public void setFirstChunkCrc(String firstChunkCrc) {
 		this.firstChunkCrc = firstChunkCrc;
+	}
+
+
+	public void setFirstChunkCrcLength(int totalRead) {
+		this.firstChunkCrcLength = totalRead;
+	}
+
+
+	public int getFirstChunkCrcLength() {
+		return firstChunkCrcLength;
 	}
 
 

@@ -4,7 +4,6 @@ package com.am.jlfu.staticstate.entities;
 import java.io.Serializable;
 import java.util.Map;
 
-import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.google.common.collect.Maps;
 
@@ -29,15 +28,6 @@ public class StaticStatePersistedOnFileSystemEntity
 	/** The states of the files being uploaded, the string being its identifier. */
 	private Map<String, StaticFileState> fileStates = Maps.newHashMap();
 
-	/**
-	 * The default rate of the client in kilo bytes.<br>
-	 * Minimum should be set to 10kb/s.<br>
-	 * Maximum is {@link Long#MAX_VALUE}<br>
-	 * @see FileStateJsonBase#getRateInKiloBytes()
-	 * @see FileStateJsonBase#setRateInKiloBytes(Long)
-	 * */
-	private Long defaultRateInKiloBytes;
-
 
 
 	/**
@@ -57,18 +47,5 @@ public class StaticStatePersistedOnFileSystemEntity
 		this.fileStates = fileStates;
 	}
 
-
-	public Long getDefaultRateInKiloBytes() {
-		return defaultRateInKiloBytes;
-	}
-
-
-	public void setDefaultRateInKiloBytes(Long defaultRateInKiloBytes) {
-		this.defaultRateInKiloBytes = defaultRateInKiloBytes;
-	}
-
-
-	
-	
 
 }

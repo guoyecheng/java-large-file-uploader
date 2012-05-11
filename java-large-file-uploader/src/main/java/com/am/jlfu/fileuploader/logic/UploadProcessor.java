@@ -62,6 +62,8 @@ public class UploadProcessor {
 	@Autowired
 	UploadLockMap lockMap;
 
+	public static final int SIZE_OF_FIRST_CHUNK_VALIDATION = 8192;
+
 	/** Executor service for closing streams */
 	private ExecutorService streamCloserExecutor = Executors.newSingleThreadExecutor();
 
@@ -85,8 +87,10 @@ public class UploadProcessor {
 
 				@Override
 				public FileStateJson apply(StaticFileState value) {
+
 					File file = new File(value.getAbsoluteFullPathOfUploadedFile());
 					Long fileSize = file.length();
+
 					FileStateJsonBase staticFileStateJson = value.getStaticFileStateJson();
 					FileStateJson fileStateJson = new FileStateJson();
 					fileStateJson.setFileComplete(staticFileStateJson.getCrcedBytes().equals(staticFileStateJson.getOriginalFileSizeInBytes()));
@@ -97,7 +101,9 @@ public class UploadProcessor {
 					fileStateJson.setCrcedBytes(staticFileStateJson.getCrcedBytes());
 					if (!fileStateJson.getFileComplete()) {
 						try {
-							fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
+							CRCResult crcOfFirstChunk = getCRCOfFirstChunk(file);
+							fileStateJson.setFirstChunkCrc(crcOfFirstChunk.getCrcAsString());
+							fileStateJson.setFirstChunkCrcLength(crcOfFirstChunk.getTotalRead());
 						}
 						catch (IOException e) {
 							log.error("Cannot calculate the first chunk crc of file " + file, e);
@@ -106,11 +112,17 @@ public class UploadProcessor {
 					log.debug("returning pending file " + fileStateJson.getOriginalFileName() + " with target size " +
 							fileStateJson.getOriginalFileSizeInBytes() + " out of " + fileSize + " completed which includes " +
 							fileStateJson.getCrcedBytes() + " bytes validated and " + (fileSize - fileStateJson.getCrcedBytes()) + " unvalidated.");
+
 					return fileStateJson;
 				}
 
 
 			}));
+		}
+
+		// reset pause
+		for (String fileId : entity.getFileStates().keySet()) {
+			uploadProcessingConfigurationManager.resume(fileId);
 		}
 
 		// fill configuration
@@ -265,9 +277,6 @@ public class UploadProcessor {
 		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
 		entity.getFileStates().get(fileId).getStaticFileStateJson().setRateInKiloBytes(rate);
 
-		// save it to file system as the default
-		entity.setDefaultRateInKiloBytes(rate);
-
 		// persist changes
 		staticStateManager.processEntityTreatment(entity);
 	}
@@ -283,7 +292,7 @@ public class UploadProcessor {
 	}
 
 
-	public String getCRCOfFirstChunk(File file)
+	public CRCResult getCRCOfFirstChunk(File file)
 			throws IOException {
 		log.debug("resuming file " + file.getName() + ". processing crc validation of first chunk.");
 
@@ -293,14 +302,19 @@ public class UploadProcessor {
 		}
 
 		// extract from the file input stream to get the crc of the same part:
-		byte[] b = new byte[1024];
+		byte[] b = new byte[SIZE_OF_FIRST_CHUNK_VALIDATION];
 		IOUtils.read(new FileInputStream(file), b);
 		ByteArrayInputStream fileInputStream = new ByteArrayInputStream(b);
-		final String fileCrc = crcHelper.getBufferedCrc(fileInputStream).getCrcAsString();
+		CRCResult bufferedCrc = crcHelper.getBufferedCrc(fileInputStream);
 		IOUtils.closeQuietly(fileInputStream);
 
-		// compare them
-		return fileCrc;
+		// if the size is under value, show warning
+		if (bufferedCrc.getTotalRead() < SIZE_OF_FIRST_CHUNK_VALIDATION) {
+			log.debug("First chunk was smaller than " + SIZE_OF_FIRST_CHUNK_VALIDATION + " bytes.");
+		}
+
+		// return it
+		return bufferedCrc;
 	}
 
 

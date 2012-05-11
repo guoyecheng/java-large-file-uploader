@@ -7,7 +7,6 @@ import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +15,6 @@ import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager.UploadPr
 
 
 @Component
-@ManagedResource(objectName = "JavaLargeFileUploader:name=rateLimiter")
 public class RateLimiter
 {
 
@@ -27,28 +25,8 @@ public class RateLimiter
 	RateLimiterConfigurationManager uploadProcessingConfigurationManager;
 
 
-	// ///////////////
-	// Configuration//
-	// ///////////////
-
 	/** Number of times the bucket is filled per second. */
 	public static final int NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND = 10;
-
-	/** The default request capacity. volatile because it can be changed. */
-	// 10mb/s
-	private volatile long defaultRatePerRequestInKiloBytes = 10 * 1024;
-
-	// 1kb/s
-	private volatile long minimumRatePerRequestInKiloBytes = 1;
-
-	// 10mb/s
-	private volatile long defaultRatePerClientInKiloBytes = 10 * 1024;
-
-	// 10mb/s
-	private volatile long maximumRatePerClientInKiloBytes = 10 * 1024;
-
-	// 10mb/s
-	private volatile long maximumOverAllRateInKiloBytes = 10 * 1024;
 
 
 
@@ -65,15 +43,15 @@ public class RateLimiter
 			if (!count.getValue().isPaused()) {
 
 				// default per default
-				long allowedCapacityPerSecond = defaultRatePerRequestInKiloBytes * 1024;
+				long allowedCapacityPerSecond = uploadProcessingConfigurationManager.getDefaultRatePerRequestInKiloBytes() * 1024;
 
 				// calculate from the rate in the config
 				Long rateInKiloBytes = count.getValue().getRateInKiloBytes();
 				if (rateInKiloBytes != null) {
 
 					// check min
-					if (rateInKiloBytes < minimumRatePerRequestInKiloBytes) {
-						rateInKiloBytes = minimumRatePerRequestInKiloBytes;
+					if (rateInKiloBytes < uploadProcessingConfigurationManager.getMinimumRatePerRequestInKiloBytes()) {
+						rateInKiloBytes = uploadProcessingConfigurationManager.getMinimumRatePerRequestInKiloBytes();
 					}
 
 					// then calculate
