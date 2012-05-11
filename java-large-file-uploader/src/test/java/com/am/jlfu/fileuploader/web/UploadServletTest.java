@@ -21,6 +21,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
+import com.am.jlfu.fileuploader.json.MapJsonObject;
+import com.am.jlfu.fileuploader.json.PrepareUploadJson;
 import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.json.SimpleJsonObject;
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
@@ -146,18 +148,40 @@ public class UploadServletTest {
 	public String prepareUpload()
 			throws IOException {
 
+		return (String) prepareUpload(1).values().toArray()[0];
+
+	}
+
+
+	public Map<String, String> prepareUpload(int size)
+			throws IOException {
+
 		// set action parameter
 		request.setParameter(UploadServletParameter.action.name(), UploadServletAction.prepareUpload.name());
-		request.setParameter(UploadServletParameter.fileName.name(), "jambon");
-		request.setParameter(UploadServletParameter.size.name(), content.length + "");
+		PrepareUploadJson[] prepareUploadJsons = new PrepareUploadJson[size];
+		for (int i = 0; i < size; i++) {
+			PrepareUploadJson j = new PrepareUploadJson();
+			j.setTempId(i);
+			j.setFileName("file " + i);
+			j.setSize(123456l);
+			prepareUploadJsons[i] = j;
+		}
+		request.setParameter(UploadServletParameter.newFiles.name(), new Gson().toJson(prepareUploadJsons));
 
 		// handle request
 		uploadServlet.handleRequest(request, response);
 		Assert.assertThat(response.getStatus(), is(200));
-		SimpleJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), SimpleJsonObject.class);
+		MapJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), MapJsonObject.class);
 
 		return fromJson.getValue();
+	}
 
+
+	@Test
+	public void prepareUploadMulti()
+			throws IOException {
+		Map<String, String> prepareUpload = prepareUpload(10);
+		Assert.assertThat(prepareUpload.size(), is(10));
 	}
 
 

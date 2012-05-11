@@ -11,10 +11,9 @@ public enum UploadServletParameter {
 
 	action,
 	fileId,
-	size,
 	crc,
 	rate,
-	fileName;
+	newFiles;
 
 
 }
