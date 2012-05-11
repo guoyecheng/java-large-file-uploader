@@ -174,6 +174,20 @@ function JavaLargeFileUploader() {
 					//we might have a match, adding a match counter entry
 					potentialResumeCounter.counter++;
 					
+					//check if we have a crc, if we dont, we need to get it!
+					//TODO
+					//TODO
+					//TODO
+					//TODO
+					//TODO
+					//TODO
+					//TODO
+					//TODO
+					//TODO
+					//TODO
+					//TODO
+					//TODO
+					
 					// prepare the checksum of the slice
 					var reader = new FileReader();
 					reader.pendingFile = pendingFile;
