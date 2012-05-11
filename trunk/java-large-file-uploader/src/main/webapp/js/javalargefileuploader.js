@@ -46,6 +46,7 @@ function JavaLargeFileUploader() {
 						pendingFile.id = key;
 						pendingFile.fileCompletion = getFormattedSize(pendingFile.fileCompletionInBytes);
 						pendingFile.originalFileSize = getFormattedSize(pendingFile.originalFileSizeInBytes);
+						pendingFile.percentageCompleted = format(pendingFile.originalFileSizeInBytes / pendingFile.fileCompletionInBytes);
 					});
 				}
 				callback(pendingFiles);
@@ -479,8 +480,11 @@ function JavaLargeFileUploader() {
 						var uploadRate = getFormattedSize(data.uploadRate);
 					}
 					
+					//keep progress
+					pendingFile.percentageCompleted = format(data.progress);
+					
 					// specify progress
-					pendingFile.progressCallback(pendingFile, format(data.progress), uploadRate,
+					pendingFile.progressCallback(pendingFile, pendingFile.percentageCompleted, uploadRate,
 							pendingFile.referenceToFileElement);
 					
 					// continue if not finished
