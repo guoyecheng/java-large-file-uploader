@@ -78,13 +78,6 @@ public class UploadServletAsyncProcessor {
 				uploadProcessingConfigurationManager.assignRateToRequest(fileId, staticFileStateJson.getRateInKiloBytes());
 
 			}
-			// otherwise
-			else {
-
-				// assign default configuration
-				uploadProcessingConfigurationManager.assignRateToRequest(fileId, model.getDefaultRateInKiloBytes());
-
-			}
 		}
 
 		// get the file

@@ -12,7 +12,6 @@ $(document).ready(function() {
 	
 	//call the initializing function
 	jlfu.initialize(
-			true, //Yes I want first chunk of file validation
 			function(pendingFiles) {
 				
 		//iterate over all the pending files
@@ -42,7 +41,7 @@ $(document).ready(function() {
 	            });
 			  		
 		  		//set if there is a rate configured
-			  	 document.getElementById(pendingFile.id).children[3].value = pendingFile.rateInKiloBytes;
+			  	 document.getElementById(pendingFile.id).children[4].value = pendingFile.rateInKiloBytes;
 		  		
 		  	}
 			

@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
 import com.google.common.cache.CacheBuilder;
@@ -16,6 +17,7 @@ import com.google.common.cache.LoadingCache;
 
 
 @Component
+@ManagedResource(objectName = "JavaLargeFileUploader:name=rateLimiterConfiguration")
 public class RateLimiterConfigurationManager {
 
 	private static final Logger log = LoggerFactory.getLogger(RateLimiterConfigurationManager.class);
@@ -31,6 +33,30 @@ public class RateLimiterConfigurationManager {
 				}
 			});
 
+
+	// ///////////////
+	// Configuration//
+	// ///////////////
+
+	/** The default request capacity. volatile because it can be changed. */
+	// 1mb/s
+	private volatile long defaultRatePerRequestInKiloBytes = 1024;
+
+	// 1kb/s
+	private volatile long minimumRatePerRequestInKiloBytes = 1;
+
+	// 10mb/s
+	private volatile long defaultRatePerClientInKiloBytes = 10 * 1024;
+
+	// 10mb/s
+	private volatile long maximumRatePerClientInKiloBytes = 10 * 1024;
+
+	// 10mb/s
+	private volatile long maximumOverAllRateInKiloBytes = 10 * 1024;
+
+
+
+	// ///////////////
 
 
 	public class UploadProcessingConfiguration {
@@ -180,6 +206,56 @@ public class RateLimiterConfigurationManager {
 
 	public void resume(String fileId) {
 		requestConfigMap.getUnchecked(fileId).isPaused = false;
+	}
+
+
+	public long getDefaultRatePerRequestInKiloBytes() {
+		return defaultRatePerRequestInKiloBytes;
+	}
+
+
+	public void setDefaultRatePerRequestInKiloBytes(long defaultRatePerRequestInKiloBytes) {
+		this.defaultRatePerRequestInKiloBytes = defaultRatePerRequestInKiloBytes;
+	}
+
+
+	public long getMinimumRatePerRequestInKiloBytes() {
+		return minimumRatePerRequestInKiloBytes;
+	}
+
+
+	public void setMinimumRatePerRequestInKiloBytes(long minimumRatePerRequestInKiloBytes) {
+		this.minimumRatePerRequestInKiloBytes = minimumRatePerRequestInKiloBytes;
+	}
+
+
+	public long getDefaultRatePerClientInKiloBytes() {
+		return defaultRatePerClientInKiloBytes;
+	}
+
+
+	public void setDefaultRatePerClientInKiloBytes(long defaultRatePerClientInKiloBytes) {
+		this.defaultRatePerClientInKiloBytes = defaultRatePerClientInKiloBytes;
+	}
+
+
+	public long getMaximumRatePerClientInKiloBytes() {
+		return maximumRatePerClientInKiloBytes;
+	}
+
+
+	public void setMaximumRatePerClientInKiloBytes(long maximumRatePerClientInKiloBytes) {
+		this.maximumRatePerClientInKiloBytes = maximumRatePerClientInKiloBytes;
+	}
+
+
+	public long getMaximumOverAllRateInKiloBytes() {
+		return maximumOverAllRateInKiloBytes;
+	}
+
+
+	public void setMaximumOverAllRateInKiloBytes(long maximumOverAllRateInKiloBytes) {
+		this.maximumOverAllRateInKiloBytes = maximumOverAllRateInKiloBytes;
 	}
 
 
