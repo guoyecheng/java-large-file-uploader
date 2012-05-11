@@ -2,6 +2,7 @@ package com.am.jlfu.fileuploader.web;
 
 
 import java.io.IOException;
+import java.util.HashMap;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -16,10 +17,13 @@ import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.JsonObject;
+import com.am.jlfu.fileuploader.json.MapJsonObject;
+import com.am.jlfu.fileuploader.json.PrepareUploadJson;
 import com.am.jlfu.fileuploader.json.ProgressJson;
-import com.am.jlfu.fileuploader.json.SimpleJsonObject;
 import com.am.jlfu.fileuploader.logic.UploadProcessor;
 import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper;
+import com.google.common.collect.Maps;
+import com.google.gson.Gson;
 
 
 
@@ -56,7 +60,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 					UploadServletAction.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.action));
 
 			// then process the asked action
-			jsonObject = processAction(actionByParameterName, request);
+			jsonObject = processAction(actionByParameterName, request, response);
 
 
 			// if something has to be written to the response
@@ -74,7 +78,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 	}
 
 
-	private JsonObject processAction(UploadServletAction actionByParameterName, HttpServletRequest request)
+	private JsonObject processAction(UploadServletAction actionByParameterName, HttpServletRequest request, HttpServletResponse response)
 			throws Exception {
 		log.trace("Processing action " + actionByParameterName.name());
 
@@ -94,10 +98,15 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				}
 				break;
 			case prepareUpload:
-				String fileName = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileName);
-				Long size = Long.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.size));
-				String idOfTheFile = uploadProcessor.prepareUpload(size, fileName);
-				returnObject = new SimpleJsonObject(idOfTheFile);
+				PrepareUploadJson[] fromJson =
+						new Gson()
+								.fromJson(fileUploaderHelper.getParameterValue(request, UploadServletParameter.newFiles), PrepareUploadJson[].class);
+				HashMap<String, String> newHashMap = Maps.newHashMap();
+				for (PrepareUploadJson prepareUploadJson : fromJson) {
+					String idOfTheFile = uploadProcessor.prepareUpload(prepareUploadJson.getSize(), prepareUploadJson.getFileName());
+					newHashMap.put(prepareUploadJson.getTempId().toString(), idOfTheFile);
+				}
+				response.getWriter().write(new Gson().toJson(new MapJsonObject(newHashMap)));
 				break;
 			case clearFile:
 				uploadProcessor.clearFile(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
@@ -129,6 +138,4 @@ public class UploadServlet extends HttpRequestHandlerServlet
 		}
 		return returnObject;
 	}
-
-
 }

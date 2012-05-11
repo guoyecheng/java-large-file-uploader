@@ -56,8 +56,8 @@ public class UploadServletAsyncProcessor {
 			WriteChunkCompletionListener completionListener)
 			throws FileNotFoundException
 	{
-		
-		//get identifier
+
+		// get identifier
 		String clientId = staticStateIdentifierManager.getIdentifier();
 
 		// get entity
@@ -100,16 +100,12 @@ public class UploadServletAsyncProcessor {
 			throw new FileNotFoundException("File with id " + fileId + " not found");
 		}
 
-		// init crc32
-		CRC32 crc32 = new CRC32();
-
-
 		// initialize the streams
 		OutputStream outputStream = new FileOutputStream(file, true);
 
 		// init the task
 		final WriteChunkToFileTask task =
-				new WriteChunkToFileTask(fileId, uploadProcessingConfiguration, crc, inputStream, outputStream, crc32, completionListener, clientId);
+				new WriteChunkToFileTask(fileId, uploadProcessingConfiguration, crc, inputStream, outputStream, completionListener, clientId);
 
 
 		// then submit it to the workers pool
@@ -138,21 +134,21 @@ public class UploadServletAsyncProcessor {
 
 		private final WriteChunkCompletionListener completionListener;
 
-		private CRC32 crc32;
-		private int chunkNo;
 		private UploadProcessingConfiguration uploadProcessingConfiguration;
+
+		private CRC32 crc32 = new CRC32();
+		private long byteProcessed;
 
 
 
 		public WriteChunkToFileTask(String fileId, UploadProcessingConfiguration uploadProcessingConfiguration, String crc,
 				InputStream inputStream,
-				OutputStream outputStream, CRC32 crc32, WriteChunkCompletionListener completionListener, String clientId) {
+				OutputStream outputStream, WriteChunkCompletionListener completionListener, String clientId) {
 			this.fileId = fileId;
 			this.uploadProcessingConfiguration = uploadProcessingConfiguration;
 			this.crc = crc;
 			this.inputStream = inputStream;
 			this.outputStream = outputStream;
-			this.crc32 = crc32;
 			this.completionListener = completionListener;
 			this.clientId = clientId;
 		}
@@ -196,9 +192,6 @@ public class UploadServletAsyncProcessor {
 				return;
 			}
 
-			// process the write for one token
-			log.trace("Processing chunk {} of request ({})", chunkNo++, fileId);
-
 			// define the size of what we read
 			byte[] buffer = new byte[Math.min((int) uploadProcessingConfiguration.getDownloadAllowanceForIteration(), SIZE_OF_THE_BUFFER_IN_BYTES)];
 
@@ -207,6 +200,9 @@ public class UploadServletAsyncProcessor {
 
 			// if we have something
 			if (bytesCount != -1) {
+
+				// process the write for one token
+				log.trace("Processed bytes {} of request ({})", (byteProcessed += bytesCount), fileId);
 
 				// write it to file
 				outputStream.write(buffer, 0, bytesCount);
@@ -236,7 +232,7 @@ public class UploadServletAsyncProcessor {
 				}
 
 				// if the crc is valid, specify the validation to the state
-				staticStateManager.setCrcBytesValidated(clientId, fileId, UploadProcessor.sliceSizeInBytes);
+				staticStateManager.setCrcBytesValidated(clientId, fileId, byteProcessed);
 
 				// and specify as complete
 				success();
@@ -246,9 +242,9 @@ public class UploadServletAsyncProcessor {
 
 		public void completeWithError(Exception e) {
 			log.debug("error for " + fileId + ". closing file stream");
-			
-			//remove the last bytes
-			
+
+			// remove the last bytes
+
 			IOUtils.closeQuietly(outputStream);
 			completionListener.error(e);
 		}

@@ -25,6 +25,7 @@ $(document).ready(function() {
 		  		//specify it in the em element
 		  		document.getElementById(pendingFile.id).children[0].textContent =
 		  			"The file '"+pendingFile.originalFileName+"' has been fully uploaded ("+pendingFile.fileCompletion+"/"+pendingFile.originalFileSize+").";
+	  			deleteElementsButEm(pendingFile.id);
 		  	} 
 			//else if incomplete and pending 
 		  	else if (pendingFile.fileCompletion) {
@@ -77,19 +78,21 @@ function appendFileInputElement() {
   		jlfu.fileUploadProcess(e.target, 
   			
   			//define a start callback to create the UI that will interact with the file upload
-  			function(fileId, origin) {
-				appendUploadControls(fileId);  					
+  			function(pendingFile, origin) {
+				appendUploadControls(pendingFile.id);  					
   			},		
   				
   			//define a progressCallback to show the progress in the em elements 
-			function(fileId, percentageCompleted, uploadRate, origin) {
- 				document.getElementById(fileId).children[0].textContent = 
-  					"Uploading... ("+percentageCompleted+"% complete) | Uploading at "+uploadRate + " per second.";
+			function(pendingFile, percentageCompleted, uploadRate, origin) {
+ 				document.getElementById(pendingFile.id).children[0].textContent = 
+  					"Uploading "+pendingFile.fileName+" ... ("+percentageCompleted+"% complete) at "+uploadRate + " per second.";
 	  		}, 
   			
 	  		//define a finishCallback showing the completion in the em element 
-	  		function(theFileId, origin) {
-	  			document.getElementById(fileId).children[0].textContent = "Upload completed.";
+	  		function(pendingFile, origin) {
+	  			document.getElementById(pendingFile.id).children[0].textContent =
+	  				"Upload of "+pendingFile.fileName+" ("+pendingFile.originalFileSize+") completed.";
+	  			deleteElementsButEm(pendingFile.id);
 	  		}, 
 	  		
 	  		//define an exception callback
@@ -104,6 +107,12 @@ function appendFileInputElement() {
   		
   	}, false);
     
+}
+function deleteElementsButEm(fileId) {
+	var div = $('#'+fileId);
+	var em = div.children(":first");
+	var save = em.detach();
+	div.empty().append(save);
 }
 function appendUploadControls(fileId) {
 	
@@ -134,8 +143,10 @@ function appendUploadControls(fileId) {
    	cancel.setAttribute("href","javascript:void(0);");
    	cancel.addEventListener("click", function(e) {
 		div.children[0].textContent="Cancelling...";
-		this.parentElement.parentElement.removeChild(this.parentElement);
-		jlfu.cancelFileUpload(getFileId(this));
+		jlfu.cancelFileUpload(getFileId(this), function(pendingFileId) {
+			var div = document.getElementById(pendingFileId);
+			div.parentElement.removeChild(div);
+		});
 	});
    	cancel.appendChild(document.createTextNode('Cancel'));
 	
@@ -143,8 +154,10 @@ function appendUploadControls(fileId) {
    	var pause = document.createElement("A"); 
    	pause.setAttribute("href","javascript:void(0);");
    	pause.addEventListener("click", function(e) {
-   		jlfu.pauseFileUpload(getFileId(this));
-		div.children[0].textContent="Paused";
+		div.children[0].textContent="Pausing...";
+   		jlfu.pauseFileUpload(getFileId(this), function(pendingFile) {
+			div.children[0].textContent=pendingFile.fileName+ " is paused.";
+   		});
 	});
    	pause.appendChild(document.createTextNode('Pause'));
 	
@@ -152,8 +165,10 @@ function appendUploadControls(fileId) {
    	var resume = document.createElement("A"); 
    	resume.setAttribute("href","javascript:void(0);");
    	resume.addEventListener("click", function(e) {
-		jlfu.resumeFileUpload(getFileId(this));
-		div.children[0].textContent="Resuming...";
+		div.children[0].textContent="Asking for resume...";
+		jlfu.resumeFileUpload(getFileId(this), function(pendingFile) {
+			div.children[0].textContent="Resuming " +pendingFile.fileName+ " ...";
+		});
 	});
    	resume.appendChild(document.createTextNode('Resume'));
 
