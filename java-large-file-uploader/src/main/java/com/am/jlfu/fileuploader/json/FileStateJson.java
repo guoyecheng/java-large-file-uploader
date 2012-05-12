@@ -16,16 +16,9 @@ public class FileStateJson
 	/** Bytes which have been completed. */
 	private Long fileCompletionInBytes;
 
-	/** The CRC of the first chunk */
-	private String firstChunkCrc;
-
-	/**
-	 * The length of the first chunk CRC, equal or smaller to
-	 * {@link UploadProcessor#SIZE_OF_FIRST_CHUNK_VALIDATION}
-	 */
-	private int firstChunkCrcLength;
-
-
+	/** the first chunk crc information */
+	private CRCResult firstChunkCrc;
+	
 
 	/**
 	 * Default constructor.
@@ -53,26 +46,25 @@ public class FileStateJson
 	public void setFileCompletionInBytes(Long fileCompletionInBytes) {
 		this.fileCompletionInBytes = fileCompletionInBytes;
 	}
+	
 
 
-	public String getFirstChunkCrc() {
+
+	public CRCResult getFirstChunkCrc() {
 		return firstChunkCrc;
 	}
 
 
-	public void setFirstChunkCrc(String firstChunkCrc) {
+	public void setFirstChunkCrc(CRCResult firstChunkCrc) {
 		this.firstChunkCrc = firstChunkCrc;
 	}
 
 
-	public void setFirstChunkCrcLength(int totalRead) {
-		this.firstChunkCrcLength = totalRead;
+	public void setFileComplete(boolean fileComplete) {
+		this.fileComplete = fileComplete;
 	}
 
 
-	public int getFirstChunkCrcLength() {
-		return firstChunkCrcLength;
-	}
-
+	
 
 }

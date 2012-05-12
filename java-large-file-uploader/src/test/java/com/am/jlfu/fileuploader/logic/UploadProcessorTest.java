@@ -28,9 +28,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.am.jlfu.fileuploader.json.CRCResult;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
-import com.am.jlfu.fileuploader.utils.CRCHelper.CRCResult;
 import com.am.jlfu.fileuploader.web.UploadServletAsync;
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
 import com.am.jlfu.staticstate.StaticStateManager;

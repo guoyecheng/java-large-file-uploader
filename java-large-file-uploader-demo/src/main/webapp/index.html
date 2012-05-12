@@ -41,7 +41,9 @@ $(document).ready(function() {
 	            });
 			  		
 		  		//set if there is a rate configured
-			  	 document.getElementById(pendingFile.id).children[4].value = pendingFile.rateInKiloBytes;
+		  		if (pendingFile.rateInKiloBytes) {
+				  	 document.getElementById(pendingFile.id).children[2].value = pendingFile.rateInKiloBytes;
+		  		}
 		  		
 		  	}
 			
@@ -91,7 +93,7 @@ function appendFileInputElement() {
   			//define a progressCallback to show the progress in the em elements 
 			function(pendingFile, percentageCompleted, uploadRate, origin) {
  				document.getElementById(pendingFile.id).children[0].textContent = 
-  					"Uploading "+pendingFile.fileName+" ... ("+percentageCompleted+"% complete) at "+uploadRate + " per second.";
+  					"Uploading "+pendingFile.originalFileName+" ... ("+percentageCompleted+"% complete) at "+uploadRate + " per second.";
 	            $("#"+ pendingFile.id).children(".progressbar").progressbar({
 	                value: Math.floor(percentageCompleted)
 	            });
@@ -100,7 +102,7 @@ function appendFileInputElement() {
 	  		//define a finishCallback showing the completion in the em element 
 	  		function(pendingFile, origin) {
 	  			document.getElementById(pendingFile.id).children[0].textContent =
-	  				"Upload of "+pendingFile.fileName+" ("+pendingFile.originalFileSize+") completed.";
+	  				"Upload of "+pendingFile.originalFileName+" ("+pendingFile.originalFileSize+") completed.";
 	  			deleteElementsButEmAndCancel(pendingFile.id);
 	  		}, 
 	  		
@@ -123,7 +125,6 @@ function deleteElementsButEmAndCancel(fileId) {
 	var cancel = div.children(".cancel").detach();
 	div.empty();
 	div.append(em);
-	div.append(document.createElement('br'));
 	div.append(cancel);
     div.append(document.createElement('hr'));
 }
@@ -143,6 +144,7 @@ function appendUploadControls(fileId) {
     //progress bar
     var progressBar = document.createElement("div"); 
     progressBar.setAttribute("class","progressbar");
+    progressBar.setAttribute("style","height:20px;");
 
     // rate input
     var rateInput = document.createElement("input"); 
@@ -151,7 +153,7 @@ function appendUploadControls(fileId) {
     // rate button
    	var rateButton = document.createElement("button"); 
 	rateButton.addEventListener("click", function(e) {
-		jlfu.setRateInKiloBytes(getFileId(this), this.parentElement.children[4].value);
+		jlfu.setRateInKiloBytes(getFileId(this), this.parentElement.children[2].value);
 	});
    	rateButton.appendChild(document.createTextNode('Apply'));
 	
@@ -174,7 +176,7 @@ function appendUploadControls(fileId) {
    	pause.addEventListener("click", function(e) {
 		div.children[0].textContent="Pausing...";
    		jlfu.pauseFileUpload(getFileId(this), function(pendingFile) {
-			div.children[0].textContent=pendingFile.fileName+ " is paused.";
+			div.children[0].textContent=pendingFile.originalFileName+ " is paused.";
    		});
 	});
    	pause.appendChild(document.createTextNode('Pause'));
@@ -185,7 +187,7 @@ function appendUploadControls(fileId) {
    	resume.addEventListener("click", function(e) {
 		div.children[0].textContent="Asking for resume...";
 		jlfu.resumeFileUpload(getFileId(this), function(pendingFile) {
-			div.children[0].textContent="Resuming " +pendingFile.fileName+ " ...";
+			div.children[0].textContent="Resuming " +pendingFile.originalFileName+ " ...";
 		});
 	});
    	resume.appendChild(document.createTextNode('Resume'));
@@ -194,19 +196,17 @@ function appendUploadControls(fileId) {
     ////
     //append the controls to the div
     div.appendChild(document.createElement("em"));
-    div.appendChild(document.createElement("br"));
     div.appendChild(progressBar);
-    div.appendChild(document.createElement("br"));
     div.appendChild(document.createTextNode('Limit the upload rate to '));
     div.appendChild(rateInput);
     div.appendChild(document.createTextNode(' KB '));
     div.appendChild(rateButton);
-    div.appendChild(document.createElement("br"));
-    div.appendChild(cancel);
     div.appendChild(document.createTextNode(' | '));
     div.appendChild(pause);
     div.appendChild(document.createTextNode(' | '));
     div.appendChild(resume);
+    div.appendChild(document.createTextNode(' | '));
+    div.appendChild(cancel);
     div.appendChild(document.createElement('hr'));
 	
 

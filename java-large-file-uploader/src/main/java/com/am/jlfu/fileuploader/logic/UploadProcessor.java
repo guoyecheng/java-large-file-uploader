@@ -22,12 +22,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
+import com.am.jlfu.fileuploader.json.CRCResult;
 import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
-import com.am.jlfu.fileuploader.utils.CRCHelper.CRCResult;
 import com.am.jlfu.fileuploader.utils.UploadLockMap;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
@@ -101,9 +101,7 @@ public class UploadProcessor {
 					fileStateJson.setCrcedBytes(staticFileStateJson.getCrcedBytes());
 					if (!fileStateJson.getFileComplete()) {
 						try {
-							CRCResult crcOfFirstChunk = getCRCOfFirstChunk(file);
-							fileStateJson.setFirstChunkCrc(crcOfFirstChunk.getCrcAsString());
-							fileStateJson.setFirstChunkCrcLength(crcOfFirstChunk.getTotalRead());
+							fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
 						}
 						catch (IOException e) {
 							log.error("Cannot calculate the first chunk crc of file " + file, e);
@@ -246,7 +244,7 @@ public class UploadProcessor {
 		}
 		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
 
-		// compare size of the file to the expected size
+		// compare size o6f the file to the expected size
 		Float progress = getProgress(file.length(), fileState.getStaticFileStateJson().getOriginalFileSizeInBytes()).floatValue();
 
 		log.debug("progress for file " + fileId + ": " + progress);
@@ -292,6 +290,14 @@ public class UploadProcessor {
 	}
 
 
+	public CRCResult getCRCOfFirstChunk(String fileId) throws IOException {
+		log.debug("on the fly resume for " + fileId + ". generating crc.");
+		
+		String absoluteFullPathOfUploadedFile = staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
+		return getCRCOfFirstChunk(new File(absoluteFullPathOfUploadedFile));
+		
+	}
+	
 	public CRCResult getCRCOfFirstChunk(File file)
 			throws IOException {
 		log.debug("resuming file " + file.getName() + ". processing crc validation of first chunk.");
@@ -302,7 +308,7 @@ public class UploadProcessor {
 		}
 
 		// extract from the file input stream to get the crc of the same part:
-		byte[] b = new byte[SIZE_OF_FIRST_CHUNK_VALIDATION];
+		byte[] b = new byte[(int) Math.min(file.length(), SIZE_OF_FIRST_CHUNK_VALIDATION)];
 		IOUtils.read(new FileInputStream(file), b);
 		ByteArrayInputStream fileInputStream = new ByteArrayInputStream(b);
 		CRCResult bufferedCrc = crcHelper.getBufferedCrc(fileInputStream);
@@ -391,4 +397,6 @@ public class UploadProcessor {
 		}
 
 	}
+
+
 }
