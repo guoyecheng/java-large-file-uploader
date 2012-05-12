@@ -53,9 +53,46 @@
 					</overlay>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<version>2.7</version>
+				<dependencies>
+					<dependency>
+						<groupId>com.google.code.maven-svn-wagon</groupId>
+						<artifactId>maven-svn-wagon</artifactId>
+						<version>1.4</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>2.3</version>
+			</plugin>
 		</plugins>
+
+		<extensions>
+			<extension>
+				<groupId>com.google.code.maven-svn-wagon</groupId>
+				<artifactId>maven-svn-wagon</artifactId>
+				<version>1.4</version>
+			</extension>
+		</extensions>
+
 	</build>
 
+
+	<distributionManagement>
+		<repository>
+			<id>googlecode</id>
+			<url>svn:https://java-large-file-uploader.googlecode.com/svn/demo</url>
+		</repository>
+	</distributionManagement>
+
+
+	<scm>
+		<connection>scm:svn:https://java-large-file-uploader.googlecode.com/svn/trunk</connection>
+	</scm>
 
 	<repositories>
 		<repository>
