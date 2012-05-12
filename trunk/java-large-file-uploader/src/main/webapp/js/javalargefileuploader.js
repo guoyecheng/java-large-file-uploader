@@ -9,9 +9,12 @@ function JavaLargeFileUploader() {
 	
 	/*
 	 * PendingFile object:
+	 * 		-id (string) : identifier of the pending file upload
 	 *	 	-fileComplete (boolean) : specifies if the file is complete or not.
-	 * 		-originalFileName (string) : the original file name. 
+	 * 		-originalFileName (string) : the original file name.
+	 * 		-fileCompletionInBytes (long) : the file completion in bytes. 
 	 * 		-fileCompletion (string) : the file completion formatted with its unit. 
+	 * 		-originalFileSizeInBytes (long) : the original file size in bytes. 
 	 * 		-originalFileSize (string) : the original file size formatted with its unit. 
 	 * 
 	 */
@@ -168,93 +171,17 @@ function JavaLargeFileUploader() {
 			for (pendingFileToCheckKey in pendingFiles) {
 				var pendingFileToCheck = pendingFiles[pendingFileToCheckKey];
 				
-				if (pendingFileToCheck.originalFileName == pendingFile.fileName && 
-						pendingFileToCheck.originalFileSizeInBytes == pendingFile.size) {
+				if (pendingFileToCheck.originalFileName == pendingFile.originalFileName && 
+						pendingFileToCheck.originalFileSizeInBytes == pendingFile.originalFileSizeInBytes) {
 					
 					//we might have a match, adding a match counter entry
 					potentialResumeCounter.counter++;
 					
-					//check if we have a crc, if we dont, we need to get it!
-					//TODO
-					//TODO
-					//TODO
-					//TODO
-					//TODO
-					//TODO
-					//TODO
-					//TODO
-					//TODO
-					//TODO
-					//TODO
-					//TODO
-					
-					// prepare the checksum of the slice
-					var reader = new FileReader();
-					reader.pendingFile = pendingFile;
-					reader.pendingFileKey = pendingFileToCheckKey;
-					reader.pendingFileToCheck = pendingFileToCheck;
-					reader.onloadend = function(e) {
-						//if the read is complete
-					    if (e.target.readyState == FileReader.DONE) { // DONE == 2
-
-					    	//if that pendingfile is still there
-					    	if (potentialNewFiles.indexOf(e.target.pendingFile) != -1) {
-					    	
-						        //calculate crc of the chunk read
-						        //compare it 
-						    	//if it is the correct file
-						    	//proceed
-						        if (decimalToHexString(crc32(e.target.result)) == e.target.pendingFileToCheck.firstChunkCrc) {
-									
-						        	//remove it from new file ids (as we are now sure it is not a new file)
-						        	potentialNewFiles.splice(potentialNewFiles.indexOf(e.target.pendingFile), 1);
-									
-						        	//fill pending file to check with new info
-									//populate stuff retrieved in initialization 
-									//TODO that is bad, just add that config to the one already in the array!
-						        	e.target.pendingFile.originalFileName = e.target.pendingFileToCheck.originalFileName;
-						        	e.target.pendingFile.originalFileSize = getFormattedSize(e.target.pendingFileToCheck.originalFileSizeInBytes);
-						        	e.target.pendingFile.fileCompletionInBytes = e.target.pendingFileToCheck.fileCompletionInBytes;
-						        	e.target.pendingFile.originalFileSizeInBytes = e.target.pendingFileToCheck.originalFileSizeInBytes;
-						        	e.target.pendingFile.crcedBytes = e.target.pendingFileToCheck.crcedBytes;
-									e.target.pendingFile.firstChunkCrc = e.target.pendingFileToCheck.firstChunkCrc;
-									e.target.pendingFile.started = e.target.pendingFileToCheck.started;
-									e.target.pendingFile.firstChunkCrcLength = e.target.pendingFileToCheck.firstChunkCrcLength;
-									e.target.pendingFile.id = e.target.pendingFileKey;
-									
-									//put it into the pending files array
-									pendingFiles[e.target.pendingFileKey] = e.target.pendingFile;
-									
-									
-									//if that file is not already being uploaded:
-									if (!e.target.pendingFile.started) {
-										// process the upload
-										fileResumeProcessStarter(e.target.pendingFile);
-									}
-								} else {
-									console.log("Invalid resume crc for "+e.target.pendingFileToCheck.originalFileName+". processing as a new file.");
-								}
-						        
-						        //if its not the correct file, it will be processed in processNewFiles
-						        
-						        //decrement potential resume counter
-						        potentialResumeCounter.counter--;
-						        
-						        //and if it was the last one, process the new files.
-						        if (potentialResumeCounter.counter === 0 && potentialNewFiles.length > 0) {
-						        	processNewFiles(potentialNewFiles);
-						        }
-
-					    	}
-					        
-					    }
-					};
-					//read the first part chunk to calculate the crc
-					reader.readAsBinaryString(slice(pendingFile.blob, 0, pendingFileToCheck.firstChunkCrcLength));
-					
+					//check the crc first slice
+					//that method will take care of the new files processing when all complete
+					checkCrcFirstSlice(potentialNewFiles, pendingFile, pendingFileToCheck, potentialResumeCounter);
 				} 
 			}
-
 		}
 		
 		//process if no pending to resume
@@ -265,8 +192,94 @@ function JavaLargeFileUploader() {
 		
 	};
 	
+	function checkCrcFirstSlice(potentialNewFiles, pendingFile, pendingFileToCheck, potentialResumeCounter) {
+		
+		//check if we have a crc, if we dont, we need to get it!
+		if (!pendingFileToCheck.firstChunkCrc) {
+			
+			$.get(globalServletMapping + "?action=getCrcOfFirstChunk&fileId="+pendingFileToCheck.id, function(data) {
+				
+				//populate crc data
+				pendingFileToCheck.firstChunkCrc = data;
+
+				//check the crc first slice 
+				processCrcFirstSlice(potentialNewFiles, pendingFile, pendingFileToCheck, potentialResumeCounter);
+				
+			});
+		} 
+		//otherwise
+		else {
+			//check the crc first slice directly
+			processCrcFirstSlice(potentialNewFiles, pendingFile, pendingFileToCheck, potentialResumeCounter);
+		}
+	}
+	
+	function processCrcFirstSlice(potentialNewFiles, pendingFile, pendingFileToCheck, potentialResumeCounter){
+		
+		// prepare the checksum of the slice
+		var reader = new FileReader();
+		reader.pendingFile = pendingFile;
+		reader.pendingFileToCheck = pendingFileToCheck;
+		reader.onloadend = function(e) {
+			//if the read is complete
+		    if (e.target.readyState == FileReader.DONE) { // DONE == 2
+
+		    	//if that pendingfile is still there
+		    	if (potentialNewFiles.indexOf(e.target.pendingFile) != -1) {
+		    	
+			        //calculate crc of the chunk read
+			        //compare it 
+			    	//if it is the correct file
+			    	//proceed
+			        if (decimalToHexString(crc32(e.target.result)) == e.target.pendingFileToCheck.firstChunkCrc.value) {
+						
+			        	//remove it from new file ids (as we are now sure it is not a new file)
+			        	potentialNewFiles.splice(potentialNewFiles.indexOf(e.target.pendingFile), 1);
+						
+			        	//fill pending file to check with new info
+						//populate stuff retrieved in initialization 
+			        	e.target.pendingFile.fileCompletionInBytes = e.target.pendingFileToCheck.fileCompletionInBytes;
+			        	e.target.pendingFile.crcedBytes = e.target.pendingFileToCheck.crcedBytes;
+						e.target.pendingFile.firstChunkCrc = e.target.pendingFileToCheck.firstChunkCrc;
+						e.target.pendingFile.started = e.target.pendingFileToCheck.started;
+						e.target.pendingFile.firstChunkCrcLength = e.target.pendingFileToCheck.firstChunkCrcLength;
+						e.target.pendingFile.id = e.target.pendingFileToCheck.id;
+						
+						//put it into the pending files array
+						pendingFiles[e.target.pendingFileToCheck.id] = e.target.pendingFile;
+						
+						
+						//if that file is not already being uploaded:
+						if (!e.target.pendingFile.started) {
+							// process the upload
+							fileResumeProcessStarter(e.target.pendingFile);
+						}
+					} else {
+						console.log("Invalid resume crc for "+e.target.pendingFileToCheck.originalFileName+". processing as a new file.");
+					}
+			        
+			        //if its not the correct file, it will be processed in processNewFiles
+			        
+			        //decrement potential resume counter
+			        potentialResumeCounter.counter--;
+			        
+			        //and if it was the last one, process the new files.
+			        if (potentialResumeCounter.counter === 0 && potentialNewFiles.length > 0) {
+			        	processNewFiles(potentialNewFiles);
+			        }
+
+		    	}
+		        
+		    }
+		};
+		//read the first part chunk to calculate the crc
+		reader.readAsBinaryString(slice(pendingFile.blob, 0, pendingFileToCheck.firstChunkCrc.read));
+		
+	}
+	
 	function extractFilesInformation(referenceToFileElement, startCallback, progressCallback,
 			finishCallback, exceptionCallback) {
+		var newFiles = [];
 		
 		//extract files
 		var files = referenceToFileElement.files;
@@ -274,30 +287,30 @@ function JavaLargeFileUploader() {
 			if (exceptionCallback) {
 				exceptionCallback("Please select at least one file!", referenceToFileElement);
 			}
-			return;
-		}
-		
-		var newFiles = [];
-		for (fileKey in files) {
-			var file = files[fileKey];
-			if (file.name && file.size) {
+		} else {
+			for (fileKey in files) {
+				var file = files[fileKey];
+				if (file.name && file.size) {
 					
-				//init the pending file object
-				var pendingFile = new Object();
-				pendingFile.fileName = file.name; 
-				pendingFile.size = file.size;  
-				pendingFile.blob = file;  
-				pendingFile.progressCallback=progressCallback;
-				pendingFile.referenceToFileElement= referenceToFileElement;
-				pendingFile.startCallback= startCallback;
-				pendingFile.finishCallback= finishCallback;
-				pendingFile.exceptionCallback= exceptionCallback;
-				pendingFile.paused=false;
-				
-				//put it into the temporary new file array as every file is potentially a new file until it is proven it is not a new file
-				newFiles.push(pendingFile);
+					//init the pending file object
+					var pendingFile = new Object();
+					pendingFile.originalFileName = file.name; 
+					pendingFile.originalFileSizeInBytes = file.size;
+					pendingFile.originalFileSize = getFormattedSize(pendingFile.originalFileSizeInBytes);
+					pendingFile.blob = file;  
+					pendingFile.progressCallback=progressCallback;
+					pendingFile.referenceToFileElement= referenceToFileElement;
+					pendingFile.startCallback= startCallback;
+					pendingFile.finishCallback= finishCallback;
+					pendingFile.exceptionCallback= exceptionCallback;
+					pendingFile.paused=false;
+					
+					//put it into the temporary new file array as every file is potentially a new file until it is proven it is not a new file
+					newFiles.push(pendingFile);
+				}
 			}
 		}
+		
 		return newFiles;
 	}
 	
@@ -312,8 +325,8 @@ function JavaLargeFileUploader() {
 			// we need to prepare the upload
 			var fileForPost = new Object();
 			fileForPost.tempId=newFilesIds;
-			fileForPost.fileName=pendingFile.fileName;
-			fileForPost.size=pendingFile.size;
+			fileForPost.fileName=pendingFile.originalFileName;
+			fileForPost.size=pendingFile.originalFileSizeInBytes;
 			jsonVersionOfNewFiles[fileForPost.tempId]=fileForPost;
 			pendingFiles[fileForPost.tempId]=pendingFile;
 			newFilesIds++;
@@ -332,9 +345,6 @@ function JavaLargeFileUploader() {
 					  pendingFile = pendingFiles[tempIdI];
 					  pendingFile.id = fileId;
 					  pendingFile.fileComplete = false;
-					  pendingFile.originalFileSize = getFormattedSize(pendingFile.size);
-					  pendingFile.originalFileSizeInBytes = pendingFile.size;
-					  pendingFile.originalFileName = pendingFile.fileName;
 					  pendingFile.fileCompletionInBytes = 0;
 					  pendingFiles[fileId] = pendingFile;
 					  delete pendingFiles[tempIdI];
@@ -464,7 +474,7 @@ function JavaLargeFileUploader() {
 						pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
 		
 						// check if we need to go on
-						if (pendingFile.fileCompletionInBytes < pendingFile.size) {
+						if (pendingFile.fileCompletionInBytes < pendingFile.originalFileSizeInBytes) {
 							// recursive call
 							setTimeout(go, 5, pendingFile);
 						} else {

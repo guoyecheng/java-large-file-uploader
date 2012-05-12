@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.fileuploader.json.CRCResult;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor;
 
 
@@ -17,38 +18,6 @@ import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor;
 public class CRCHelper {
 
 	private static final Logger log = LoggerFactory.getLogger(CRCHelper.class);
-
-
-
-	public class CRCResult {
-
-		private String crcAsString;
-		private int totalRead;
-
-
-
-		public String getCrcAsString() {
-			return crcAsString;
-		}
-
-
-		public void setCrcAsString(String crcAsString) {
-			this.crcAsString = crcAsString;
-		}
-
-
-		public int getTotalRead() {
-			return totalRead;
-		}
-
-
-		public void setTotalRead(int streamLength) {
-			this.totalRead = streamLength;
-		}
-
-
-	}
-
 
 
 	public CRCResult getBufferedCrc(InputStream inputStream)

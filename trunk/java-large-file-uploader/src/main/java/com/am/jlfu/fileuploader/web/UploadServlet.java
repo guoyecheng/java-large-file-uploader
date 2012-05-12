@@ -16,6 +16,7 @@ import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
+import com.am.jlfu.fileuploader.json.CRCResult;
 import com.am.jlfu.fileuploader.json.JsonObject;
 import com.am.jlfu.fileuploader.json.MapJsonObject;
 import com.am.jlfu.fileuploader.json.PrepareUploadJson;
@@ -60,7 +61,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 					UploadServletAction.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.action));
 
 			// then process the asked action
-			jsonObject = processAction(actionByParameterName, request, response);
+			jsonObject = processAction(actionByParameterName, request);
 
 
 			// if something has to be written to the response
@@ -78,7 +79,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 	}
 
 
-	private JsonObject processAction(UploadServletAction actionByParameterName, HttpServletRequest request, HttpServletResponse response)
+	private JsonObject processAction(UploadServletAction actionByParameterName, HttpServletRequest request)
 			throws Exception {
 		log.trace("Processing action " + actionByParameterName.name());
 
@@ -97,6 +98,9 @@ public class UploadServlet extends HttpRequestHandlerServlet
 					// throwing method.
 				}
 				break;
+			case getCrcOfFirstChunk:
+				returnObject = uploadProcessor.getCRCOfFirstChunk(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
+				break;
 			case prepareUpload:
 				PrepareUploadJson[] fromJson =
 						new Gson()
@@ -106,7 +110,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 					String idOfTheFile = uploadProcessor.prepareUpload(prepareUploadJson.getSize(), prepareUploadJson.getFileName());
 					newHashMap.put(prepareUploadJson.getTempId().toString(), idOfTheFile);
 				}
-				response.getWriter().write(new Gson().toJson(new MapJsonObject(newHashMap)));
+				returnObject = new MapJsonObject(newHashMap);
 				break;
 			case clearFile:
 				uploadProcessor.clearFile(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
