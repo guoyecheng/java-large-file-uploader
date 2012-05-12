@@ -1,6 +1,7 @@
 package com.am.jlfu.fileuploader.json;
 
 import java.io.Serializable;
+import java.util.Date;
 
 
 public class FileStateJsonBase
@@ -14,6 +15,9 @@ public class FileStateJsonBase
 	/** The original file size */
 	private Long originalFileSizeInBytes;
 
+	/** When the file was originally created */
+	private Date creationDate;
+	
 	/**
 	 * The rate of the client in kilo bytes.<br>
 	 * */
@@ -75,4 +79,15 @@ public class FileStateJsonBase
 	}
 
 
+	public Date getCreationDate() {
+		return creationDate;
+	}
+
+
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
+	}
+
+
+	
 }
