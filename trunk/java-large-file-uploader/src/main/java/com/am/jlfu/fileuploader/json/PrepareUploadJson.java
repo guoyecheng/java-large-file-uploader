@@ -6,7 +6,7 @@ import java.io.Serializable;
 
 
 public class PrepareUploadJson
-		implements JsonObject {
+		implements Serializable {
 
 	private Integer tempId;
 

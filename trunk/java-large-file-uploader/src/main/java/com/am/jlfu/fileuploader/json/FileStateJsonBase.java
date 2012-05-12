@@ -1,8 +1,10 @@
 package com.am.jlfu.fileuploader.json;
 
+import java.io.Serializable;
+
 
 public class FileStateJsonBase
-		implements JsonObject {
+		implements Serializable {
 
 	private static final long serialVersionUID = 5043865795253104456L;
 

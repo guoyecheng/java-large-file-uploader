@@ -2,6 +2,7 @@ package com.am.jlfu.fileuploader.web.utils;
 
 
 import java.io.IOException;
+import java.io.Serializable;
 
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.exception.IncorrectRequestException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
-import com.am.jlfu.fileuploader.json.JsonObject;
 import com.am.jlfu.fileuploader.json.SimpleJsonObject;
 import com.am.jlfu.fileuploader.web.UploadServletParameter;
 import com.google.gson.Gson;
@@ -87,7 +87,7 @@ public class FileUploaderHelper {
 	}
 
 
-	public void writeToResponse(JsonObject jsonObject, ServletResponse servletResponse)
+	public void writeToResponse(Serializable jsonObject, ServletResponse servletResponse)
 			throws IOException {
 		servletResponse.setContentType("application/json");
 		servletResponse.getWriter().print(new Gson().toJson(jsonObject));

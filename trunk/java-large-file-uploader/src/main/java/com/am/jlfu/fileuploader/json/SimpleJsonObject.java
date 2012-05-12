@@ -1,8 +1,10 @@
 package com.am.jlfu.fileuploader.json;
 
+import java.io.Serializable;
+
 
 public class SimpleJsonObject
-		implements JsonObject {
+		implements Serializable {
 
 	/**
 	 * generated id

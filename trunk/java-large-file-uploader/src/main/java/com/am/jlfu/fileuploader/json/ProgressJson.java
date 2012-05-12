@@ -1,8 +1,10 @@
 package com.am.jlfu.fileuploader.json;
 
+import java.io.Serializable;
+
 
 public class ProgressJson
-		implements JsonObject {
+		implements Serializable {
 
 	private Float progress;
 	private Long uploadRate;

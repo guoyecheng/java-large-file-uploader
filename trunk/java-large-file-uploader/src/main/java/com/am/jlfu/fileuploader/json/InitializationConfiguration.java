@@ -1,6 +1,7 @@
 package com.am.jlfu.fileuploader.json;
 
 
+import java.io.Serializable;
 import java.util.Map;
 
 
@@ -12,7 +13,7 @@ import java.util.Map;
  * 
  */
 public class InitializationConfiguration
-		implements JsonObject {
+		implements Serializable {
 
 	private static final long serialVersionUID = -6955613223772661218L;
 

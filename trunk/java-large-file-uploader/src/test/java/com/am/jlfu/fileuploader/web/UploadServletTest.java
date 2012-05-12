@@ -4,6 +4,7 @@ package com.am.jlfu.fileuploader.web;
 import static org.hamcrest.CoreMatchers.is;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.ServletException;
@@ -21,12 +22,12 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
-import com.am.jlfu.fileuploader.json.MapJsonObject;
 import com.am.jlfu.fileuploader.json.PrepareUploadJson;
 import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.json.SimpleJsonObject;
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 
 
@@ -95,12 +96,14 @@ public class UploadServletTest {
 		// set action parameter
 		request.setParameter(UploadServletParameter.action.name(), UploadServletAction.getProgress.name());
 		String id = "a bad id";
-		request.setParameter(UploadServletParameter.fileId.name(), id);
+		request.setParameter(UploadServletParameter.fileId.name(), new Gson().toJson(new String[] { id }));
 
 		// handle request
 		uploadServlet.handleRequest(request, response);
-		SimpleJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), SimpleJsonObject.class);
-		Assert.assertThat("File with id " + id + " not found", is(fromJson.getValue()));
+		
+		HashMap<String, ProgressJson> fromJson = new Gson().fromJson(response.getContentAsString(), new TypeToken<Map<String, ProgressJson>>(){}.getType());
+		Assert.assertThat(fromJson.size(), is(Integer.valueOf(0)));
+		
 	}
 
 
@@ -115,13 +118,16 @@ public class UploadServletTest {
 		request.clearAttributes();
 		response = new MockHttpServletResponse();
 		request.setParameter(UploadServletParameter.action.name(), UploadServletAction.getProgress.name());
-		request.setParameter(UploadServletParameter.fileId.name(), fileId);
+		request.setParameter(UploadServletParameter.fileId.name(), new Gson().toJson(new String[] { fileId }));
 
 		// handle request
 		uploadServlet.handleRequest(request, response);
 		Assert.assertThat(response.getStatus(), is(200));
-		ProgressJson fromJson = new Gson().fromJson(response.getContentAsString(), ProgressJson.class);
-		Assert.assertThat(Float.valueOf(fromJson.getProgress()), is(Float.valueOf(0)));
+		
+		HashMap<String, ProgressJson> fromJson = new Gson().fromJson(response.getContentAsString(), new TypeToken<Map<String, ProgressJson>>(){}.getType());
+		ProgressJson[] array = new ProgressJson[] {};
+		array = fromJson.values().toArray(array);
+		Assert.assertThat(Float.valueOf(array[0].getProgress()), is(Float.valueOf(0)));
 
 	}
 
@@ -171,9 +177,9 @@ public class UploadServletTest {
 		// handle request
 		uploadServlet.handleRequest(request, response);
 		Assert.assertThat(response.getStatus(), is(200));
-		MapJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), MapJsonObject.class);
+		HashMap<String, String> fromJson = new Gson().fromJson(response.getContentAsString(), new TypeToken<Map<String, String>>(){}.getType());
 
-		return fromJson.getValue();
+		return fromJson;
 	}
 
 

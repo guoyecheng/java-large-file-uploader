@@ -56,6 +56,9 @@ function JavaLargeFileUploader() {
 				}
 			}
 		});
+		
+		// launch the progress poller
+		startProgressPoller();
 	
 	};
 	
@@ -120,8 +123,6 @@ function JavaLargeFileUploader() {
 		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused === true) {
 			//set as not paused anymore
 			pendingFiles[fileId].paused = false;
-			//restart progress poller
-			startProgressPoller(pendingFiles[fileId]);
 			//and restart flow
 			$.get(globalServletMapping + "?action=resumeFile&fileId=" + fileId,	function(e) {
 				if (callback) {
@@ -338,7 +339,7 @@ function JavaLargeFileUploader() {
 			  $.getJSON(globalServletMapping + "?action=prepareUpload", {newFiles: JSON.stringify(jsonVersionOfNewFiles)}, function(data) {
 				  
 				  //now populate our local entries with ids
-				  $.each(data.value, function(tempIdI, fileIdI) {
+				  $.each(data , function(tempIdI, fileIdI) {
 					  
 					  //now that we have the file id, we can assign the object
 					  fileId = fileIdI;
@@ -420,11 +421,6 @@ function JavaLargeFileUploader() {
 		pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
 		pendingFile.started = true;
 		
-		// launch the progress poller
-		if (pendingFile.progressCallback) {
-			startProgressPoller(pendingFile);
-		}
-	
 		// then process the recursive function
 		go(pendingFile);
 	
@@ -526,41 +522,59 @@ function JavaLargeFileUploader() {
 		return size.toFixed(2);
 	}
 	
+	function uploadIsActive(pendingFile) {
+		//process only if we have this id in the pending files and if the file is incomplete and if the file is not paused and if the file is started!
+		return pendingFiles[pendingFile.id] && !pendingFile.paused && !pendingFile.fileComplete && pendingFile.started;
+	}
 	
-	function startProgressPoller(pendingFile) {
+	function startProgressPoller() {
+		
+		//first fill the request array
+		var fileIds = [];
+		
+		//for all the pending files
+		for (fileId in pendingFiles) {
+			var pendingFile = pendingFiles[fileId];
 	
-		//process only if we have this id in the pending files
-		if (pendingFiles[pendingFile.id] && !pendingFile.paused && !pendingFile.fileComplete) {
-			
-			// get the progress
-			$.get(globalServletMapping + "?action=getProgress&fileId=" + pendingFile.id,	function(data) {
-				
-				//if the pending file status has not been deleted while we querying:
-				if (pendingFiles[pendingFile.id] && !pendingFile.paused && !pendingFile.fileComplete) {
-
-					//if we have information about the rate:
-					if (data.uploadRate) {
-						var uploadRate = getFormattedSize(data.uploadRate);
-					}
-					
-					//keep progress
-					pendingFile.percentageCompleted = format(data.progress);
-					
-					// specify progress
-					pendingFile.progressCallback(pendingFile, pendingFile.percentageCompleted, uploadRate,
-							pendingFile.referenceToFileElement);
-					
-					// continue if not finished
-					if (data.progress < 100) {
-						setTimeout(startProgressPoller, 500, pendingFile);
-					}
-					
-				}
-				
-			});
+			//if active
+			//and if we have a progress listener
+			if(uploadIsActive(pendingFile) && pendingFile.progressCallback) {
+				fileIds.push(fileId);
+			}
 			
 		}
-		
+			
+		if (fileIds.length > 0) {
+			  $.getJSON(globalServletMapping + "?action=getProgress", {fileId: JSON.stringify(fileIds)}, function(data) {
+				  
+				  //now populate our local entries with ids
+				  $.each(data, function(fileId, progress) {
+					  	var pendingFile = pendingFiles[fileId];
+					
+					  	//if the pending file status has not been deleted while we querying:
+						if(uploadIsActive(pendingFile)) {
+
+							//if we have information about the rate:
+							if (progress.uploadRate) {
+								var uploadRate = getFormattedSize(progress.uploadRate);
+							}
+							
+							//keep progress
+							pendingFile.percentageCompleted = format(progress.progress);
+							
+							// specify progress
+							pendingFile.progressCallback(pendingFile, pendingFile.percentageCompleted, uploadRate,
+									pendingFile.referenceToFileElement);
+							
+						}
+				  });
+				  
+			  });
+		}
+
+		//and reschedule 
+		setTimeout(startProgressPoller, 500);
+
 	}
 	
 	
