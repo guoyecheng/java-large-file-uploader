@@ -7,6 +7,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -35,7 +38,10 @@ import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 
 
 
@@ -69,10 +75,8 @@ public class UploadProcessor {
 
 	/**
 	 * Size of a slice <br>
-	 * Default to 1MB.
+	 * Default to 10MB.
 	 */
-	// Float sliceSize = 1048576f;
-	// Float sliceSize = 104857600f; // 100mb
 	public static final long sliceSizeInBytes = 10485760; // 10mb
 
 
@@ -81,9 +85,23 @@ public class UploadProcessor {
 		InitializationConfiguration config = new InitializationConfiguration();
 		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
 
-		// fill pending files from static state
 		if (entity != null) {
-			config.setPendingFiles(Maps.transformValues(entity.getFileStates(), new Function<StaticFileState, FileStateJson>() {
+			
+			//order files by age
+			Ordering<String> ordering = Ordering.from(new Comparator<StaticFileState>() {
+		
+					@Override
+					public int compare(StaticFileState o1, StaticFileState o2) {
+						return o1.getStaticFileStateJson().getCreationDate().compareTo(o2.getStaticFileStateJson().getCreationDate());
+					}
+				
+			}).onResultOf(Functions.forMap(entity.getFileStates()));
+	
+			//apply comparator
+			ImmutableSortedMap<String, StaticFileState> sortedMap = ImmutableSortedMap.copyOf(entity.getFileStates(), ordering);
+			
+			// fill pending files from static state
+			config.setPendingFiles(Maps.transformValues(sortedMap, new Function<StaticFileState, FileStateJson>() {
 
 				@Override
 				public FileStateJson apply(StaticFileState value) {
@@ -99,6 +117,7 @@ public class UploadProcessor {
 					fileStateJson.setOriginalFileSizeInBytes(staticFileStateJson.getOriginalFileSizeInBytes());
 					fileStateJson.setRateInKiloBytes(staticFileStateJson.getRateInKiloBytes());
 					fileStateJson.setCrcedBytes(staticFileStateJson.getCrcedBytes());
+					fileStateJson.setCreationDate(staticFileStateJson.getCreationDate());
 					if (!fileStateJson.getFileComplete()) {
 						try {
 							fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
@@ -117,6 +136,7 @@ public class UploadProcessor {
 
 			}));
 		}
+		
 
 		// reset pause
 		for (String fileId : entity.getFileStates().keySet()) {
@@ -152,6 +172,7 @@ public class UploadProcessor {
 		// add info to the state
 		jsonFileState.setOriginalFileName(fileName);
 		jsonFileState.setOriginalFileSizeInBytes(size);
+		jsonFileState.setCreationDate(new Date());
 
 		// and returns the file identifier
 		log.debug("File prepared for client " + staticStateIdentifierManager.getIdentifier() + " at path " + file.getAbsolutePath());
