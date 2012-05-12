@@ -2,7 +2,7 @@ package com.am.jlfu.fileuploader.json;
 
 import java.io.Serializable;
 
-public class CRCResult implements JsonObject{
+public class CRCResult implements Serializable{
 
 
 	private String value;

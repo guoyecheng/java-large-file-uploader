@@ -1,7 +1,9 @@
 package com.am.jlfu.fileuploader.web;
 
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.HashMap;
 
 import javax.servlet.annotation.WebServlet;
@@ -16,9 +18,6 @@ import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
-import com.am.jlfu.fileuploader.json.CRCResult;
-import com.am.jlfu.fileuploader.json.JsonObject;
-import com.am.jlfu.fileuploader.json.MapJsonObject;
 import com.am.jlfu.fileuploader.json.PrepareUploadJson;
 import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.logic.UploadProcessor;
@@ -54,7 +53,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 			throws IOException {
 		log.trace("Handling request");
 
-		JsonObject jsonObject = null;
+		Serializable jsonObject = null;
 		try {
 			// extract the action from the request
 			UploadServletAction actionByParameterName =
@@ -79,11 +78,11 @@ public class UploadServlet extends HttpRequestHandlerServlet
 	}
 
 
-	private JsonObject processAction(UploadServletAction actionByParameterName, HttpServletRequest request)
+	private Serializable processAction(UploadServletAction actionByParameterName, HttpServletRequest request)
 			throws Exception {
 		log.trace("Processing action " + actionByParameterName.name());
 
-		JsonObject returnObject = null;
+		Serializable returnObject = null;
 		switch (actionByParameterName) {
 			case getConfig:
 				returnObject = uploadProcessor.getConfig();
@@ -105,12 +104,11 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				PrepareUploadJson[] fromJson =
 						new Gson()
 								.fromJson(fileUploaderHelper.getParameterValue(request, UploadServletParameter.newFiles), PrepareUploadJson[].class);
-				HashMap<String, String> newHashMap = Maps.newHashMap();
+				returnObject = Maps.newHashMap();
 				for (PrepareUploadJson prepareUploadJson : fromJson) {
 					String idOfTheFile = uploadProcessor.prepareUpload(prepareUploadJson.getSize(), prepareUploadJson.getFileName());
-					newHashMap.put(prepareUploadJson.getTempId().toString(), idOfTheFile);
+					((HashMap<String, String>) returnObject).put(prepareUploadJson.getTempId().toString(), idOfTheFile);
 				}
-				returnObject = new MapJsonObject(newHashMap);
 				break;
 			case clearFile:
 				uploadProcessor.clearFile(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
@@ -129,17 +127,27 @@ public class UploadServlet extends HttpRequestHandlerServlet
 						Long.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.rate)));
 				break;
 			case getProgress:
-				String fileId = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId);
-				Float progress = uploadProcessor.getProgress(fileId);
-				Long uploadStat = uploadProcessor.getUploadStat(fileId);
-				ProgressJson progressJson = new ProgressJson();
-				progressJson.setProgress(progress);
-				if (uploadStat != null) {
-					progressJson.setUploadRate(uploadStat);
+				String[] ids = 
+					new Gson()
+						.fromJson(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId), String[].class);
+				returnObject = Maps.newHashMap();
+				for (String fileId : ids) {
+					try {
+						Float progress = uploadProcessor.getProgress(fileId);
+						Long uploadStat = uploadProcessor.getUploadStat(fileId);
+						ProgressJson progressJson = new ProgressJson();
+						progressJson.setProgress(progress);
+						if (uploadStat != null) {
+							progressJson.setUploadRate(uploadStat);
+						}
+						((HashMap<String, ProgressJson>) returnObject).put(fileId,progressJson);
+					} catch (FileNotFoundException e) {
+						log.debug("No progress will be retrieved for "+fileId+ " because "+e.getMessage(),e);
+					}
 				}
-				returnObject = progressJson;
 				break;
 		}
 		return returnObject;
 	}
 }
+
