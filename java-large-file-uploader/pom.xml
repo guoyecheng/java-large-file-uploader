@@ -7,7 +7,7 @@
 
 	<groupId>com.am</groupId>
 	<artifactId>java-large-file-uploader</artifactId>
-	<version>0.3.2-SNAPSHOT</version>
+	<version>0.3.3-SNAPSHOT</version>
 
 
 	<properties>
@@ -170,6 +170,10 @@
 					</dependency>
 				</dependencies>
 			</plugin>
+			<plugin>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>2.3</version>
+			</plugin>
 		</plugins>
 		<extensions>
 			<extension>
@@ -179,6 +183,12 @@
 			</extension>
 		</extensions>
 	</build>
+
+
+	<scm>
+		<connection>scm:svn:https://java-large-file-uploader.googlecode.com/svn/trunk</connection>
+	</scm>
+
 
 	<distributionManagement>
 		<repository>
