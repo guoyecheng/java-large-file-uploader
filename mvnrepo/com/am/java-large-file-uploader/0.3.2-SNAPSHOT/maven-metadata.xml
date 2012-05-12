@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata modelVersion="1.1.0">
+  <groupId>com.am</groupId>
+  <artifactId>java-large-file-uploader</artifactId>
+  <version>0.3.2-SNAPSHOT</version>
+  <versioning>
+    <snapshot>
+      <timestamp>20120512.163132</timestamp>
+      <buildNumber>1</buildNumber>
+    </snapshot>
+    <lastUpdated>20120512163132</lastUpdated>
+    <snapshotVersions>
+      <snapshotVersion>
+        <extension>war</extension>
+        <value>0.3.2-20120512.163132-1</value>
+        <updated>20120512163132</updated>
+      </snapshotVersion>
+      <snapshotVersion>
+        <extension>pom</extension>
+        <value>0.3.2-20120512.163132-1</value>
+        <updated>20120512163132</updated>
+      </snapshotVersion>
+    </snapshotVersions>
+  </versioning>
+</metadata>
