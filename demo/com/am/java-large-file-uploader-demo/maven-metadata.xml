@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.am</groupId>
+  <artifactId>java-large-file-uploader-demo</artifactId>
+  <versioning>
+    <versions>
+      <version>0.3.2-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20120512163617</lastUpdated>
+  </versioning>
+</metadata>
