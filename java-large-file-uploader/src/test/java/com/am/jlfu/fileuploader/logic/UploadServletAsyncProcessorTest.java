@@ -34,6 +34,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import com.am.jlfu.fileuploader.exception.IncorrectRequestException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
+import com.am.jlfu.fileuploader.json.CRCResult;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.fileuploader.logic.UploadProcessorTest.TestFileSplitResult;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor.WriteChunkCompletionListener;
@@ -71,6 +72,7 @@ public class UploadServletAsyncProcessorTest {
 
 	MockMultipartFile tinyFile;
 	Long tinyFileSize;
+	byte[] tinyFileContent;
 
 	String fileName = "zenameofzefile.owf";
 
@@ -87,9 +89,9 @@ public class UploadServletAsyncProcessorTest {
 		staticStateManager.clear();
 
 		// init file
-		byte[] content = new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
-		tinyFile = new MockMultipartFile("blob", content);
-		tinyFileSize = Integer.valueOf(content.length).longValue();
+		tinyFileContent = new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+		tinyFile = new MockMultipartFile("blob", tinyFileContent);
+		tinyFileSize = Integer.valueOf(tinyFileContent.length).longValue();
 	}
 
 
@@ -166,7 +168,6 @@ public class UploadServletAsyncProcessorTest {
 		Assert.assertTrue(semaphore.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
 	}
 
-
 	@Test
 	public void testClassicGranular()
 			throws ServletException, IOException, InvalidCrcException, IncorrectRequestException, MissingParameterException, FileUploadException,
@@ -176,6 +177,7 @@ public class UploadServletAsyncProcessorTest {
 
 		// begin a file upload process
 		String fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName);
+		CRCResult bufferedCrc = crcHelper.getBufferedCrc(new ByteArrayInputStream(tinyFileContent.clone()));
 
 		// get progress
 		Assert.assertThat(0f, is(uploadProcessor.getProgress(fileId)));
@@ -209,6 +211,10 @@ public class UploadServletAsyncProcessorTest {
 
 		// get progress
 		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(100));
+		
+		//check crc
+		CRCResult fileCrc = crcHelper.getBufferedCrc(new FileInputStream(new File(staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile())));
+		Assert.assertThat(fileCrc, is(bufferedCrc));
 	}
 
 
