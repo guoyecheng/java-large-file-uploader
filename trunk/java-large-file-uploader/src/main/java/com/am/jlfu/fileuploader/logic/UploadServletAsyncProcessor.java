@@ -70,7 +70,7 @@ public class UploadServletAsyncProcessor {
 		// if there is no configuration in the map
 		if (uploadProcessingConfiguration.getRateInKiloBytes() == null) {
 
-			// and if there is a specific configuration
+			// and if there is a specific configuration in th file
 			FileStateJsonBase staticFileStateJson = model.getFileStates().get(fileId).getStaticFileStateJson();
 			if (staticFileStateJson != null && staticFileStateJson.getRateInKiloBytes() != null) {
 
@@ -100,9 +100,12 @@ public class UploadServletAsyncProcessor {
 		final WriteChunkToFileTask task =
 				new WriteChunkToFileTask(fileId, uploadProcessingConfiguration, crc, inputStream, outputStream, completionListener, clientId);
 
+		//mark the file as processing
+		uploadProcessingConfiguration.setProcessing(true);
 
-		// then submit it to the workers pool
+		// then submit the task to the workers pool
 		uploadWorkersPool.submit(task);
+		
 	}
 
 
@@ -235,9 +238,7 @@ public class UploadServletAsyncProcessor {
 
 		public void completeWithError(Exception e) {
 			log.debug("error for " + fileId + ". closing file stream");
-
-			// remove the last bytes
-
+			clean(fileId);
 			IOUtils.closeQuietly(outputStream);
 			completionListener.error(e);
 		}
@@ -245,9 +246,9 @@ public class UploadServletAsyncProcessor {
 
 		public void success() {
 			log.debug("completion for " + fileId + ". closing file stream");
+			clean(fileId);
 			IOUtils.closeQuietly(outputStream);
 			completionListener.success();
-
 		}
 
 	}

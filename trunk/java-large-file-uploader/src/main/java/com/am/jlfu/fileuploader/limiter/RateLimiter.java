@@ -31,46 +31,56 @@ public class RateLimiter
 
 
 	@Scheduled(fixedRate = DateUtils.MILLIS_PER_SECOND / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND)
-	// TODO re-optimize
-	// TODO master rate limitation and per client (not just per request)
-	// TODO expose configuration to jmx
+	// TODO per client limitation (not just per request)
 	public void fillBucket() {
 
-		// for all the requests we have
-		for (Entry<String, UploadProcessingConfiguration> count : uploadProcessingConfigurationManager.getEntries()) {
+		//TODO use a map for all the clients also
 
-			// if it is paused, we do not refill the bucket
-			if (!count.getValue().isPaused()) {
+		//first we need to calculate how many uploads are currently being processed
+		int uploadsBeingProcessed = 0;
+		for (Entry<String, UploadProcessingConfiguration> entry : uploadProcessingConfigurationManager.getEntries()) {
+			uploadsBeingProcessed += entry.getValue().isProcessing() ? 1 : 0;
+		}
+		log.trace("refilling the upload allowance of the "+uploadsBeingProcessed+" uploads being processed");
+		
+		//if we have entries
+		if (uploadsBeingProcessed > 0) {
 
-				// default per default
-				long allowedCapacityPerSecond = uploadProcessingConfigurationManager.getDefaultRatePerRequestInKiloBytes() * 1024;
-
-				// calculate from the rate in the config
-				Long rateInKiloBytes = count.getValue().getRateInKiloBytes();
-				if (rateInKiloBytes != null) {
-
-					// check min
-					if (rateInKiloBytes < uploadProcessingConfigurationManager.getMinimumRatePerRequestInKiloBytes()) {
-						rateInKiloBytes = uploadProcessingConfigurationManager.getMinimumRatePerRequestInKiloBytes();
+			//calculate maximum limitation
+			long maximumAllocationPerRequestPerSecond = uploadProcessingConfigurationManager.getMaximumOverAllRateInKiloBytes() * 1024 / uploadsBeingProcessed;
+			
+			// for all the requests we have
+			for (Entry<String, UploadProcessingConfiguration> count : uploadProcessingConfigurationManager.getEntries()) {
+	
+				// if it is paused, we do not refill the bucket
+				if (count.getValue().isProcessing()) {
+	
+					// default per request
+					long allowedCapacityPerSecond = uploadProcessingConfigurationManager.getDefaultRatePerRequestInKiloBytes() * 1024;
+	
+					// calculate from the rate in the config
+					Long rateInKiloBytes = count.getValue().getRateInKiloBytes();
+					if (rateInKiloBytes != null) {
+						allowedCapacityPerSecond = (int) (rateInKiloBytes * 1024);
 					}
-
-					// then calculate
-					allowedCapacityPerSecond = (int) (rateInKiloBytes * 1024);
-
+	
+					//apply master limitation
+					allowedCapacityPerSecond = Math.min(allowedCapacityPerSecond, maximumAllocationPerRequestPerSecond);
+	
+					// calculate statistics from what has been consumed in the iteration
+					count.getValue().setInstantRateInBytes(allowedCapacityPerSecond - count.getValue().getDownloadAllowanceForIteration());
+	
+					// calculate what we can write per iteration
+					final long allowedCapacityPerIteration = allowedCapacityPerSecond / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND;
+	
+					// set it to the rate conf element
+					count.getValue().setDownloadAllowanceForIteration(allowedCapacityPerIteration);
+	
+					log.trace("giving an allowance of " + allowedCapacityPerIteration + " bytes to " + count.getKey() + ". (consumed " +
+							count.getValue().getInstantRateInBytes() + " bytes during previous iteration)");
 				}
-
-				// calculate what we can write per iteration
-				final long allowedCapacityPerIteration = allowedCapacityPerSecond / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND;
-
-				// calculate statistics from what has been consumed in the iteration
-				count.getValue().setInstantRateInBytes(allowedCapacityPerSecond - count.getValue().getDownloadAllowanceForIteration());
-
-				// set it to the rate conf element
-				count.getValue().setDownloadAllowanceForIteration(allowedCapacityPerIteration);
-
-				log.trace("giving an allowance of " + allowedCapacityPerIteration + " bytes to " + count.getKey() + ". (consumed " +
-						count.getValue().getInstantRateInBytes() + " bytes during previous iteration)");
 			}
+		
 		}
 	}
 
