@@ -35,6 +35,7 @@ public class RateLimiterTest {
 		final UploadProcessingConfiguration uploadProcessingConfiguration = uploadProcessingConfigurationManager.getUploadProcessingConfiguration(id);
 		final long originalDownloadAllowanceForIteration = uploadProcessingConfiguration.getDownloadAllowanceForIteration();
 		uploadProcessingConfigurationManager.assignRateToRequest(id, rate);
+		uploadProcessingConfiguration.setProcessing(true);
 
 		// wait for the rate modification to occur
 		while (uploadProcessingConfiguration.getDownloadAllowanceForIteration() == originalDownloadAllowanceForIteration) {

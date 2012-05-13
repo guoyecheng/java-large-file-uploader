@@ -142,7 +142,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 						}
 						((HashMap<String, ProgressJson>) returnObject).put(fileId,progressJson);
 					} catch (FileNotFoundException e) {
-						log.debug("No progress will be retrieved for "+fileId+ " because "+e.getMessage(),e);
+						log.debug("No progress will be retrieved for "+fileId+ " because "+e.getMessage());
 					}
 				}
 				break;

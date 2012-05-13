@@ -34,6 +34,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import com.am.jlfu.fileuploader.exception.IncorrectRequestException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
+import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.fileuploader.logic.UploadProcessorTest.TestFileSplitResult;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor.WriteChunkCompletionListener;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
@@ -48,8 +49,11 @@ import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 public class UploadServletAsyncProcessorTest {
 
 	private static final Logger log = LoggerFactory.getLogger(UploadServletAsyncProcessorTest.class);
-	public static final int WAIT_THAT_TIME_FOR_LOCKS_IN_SECOND = 1;
+	public static final int WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS = 1000;
 
+	@Autowired
+	RateLimiterConfigurationManager rateLimiterConfigurationManager;
+	
 	@Autowired
 	CRCHelper crcHelper;
 
@@ -159,7 +163,7 @@ public class UploadServletAsyncProcessorTest {
 
 		});
 
-		Assert.assertTrue(semaphore.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_SECOND, TimeUnit.SECONDS));
+		Assert.assertTrue(semaphore.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
 	}
 
 
@@ -181,7 +185,7 @@ public class UploadServletAsyncProcessorTest {
 		uploadServletAsyncProcessor.process(fileId, splitResult.crc, splitResult.stream, new Listener(waitForMe, true));
 
 		// wait until processing is done
-		Assert.assertTrue(waitForMe.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_SECOND, TimeUnit.SECONDS));
+		Assert.assertTrue(waitForMe.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
 
 		// get progress
 		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(3 * 100 / tinyFileSize.intValue()));
@@ -191,7 +195,7 @@ public class UploadServletAsyncProcessorTest {
 		uploadServletAsyncProcessor.process(fileId, splitResult.crc, splitResult.stream, new Listener(waitForMe, true));
 
 		// wait until processing is done
-		Assert.assertTrue(waitForMe.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_SECOND, TimeUnit.SECONDS));
+		Assert.assertTrue(waitForMe.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
 
 		// get progress
 		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(Math.round(5f / tinyFileSize.floatValue() * 100f)));
@@ -201,7 +205,7 @@ public class UploadServletAsyncProcessorTest {
 		uploadServletAsyncProcessor.process(fileId, splitResult.crc, splitResult.stream, new Listener(waitForMe, true));
 
 		// wait until processing is done
-		Assert.assertTrue(waitForMe.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_SECOND, TimeUnit.SECONDS));
+		Assert.assertTrue(waitForMe.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
 
 		// get progress
 		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(100));
@@ -275,7 +279,7 @@ public class UploadServletAsyncProcessorTest {
 				uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(wait, true, e));
 
 				// we shall have a timeout here:
-				Assert.assertFalse(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_SECOND, TimeUnit.SECONDS));
+				Assert.assertFalse(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
 
 				// assert that the validated crc is of the size of the slices that were successfull
 				Long crcedBytesBeforeVerification =
@@ -335,7 +339,7 @@ public class UploadServletAsyncProcessorTest {
 				// process it
 				wait = new Semaphore(0);
 				uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(wait, true, e));
-				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_SECOND, TimeUnit.SECONDS));
+				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
 
 			}
 			// otherwise process normally
@@ -346,7 +350,7 @@ public class UploadServletAsyncProcessorTest {
 				Exception e = null;
 				uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(wait, true, e));
 
-				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_SECOND, TimeUnit.SECONDS));
+				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
 			}
 
 		}
@@ -419,7 +423,7 @@ public class UploadServletAsyncProcessorTest {
 				Exception e = null;
 				uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(wait, true, e));
 
-				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_SECOND, TimeUnit
+				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit
 						.SECONDS));
 
 			}
@@ -475,7 +479,7 @@ public class UploadServletAsyncProcessorTest {
 				uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(wait, true));
 
 				// and wait for it
-				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_SECOND, TimeUnit.SECONDS));
+				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
 
 			}
 		});
@@ -529,8 +533,9 @@ public class UploadServletAsyncProcessorTest {
 		String fileId = uploadProcessor.prepareUpload(size, fileName);
 		String absoluteFullPathOfUploadedFile = staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
 
-		// set a 100mb rate big rate
-		uploadProcessor.setUploadRate(fileId, 102400l);
+		// set a 100mb rate
+		rateLimiterConfigurationManager.setMaximumOverAllRateInKiloBytes(100 * 1024);
+		uploadProcessor.setUploadRate(fileId, 100 * 1024l);
 
 		// for all the slices that we need to send
 		long numberOfSlices = size / UploadProcessor.sliceSizeInBytes;
@@ -539,7 +544,7 @@ public class UploadServletAsyncProcessorTest {
 			// perform treatment
 			if (doSomethingInTheMiddle != null) {
 				doSomethingInTheMiddle.start(waitForMe, currentSlice, numberOfSlices, fileId, fileContent);
-				Assert.assertTrue(waitForMe.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_SECOND, TimeUnit.MINUTES));
+				Assert.assertTrue(waitForMe.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MINUTES));
 			}
 
 		}
