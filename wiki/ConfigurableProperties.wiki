@@ -1,0 +1,13 @@
+#summary List of the properties that are exposed as MBeans attributes.
+
+====defaultRatePerRequestInKiloBytes====
+The default upload rate per request in kilo bytes. (Default is 1024 (1MB/s))
+
+====defaultRatePerClientInKiloBytes====
+The default upload rate per client in kilo bytes. (Default is 10240 (10MB/s))
+
+====maximumRatePerClientInKiloBytes====
+The maximum upload rate per client in kilo bytes. (Default is 10240 (10MB/s))
+
+====maximumOverAllRateInKiloBytes====
+The maximum total upload rate in kilo bytes. (Default is 10240 (10MB/s))
