@@ -167,7 +167,7 @@ public class UploadProcessorTest {
 		assertState(value, true, false, fileName, fileSize, 0l);
 
 		// assert that we have it in the pending files
-		Assert.assertThat(uploadProcessor.getConfig().getPendingFiles().containsKey(fileId), is(true));
+		Assert.assertThat(uploadProcessor.getConfig().getPendingFiles().keySet().toArray()[0].toString(), is(fileId));
 
 		// cancel
 		uploadProcessor.clearFile(fileId);
