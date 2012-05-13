@@ -16,7 +16,7 @@ The object contains the following information:
 ====originalFileSize====
   (string) : the original file size formatted with its unit.
 ====percentageCompleted====
-  (float) : completion of the file in percent==== (2 decimal places)
+  (float) : completion of the file in percent (2 decimal places)
 ====started====
   (boolean) : true if the file is currently being uploaded, false if it is a file present on the server filesystem and can be resumed.
 ====crcedBytes====
