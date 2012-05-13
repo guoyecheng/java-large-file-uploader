@@ -47,7 +47,9 @@ public class RateLimiter
 		if (uploadsBeingProcessed > 0) {
 
 			//calculate maximum limitation
-			long maximumAllocationPerRequestPerSecond = uploadProcessingConfigurationManager.getMaximumOverAllRateInKiloBytes() * 1024 / uploadsBeingProcessed;
+			//and assign it 
+			uploadProcessingConfigurationManager.getMasterProcessingConfiguration().setDownloadAllowanceForIteration(uploadProcessingConfigurationManager.getMaximumOverAllRateInKiloBytes() * 1024 / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND);
+			
 			
 			// for all the requests we have
 			for (Entry<String, UploadProcessingConfiguration> count : uploadProcessingConfigurationManager.getEntries()) {
@@ -64,11 +66,8 @@ public class RateLimiter
 						allowedCapacityPerSecond = (int) (rateInKiloBytes * 1024);
 					}
 	
-					//apply master limitation
-					allowedCapacityPerSecond = Math.min(allowedCapacityPerSecond, maximumAllocationPerRequestPerSecond);
-	
 					// calculate statistics from what has been consumed in the iteration
-					count.getValue().setInstantRateInBytes(allowedCapacityPerSecond - count.getValue().getDownloadAllowanceForIteration());
+					count.getValue().setInstantRateInBytes(count.getValue().getAndResetBytesWritten() * NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND);
 	
 					// calculate what we can write per iteration
 					final long allowedCapacityPerIteration = allowedCapacityPerSecond / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND;
