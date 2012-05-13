@@ -111,3 +111,42 @@ Example:
 {{{
 jlfu.setRateInKiloBytes("4ec798ec-eba1-4ef7-afbe-df6f4635783d", 20);
 }}} 
+----
+===fileUploadProcess===
+{{{
+jlfu.fileUploadProcess(referenceToFileElement, startCallback, progressCallback, finishCallback, exceptionCallback);
+}}}
+Starts or resumes the upload of all the files selected in the file input element specified as parameter. 
+See the Flow to get more information about how these uploads are actually processed.
+Parameters:
+  * referenceToFileElement (file input) :
+  The input type="file" html element which contains the selection of files that will be processed.
+  * startcallback:
+  see [PendingFile#startCallback].
+ * progressCallback:
+  see [PendingFile#progressCallback].
+ * finishCallback:
+  see [PendingFile#finishCallback].
+ * exceptionCallback:
+  see [PendingFile#exceptionCallback].
+{{{
+//process the file upload
+jlfu.fileUploadProcess(fileElement, 
+	
+	//define a start callback 
+	function(pendingFile, referenceToFileElement) {
+	},		
+		
+	//define a progressCallback
+	function(pendingFile, percentageCompleted, uploadRate, referenceToFileElement) {
+	}, 
+	
+	//define a finishCallback showing the completion in the em element 
+	function(pendingFile, referenceToFileElement) {
+	}, 
+	
+	//define an exception callback
+	function(message, referenceToFileElement, potentialfileIdThatCanBeUndefined) {
+	}
+);
+}}} 
