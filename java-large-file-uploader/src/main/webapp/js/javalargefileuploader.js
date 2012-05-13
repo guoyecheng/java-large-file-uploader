@@ -22,7 +22,7 @@ function JavaLargeFileUploader() {
 						pendingFile.fileCompletion = getFormattedSize(pendingFile.fileCompletionInBytes);
 						pendingFile.originalFileSize = getFormattedSize(pendingFile.originalFileSizeInBytes);
 						pendingFile.percentageCompleted = format(pendingFile.fileCompletionInBytes * 100 / pendingFile.originalFileSizeInBytes);
-						pendingFile.started = false;
+						pendingFile.processing = false;
 					});
 				}
 				initializationCallback(pendingFiles);
@@ -68,8 +68,8 @@ function JavaLargeFileUploader() {
 	
 	this.pauseFileUpload = function (fileIdI, callback) {
 		var fileId = fileIdI;
-		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused === false) {
-			pendingFiles[fileId].paused = true;
+		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].processing === true) {
+			pendingFiles[fileId].processing = false;
 			$.get(globalServletMapping + "?action=pauseFile&fileId=" + fileId,	function(e) {
 				if (callback) {
 					callback(pendingFiles[fileId]);
@@ -80,9 +80,9 @@ function JavaLargeFileUploader() {
 
 	this.resumeFileUpload = function (fileIdI, callback) {
 		var fileId = fileIdI;
-		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused === true) {
-			//set as not paused anymore
-			pendingFiles[fileId].paused = false;
+		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].processing === false) {
+			//set as not processing anymore
+			pendingFiles[fileId].processing = true;
 			//and restart flow
 			$.get(globalServletMapping + "?action=resumeFile&fileId=" + fileId,	function(e) {
 				if (callback) {
@@ -184,7 +184,7 @@ function JavaLargeFileUploader() {
 			        	e.target.pendingFile.fileCompletionInBytes = e.target.pendingFileToCheck.fileCompletionInBytes;
 			        	e.target.pendingFile.crcedBytes = e.target.pendingFileToCheck.crcedBytes;
 						e.target.pendingFile.firstChunkCrc = e.target.pendingFileToCheck.firstChunkCrc;
-						e.target.pendingFile.started = e.target.pendingFileToCheck.started;
+						e.target.pendingFile.processing = e.target.pendingFileToCheck.processing;
 						e.target.pendingFile.id = e.target.pendingFileToCheck.id;
 						
 						//put it into the pending files array
@@ -192,7 +192,7 @@ function JavaLargeFileUploader() {
 						
 						
 						//if that file is not already being uploaded:
-						if (!e.target.pendingFile.started) {
+						if (!e.target.pendingFile.processing) {
 							// process the upload
 							fileResumeProcessStarter(e.target.pendingFile);
 						}
@@ -245,7 +245,6 @@ function JavaLargeFileUploader() {
 					pendingFile.startCallback= startCallback;
 					pendingFile.finishCallback= finishCallback;
 					pendingFile.exceptionCallback= exceptionCallback;
-					pendingFile.paused=false;
 					
 					//put it into the temporary new file array as every file is potentially a new file until it is proven it is not a new file
 					newFiles.push(pendingFile);
@@ -363,13 +362,13 @@ function JavaLargeFileUploader() {
 
 			// start
 			pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
-			pendingFile.started = true;
+			pendingFile.processing = true;
 			
 			// then process the recursive function
 			go(pendingFile);
 			
 		} 
-		//otherwise
+		//if the file is complete
 		else {
 			//mark it as complete
 			pendingFile.fileComplete=true;
@@ -428,7 +427,7 @@ function JavaLargeFileUploader() {
 							setTimeout(go, 5, pendingFile);
 						} else {
 							pendingFile.fileComplete=true;
-							pendingFile.started=false;
+							pendingFile.processing=false;
 							// finish callback
 							if (pendingFile.finishCallback) {
 								pendingFile.finishCallback(pendingFile, pendingFile.referenceToFileElement);
@@ -477,8 +476,8 @@ function JavaLargeFileUploader() {
 	}
 	
 	function uploadIsActive(pendingFile) {
-		//process only if we have this id in the pending files and if the file is incomplete and if the file is not paused and if the file is started!
-		return pendingFiles[pendingFile.id] && !pendingFile.paused && !pendingFile.fileComplete && pendingFile.started;
+		//process only if we have this id in the pending files and if the file is incomplete and if the file is being processed
+		return pendingFiles[pendingFile.id] && !pendingFile.fileComplete && pendingFile.processing;
 	}
 	
 	function startProgressPoller() {
