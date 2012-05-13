@@ -49,7 +49,7 @@ If the crc32 are not matching, the file is truncated to match the [PendingFile#c
 
 The file streaming is a process that slices the file and stream them to the server. The size of the slice is defined by the configuration retrieved on [JavaLargeFileUploader#initialize].
 
-For each of these slice, the file is first read using the FileReader API to generate a crc32 hash. That crc32 is sent with the actual slice and will be used to ensure that the transmitted data is correct.
+For each of these slice, the file is first read using the [http://developer.mozilla.org/en/DOM/FileReader FileReader API] to generate a crc32 hash. That crc32 is sent with the actual slice and will be used to ensure that the transmitted data is correct.
 
 When the upload of this slice is complete, the next slice is processed using the same method.
 
