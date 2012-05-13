@@ -7,82 +7,6 @@ function JavaLargeFileUploader() {
 	var pendingFiles = new Object();
 	var bytesPerChunk;
 	
-	 
-	/*
-	  
-PendingFile object:
-====id====
-  (string) : identifier of the pending file upload
-====fileComplete====
-  (boolean) : specifies if the file is complete or not.
-====originalFileName====
-  (string) : the original file name.
-====fileCompletionInBytes====
-  (long) : the file completion in bytes. 
-====fileCompletion====
-  (string) : the file completion formatted with its unit. 
-====originalFileSizeInBytes====
-  (long) : the original file size in bytes. 
-====originalFileSize====
-  (string) : the original file size formatted with its unit.
-====percentageCompleted====
-  (float) : completion of the file in percent==== (2 decimal places)
-====started====
-  (boolean) : true if the file is currently being uploaded, false if it is a file present on the server filesystem and can be resumed.
-====crcedBytes====
-  (long) : amount of bytes that are validated on the server
-====firstChunkCrc====
-  (object) : the crc32 information of the first bytes of the file
-    * value (string) : the actual crc32 value
-    * read (int) : number of bytes which have been used to compute firstChunkCrc
-====blob====
-  (object) : the file submitted with a file input element
-====paused====
-  (boolean) : specifies whether this upload is paused or not.
-====progressCallback====
-  (function) : function processed
-====startCallback====
-  (function) : function that is called once the upload is pre initialized if the file id is not specified. It contains the following parameters:
-    # the PendingFile object
-    # the origin element
-====progressCallback====
-  (function) : function that will be called to monitor the progress
-    # the PendingFile object
-    # the percentage
-    # the current upload rate formatted
-    # the origin element
-====finishCallback====
-  (function): function that will be called when the process is fully complete. 
-    # the PendingFile object
-    # the origin element
-====exceptionCallback====
-  (function): function that will be called when an exception occurs. 
-    # a string formatted describing the exception
-    # the origin element
-    # the optional PendingFile object. If the exception is related to the control and not a pending file, this parameter is undefined. 
-*/
-	
-/*
-===initialize===
-{{{
-jlfu.initialize(initializationCallback, exceptionCallback);
-}}}
-This method has to be called before any other one and will initialize the object with the configuration defined on the server. It will also retrieve all the pending files that could potentially exist and provide some information about them (see PendingFile).
-  * initializationCallback: 
-  Callback function containing a map of the files previously uploaded as parameter. 
-  The key of this map is the fileIdentifier. 
-  The value is a pendingFile (see PendingFile object description).
-  * exceptionCallback:
-  A callback function with a string formatted describing the exception as parameter triggered if an exception occurred.
-Example:
-{{{
-jlfu.initialize(function(pendingFiles) {
-	//treat pending file
-}, function(message){
-	//treat exception
-));
-}}} 
-*/
 	this.initialize = function (initializationCallback, exceptionCallback) {
 		
 		// get the configuration
@@ -115,22 +39,6 @@ jlfu.initialize(function(pendingFiles) {
 	
 	};
 	
-/*
-===clearFileUpload===
-{{{
-jlfu.clearFileUpload(callback);
-}}}
-Clears all state on the server.
-Any pending upload will be stopped and deleted on the file system.
-  * callback:
-  A function with no parameter that will be executed once all files have been removed.
-Example: 
-{{{
-jlfu.clearFileUpload(function() {
-	//do something when the call is complete
-});
-}}} 
- */
 	this.clearFileUpload = function (callback) {
 		pendingFiles = new Object();
 		$.get(globalServletMapping + "?action=clearAll", function(e) {
@@ -140,46 +48,12 @@ jlfu.clearFileUpload(function() {
 		});
 	};
 	
-/*
-===setRateInKiloBytes===
-{{{
-jlfu.setRateInKiloBytes(pendingFileId, rate);
-}}}
-Specifies a maximum upload rate in kilo bytes that will be applied to the PendingFile identified by the specified id.
-  * pendingFileId (string) :
-  the id of the file on which this rate shall be applied.
-  * rate (long) :
-  the maximum rate in kilobytes.
-Example: 
-{{{
-jlfu.setRateInKiloBytes("4ec798ec-eba1-4ef7-afbe-df6f4635783d", 20);
-}}} 
- */	
 	this.setRateInKiloBytes = function (fileId, rate) {
 		if(fileId && rate)  {
 			$.get(globalServletMapping + "?action=setRate&rate="+rate+"&fileId="+fileId);
 		}
 	};
 	
-/*
-===cancelFileUpload===
-{{{
-jlfu.cancelFileUpload(pendingFileId, callback);
-}}}
-Clears the file with the specified id on the server.
-This upload will be stopped and the file deleted on the file system.
-  * pendingFileId (string) :
-  the id of the file to remove.
-  * callback:
-  A function with that will be executed once all files have been removed which includes the following parameters:
-    # fileId (string) : the id of the file that has been removed. 
-Example: 
-{{{
-jlfu.cancelFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(fileId) {
-	//do something when the call is complete
-});
-}}} 
- */
 	this.cancelFileUpload = function (fileIdI, callback) {
 		var fileId = fileIdI;
 		if(fileId && pendingFiles[fileId]) {
@@ -192,25 +66,6 @@ jlfu.cancelFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(fileId) {
 		}
 	};
 	
-/*
-===pauseFileUpload===
-{{{
-jlfu.pauseFileUpload(pendingFileId, callback);
-}}}
-Pauses the file with the specified id on the server.
-The upload can be resumed using [JavaLargeFileUploader#resumeFileUpload].
-  * pendingFileId (string) :
-  the id of the file to pause.
-  * callback:
-  A function with that will be executed once the file has been paused containing the following parameters:
-    # pendingFile (PendingFile) : the pending file object instance that has been paused. 
-Example: 
-{{{
-jlfu.pauseFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(pendingFile) {
-	//do something when the call is complete
-});
-}}} 
- */
 	this.pauseFileUpload = function (fileIdI, callback) {
 		var fileId = fileIdI;
 		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused === false) {
@@ -223,24 +78,6 @@ jlfu.pauseFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(pendingFil
 		}
 	};
 
-/*
-===resumeFileUpload===
-{{{
-jlfu.resumeFileUpload(pendingFileId, callback);
-}}}
-Resumes the file with the specified id on the server that has been previously paused using [JavaLargeFileUploader#pauseFileUpload].
-  * pendingFileId (string) :
-  the id of the file to resume.
-  * callback:
-  A function with that will be executed once the file has been resumed containing the following parameters:
-    # pendingFile (PendingFile) : the pending file object instance that has been resumed. 
-Example: 
-{{{
-jlfu.resumeFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(pendingFile) {
-	//do something when the call is complete
-});
-}}} 
- */
 	this.resumeFileUpload = function (fileIdI, callback) {
 		var fileId = fileIdI;
 		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused === true) {
@@ -255,47 +92,6 @@ jlfu.resumeFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(pendingFi
 		}
 	};
 	
-/*
-===fileUploadProcess===
-{{{
-jlfu.fileUploadProcess(referenceToFileElement, startCallback, progressCallback, finishCallback, exceptionCallback);
-}}}
-Starts or resumes the upload of all the files selected in the file input element specified as parameter. 
-See the Flow to get more information about how these uploads are actually processed.
-Parameters:
-  * referenceToFileElement (file input) :
-  The input type="file" html element which contains the selection of files that will be processed.
-  * startCallback:
-  see [PendingFile#startCallback].
- * progressCallback:
-  see [PendingFile#progressCallback].
- * finishCallback:
-  see [PendingFile#finishCallback].
- * exceptionCallback:
-  see [PendingFile#exceptionCallback].
-Example:
-{{{
-//process the file upload
-jlfu.fileUploadProcess(fileElement, 
-	
-	//define a start callback 
-	function(pendingFile, referenceToFileElement) {
-	},		
-		
-	//define a progressCallback
-	function(pendingFile, percentageCompleted, uploadRate, referenceToFileElement) {
-	}, 
-	
-	//define a finishCallback showing the completion in the em element 
-	function(pendingFile, referenceToFileElement) {
-	}, 
-	
-	//define an exception callback
-	function(message, referenceToFileElement, potentialfileIdThatCanBeUndefined) {
-	}
-);
-}}} 
- */
 	this.fileUploadProcess = function (referenceToFileElement, startCallback, progressCallback,
 			finishCallback, exceptionCallback) {
 
