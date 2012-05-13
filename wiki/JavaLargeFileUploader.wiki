@@ -1,6 +1,11 @@
 #summary Javascript unique entrypoint to interact with the API
 
 This object is the main class of the API and provides method to interact with the server.
+
+{{{
+jlfu = new JavaLargeFileUploader();
+}}}
+
 It has to be first initialized using [JavaLargeFileUploader#initialize]  before any other operation.
 
 This object provides the following methods:
