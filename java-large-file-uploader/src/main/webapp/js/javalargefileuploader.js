@@ -358,12 +358,24 @@ function JavaLargeFileUploader() {
 	
 	function fileUploadProcessStarter(pendingFile) {
 		
-		// start
-		pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
-		pendingFile.started = true;
+		//if the file is not complete
+		if (pendingFile.fileCompletionInBytes < pendingFile.originalFileSizeInBytes) {
+
+			// start
+			pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
+			pendingFile.started = true;
+			
+			// then process the recursive function
+			go(pendingFile);
+			
+		} 
+		//otherwise
+		else {
+			//mark it as complete
+			pendingFile.fileComplete=true;
+		}
 		
-		// then process the recursive function
-		go(pendingFile);
+		
 	
 	}
 	
@@ -416,6 +428,7 @@ function JavaLargeFileUploader() {
 							setTimeout(go, 5, pendingFile);
 						} else {
 							pendingFile.fileComplete=true;
+							pendingFile.started=false;
 							// finish callback
 							if (pendingFile.finishCallback) {
 								pendingFile.finishCallback(pendingFile, pendingFile.referenceToFileElement);
