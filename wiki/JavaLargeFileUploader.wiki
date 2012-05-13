@@ -92,3 +92,17 @@ jlfu.resumeFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(pendingFi
 	//do something when the call is complete
 });
 }}} 
+----
+===setRateInKiloBytes===
+{{{
+jlfu.setRateInKiloBytes(pendingFileId, rate);
+}}}
+Specifies a maximum upload rate in kilo bytes that will be applied to the PendingFile identified by the specified id.
+  * pendingFileId (string) :
+  the id of the file on which this rate shall be applied.
+  * rate (long) :
+  the maximum rate in kilobytes.
+Example: 
+{{{
+jlfu.setRateInKiloBytes("4ec798ec-eba1-4ef7-afbe-df6f4635783d", 20);
+}}} 
