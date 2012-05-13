@@ -34,7 +34,8 @@ public class RateLimiterConfigurationManager {
 				}
 			});
 
-
+	private UploadProcessingConfiguration masterProcessingConfiguration = new UploadProcessingConfiguration();
+	
 	// ///////////////
 	// Configuration//
 	// ///////////////
@@ -51,20 +52,23 @@ public class RateLimiterConfigurationManager {
 
 	// 10mb/s
 	private volatile long maximumOverAllRateInKiloBytes = 10 * 1024;
-
-
-
+	
+	
 	// ///////////////
 
 
 	public class UploadProcessingConfiguration {
 
 		/**
+		 * Specifies the amount of bytes that have been written
+		 * */
+		private volatile long bytesWritten;
+
+		/**
 		 * Specifies the amount of bytes that can be uploaded for an iteration of the refill process
 		 * of {@link RateLimiter}
 		 * */
-		private long downloadAllowanceForIteration;
-		private Object downloadAllowanceForIterationLock = new Object();
+		private volatile long downloadAllowanceForIteration;
 
 		/**
 		 * Boolean specifying whether that request shall be cancelled (and the relating streams
@@ -107,18 +111,19 @@ public class RateLimiterConfigurationManager {
 
 
 		public long getDownloadAllowanceForIteration() {
-			synchronized (downloadAllowanceForIterationLock) {
-				return downloadAllowanceForIteration;
-			}
+			return downloadAllowanceForIteration;
 		}
 
 
 		void setDownloadAllowanceForIteration(long downloadAllowanceForIteration) {
-			synchronized (downloadAllowanceForIterationLock) {
-				this.downloadAllowanceForIteration = downloadAllowanceForIteration;
-			}
+			this.downloadAllowanceForIteration = downloadAllowanceForIteration;
 		}
 
+		public long getAndResetBytesWritten() {
+			final long temp = bytesWritten;
+			bytesWritten = 0;
+			return temp;
+		}
 
 		/**
 		 * Specifies the bytes that have been read from the files.
@@ -126,9 +131,8 @@ public class RateLimiterConfigurationManager {
 		 * @param bytesConsumed
 		 */
 		public void bytesConsumedFromAllowance(long bytesConsumed) {
-			synchronized (downloadAllowanceForIterationLock) {
-				downloadAllowanceForIteration -= bytesConsumed;
-			}
+			bytesWritten += bytesConsumed;
+			downloadAllowanceForIteration -= bytesConsumed;
 		}
 
 
@@ -252,4 +256,7 @@ public class RateLimiterConfigurationManager {
 	}
 	
 
+	public UploadProcessingConfiguration getMasterProcessingConfiguration() {
+		return masterProcessingConfiguration;
+	}
 }

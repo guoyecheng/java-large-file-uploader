@@ -155,7 +155,7 @@ public class UploadServletAsyncProcessor {
 				throws Exception {
 			try {
 				// if we have not exceeded our byte to write allowance
-				if (uploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0) {
+				if (uploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0 && uploadProcessingConfigurationManager.getMasterProcessingConfiguration().getDownloadAllowanceForIteration() > 0) {
 					// process
 					write();
 				}
@@ -208,6 +208,9 @@ public class UploadServletAsyncProcessor {
 
 				// and update allowance
 				uploadProcessingConfiguration.bytesConsumedFromAllowance(bytesCount);
+				
+				//also update master allowance
+				uploadProcessingConfigurationManager.getMasterProcessingConfiguration().bytesConsumedFromAllowance(bytesCount);
 
 				// submit again
 				uploadWorkersPool.submit(this);
