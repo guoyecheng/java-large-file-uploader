@@ -121,7 +121,7 @@ See the Flow to get more information about how these uploads are actually proces
 Parameters:
   * referenceToFileElement (file input) :
   The input type="file" html element which contains the selection of files that will be processed.
-  * startcallback:
+  * startCallback:
   see [PendingFile#startCallback].
  * progressCallback:
   see [PendingFile#progressCallback].
@@ -129,6 +129,7 @@ Parameters:
   see [PendingFile#finishCallback].
  * exceptionCallback:
   see [PendingFile#exceptionCallback].
+Example:
 {{{
 //process the file upload
 jlfu.fileUploadProcess(fileElement, 
@@ -149,4 +150,4 @@ jlfu.fileUploadProcess(fileElement,
 	function(message, referenceToFileElement, potentialfileIdThatCanBeUndefined) {
 	}
 );
-}}} 
+}}}
