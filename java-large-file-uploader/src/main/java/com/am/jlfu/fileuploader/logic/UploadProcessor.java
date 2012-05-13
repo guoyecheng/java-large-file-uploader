@@ -1,6 +1,5 @@
 package com.am.jlfu.fileuploader.logic;
 
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -10,6 +9,8 @@ import java.io.RandomAccessFile;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -42,8 +43,6 @@ import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
-
-
 
 @Component
 public class UploadProcessor {
@@ -79,27 +78,23 @@ public class UploadProcessor {
 	 */
 	public static final long sliceSizeInBytes = 10485760; // 10mb
 
-
-
 	public InitializationConfiguration getConfig() {
 		InitializationConfiguration config = new InitializationConfiguration();
-		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
+		final StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
 
 		if (entity != null) {
-			
-			//order files by age
-			Ordering<String> ordering = Ordering.from(new Comparator<StaticFileState>() {
-		
-					@Override
-					public int compare(StaticFileState o1, StaticFileState o2) {
-						return o1.getStaticFileStateJson().getCreationDate().compareTo(o2.getStaticFileStateJson().getCreationDate());
-					}
-				
-			}).onResultOf(Functions.forMap(entity.getFileStates()));
-	
-			//apply comparator
-			ImmutableSortedMap<String, StaticFileState> sortedMap = ImmutableSortedMap.copyOf(entity.getFileStates(), ordering);
-			
+
+			// order files by age
+			TreeMap<String, StaticFileState> sortedMap = new TreeMap<String, StaticFileState>(new Comparator<String>() {
+
+				@Override
+				public int compare(String o1, String o2) {
+					return entity.getFileStates().get(o1).getStaticFileStateJson().getCreationDate()
+							.compareTo(entity.getFileStates().get(o2).getStaticFileStateJson().getCreationDate());
+				}
+			});
+			sortedMap.putAll(entity.getFileStates());
+
 			// fill pending files from static state
 			config.setPendingFiles(Maps.transformValues(sortedMap, new Function<StaticFileState, FileStateJson>() {
 
@@ -121,22 +116,17 @@ public class UploadProcessor {
 					if (!fileStateJson.getFileComplete()) {
 						try {
 							fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
-						}
-						catch (IOException e) {
+						} catch (IOException e) {
 							log.error("Cannot calculate the first chunk crc of file " + file, e);
 						}
 					}
-					log.debug("returning pending file " + fileStateJson.getOriginalFileName() + " with target size " +
-							fileStateJson.getOriginalFileSizeInBytes() + " out of " + fileSize + " completed which includes " +
-							fileStateJson.getCrcedBytes() + " bytes validated and " + (fileSize - fileStateJson.getCrcedBytes()) + " unvalidated.");
+					log.debug("returning pending file " + fileStateJson.getOriginalFileName() + " with target size " + fileStateJson.getOriginalFileSizeInBytes() + " out of " + fileSize + " completed which includes " + fileStateJson.getCrcedBytes() + " bytes validated and " + (fileSize - fileStateJson.getCrcedBytes()) + " unvalidated.");
 
 					return fileStateJson;
 				}
 
-
 			}));
 		}
-		
 
 		// reset pause
 		for (String fileId : entity.getFileStates().keySet()) {
@@ -149,9 +139,7 @@ public class UploadProcessor {
 		return config;
 	}
 
-
-	public String prepareUpload(Long size, String fileName)
-			throws IOException {
+	public String prepareUpload(Long size, String fileName) throws IOException {
 
 		// retrieve model
 		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
@@ -180,7 +168,6 @@ public class UploadProcessor {
 
 	}
 
-
 	private String extractExtensionOfFileName(String fileName) {
 		String[] split = fileName.split("\\.");
 		String fileExtension = "";
@@ -189,7 +176,6 @@ public class UploadProcessor {
 		}
 		return fileExtension;
 	}
-
 
 	private void closeStreamForFile(final String fileId) {
 
@@ -207,8 +193,7 @@ public class UploadProcessor {
 					while (uploadProcessingConfigurationManager.requestHasToBeCancelled(fileId)) {
 						try {
 							Thread.sleep(10);
-						}
-						catch (InterruptedException e) {
+						} catch (InterruptedException e) {
 							throw new RuntimeException(e);
 						}
 					}
@@ -217,8 +202,7 @@ public class UploadProcessor {
 			try {
 				// get the future
 				submit.get(1, TimeUnit.SECONDS);
-			}
-			catch (Exception e) {
+			} catch (Exception e) {
 				// if we timeout delete anyway, just log
 				log.debug("cannot confirm that the stream is closed for " + fileId);
 			}
@@ -226,9 +210,7 @@ public class UploadProcessor {
 
 	}
 
-
-	public void clearFile(String fileId)
-			throws InterruptedException, ExecutionException, TimeoutException {
+	public void clearFile(String fileId) throws InterruptedException, ExecutionException, TimeoutException {
 
 		// ask for the stream to be closed
 		log.debug("asking for deletion for file with id " + fileId);
@@ -238,9 +220,7 @@ public class UploadProcessor {
 		staticStateManager.clearFile(fileId);
 	}
 
-
-	public void clearAll()
-			throws InterruptedException, ExecutionException, TimeoutException {
+	public void clearAll() throws InterruptedException, ExecutionException, TimeoutException {
 
 		// close any pending stream before clearing the file
 		for (String fileId : staticStateManager.getEntity().getFileStates().keySet()) {
@@ -252,10 +232,7 @@ public class UploadProcessor {
 		staticStateManager.clear();
 	}
 
-
-	public Float getProgress(String fileId)
-			throws FileNotFoundException {
-
+	public Float getProgress(String fileId) throws FileNotFoundException {
 
 		// get the file
 		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
@@ -272,7 +249,6 @@ public class UploadProcessor {
 		return progress;
 	}
 
-
 	Double getProgress(Long currentSize, Long expectedSize) {
 		double percent = currentSize.doubleValue() / expectedSize.doubleValue() * 100d;
 		if (percent == 100 && expectedSize - currentSize != 0) {
@@ -281,11 +257,9 @@ public class UploadProcessor {
 		return percent;
 	}
 
-
 	public Long getUploadStat(String fileId) {
 		return uploadProcessingConfigurationManager.getUploadState(fileId);
 	}
-
 
 	public void setUploadRate(String fileId, Long rate) {
 
@@ -300,27 +274,23 @@ public class UploadProcessor {
 		staticStateManager.processEntityTreatment(entity);
 	}
 
-
 	public void pauseFile(String fileId) {
 		uploadProcessingConfigurationManager.pause(fileId);
 	}
-
 
 	public void resumeFile(String fileId) {
 		uploadProcessingConfigurationManager.resume(fileId);
 	}
 
-
 	public CRCResult getCRCOfFirstChunk(String fileId) throws IOException {
 		log.debug("on the fly resume for " + fileId + ". generating crc.");
-		
+
 		String absoluteFullPathOfUploadedFile = staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
 		return getCRCOfFirstChunk(new File(absoluteFullPathOfUploadedFile));
-		
+
 	}
-	
-	public CRCResult getCRCOfFirstChunk(File file)
-			throws IOException {
+
+	public CRCResult getCRCOfFirstChunk(File file) throws IOException {
 		log.debug("resuming file " + file.getName() + ". processing crc validation of first chunk.");
 
 		// if the file does not exist, there is an issue!
@@ -344,11 +314,8 @@ public class UploadProcessor {
 		return bufferedCrc;
 	}
 
-
-	public void verifyCrcOfUncheckedPart(String fileId, String inputCrc)
-			throws IOException, InvalidCrcException {
-		log.debug("validating the bytes that have not been validated from the previous interrupted upload for file " +
-				fileId);
+	public void verifyCrcOfUncheckedPart(String fileId, String inputCrc) throws IOException, InvalidCrcException {
+		log.debug("validating the bytes that have not been validated from the previous interrupted upload for file " + fileId);
 
 		// get entity
 		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
@@ -359,7 +326,6 @@ public class UploadProcessor {
 			throw new FileNotFoundException("File with id " + fileId + " not found");
 		}
 		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
-
 
 		// if the file does not exist, there is an issue!
 		if (!file.exists()) {
@@ -382,9 +348,11 @@ public class UploadProcessor {
 		if (!fileCrc.getCrcAsString().equals(inputCrc)) {
 			log.debug("invalid crc ... now truncating file to match validated bytes " + fileState.getStaticFileStateJson().getCrcedBytes());
 
-			// we are just sure now that the file before the crc validated is actually valid, and
+			// we are just sure now that the file before the crc validated is
+			// actually valid, and
 			// after that, it seems it is not
-			// so we get the file and remove everything after that crc validation so that user can
+			// so we get the file and remove everything after that crc
+			// validation so that user can
 			// resume the fileupload from there.
 
 			// truncate the file
@@ -397,12 +365,10 @@ public class UploadProcessor {
 		}
 		// if correct, we can add these bytes as validated inside the file
 		else {
-			staticStateManager.setCrcBytesValidated(staticStateIdentifierManager.getIdentifier(), fileId,
-					fileCrc.getTotalRead());
+			staticStateManager.setCrcBytesValidated(staticStateIdentifierManager.getIdentifier(), fileId, fileCrc.getTotalRead());
 		}
 
 	}
-
 
 	private void showDif(byte[] a, byte[] b) {
 
@@ -418,6 +384,5 @@ public class UploadProcessor {
 		}
 
 	}
-
 
 }
