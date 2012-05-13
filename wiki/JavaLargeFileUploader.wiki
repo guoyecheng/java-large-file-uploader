@@ -1,0 +1,56 @@
+#summary Javascript unique entrypoint to interact with the API
+
+This object provides the following methods:
+----
+===initialize===
+{{{
+jlfu.initialize(initializationCallback, exceptionCallback);
+}}}
+This method has to be called before any other one and will initialize the object with the configuration defined on the server. It will also retrieve all the pending files that could potentially exist and provide some information about them (see PendingFile).
+  * initializationCallback: 
+  Callback function containing a map of the files previously uploaded as parameter. 
+  The key of this map is the fileIdentifier. 
+  The value is a pendingFile (see PendingFile object description).
+  * exceptionCallback:
+  A callback function with a string formatted describing the exception as parameter triggered if an exception occurred.
+Example:
+{{{
+jlfu.initialize(function(pendingFiles) {
+	//treat pending file
+}, function(message){
+	//treat exception
+));
+}}} 
+----
+===clearFileUpload===
+{{{
+jlfu.clearFileUpload(callback);
+}}}
+Clears all state on the server.
+Any pending upload will be stopped and deleted on the file system.
+  * callback:
+  A function with no parameter that will be executed once all files have been removed.
+Example: 
+{{{
+jlfu.clearFileUpload(function() {
+	//do something when the call is complete
+});
+}}} 
+----
+===cancelFileUpload===
+{{{
+jlfu.cancelFileUpload(pendingFileId, callback);
+}}}
+Clears the file with the specified id on the server.
+This upload will be stopped and the file deleted on the file system.
+  * pendingFileId (string) :
+  the id of the file to remove.
+  * callback:
+  A function with that will be executed once all files have been removed which includes the following parameters:
+    # fileId (string) : the id of the file that has been removed. 
+Example: 
+{{{
+jlfu.cancelFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(fileId) {
+	//do something when the call is complete
+});
+}}} 
