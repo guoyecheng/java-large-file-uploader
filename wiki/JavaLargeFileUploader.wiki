@@ -56,8 +56,8 @@ Example:
 jlfu.cancelFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(fileId) {
 	//do something when the call is complete
 });
-----
 }}} 
+----
 ===pauseFileUpload===
 {{{
 jlfu.pauseFileUpload(pendingFileId, callback);
