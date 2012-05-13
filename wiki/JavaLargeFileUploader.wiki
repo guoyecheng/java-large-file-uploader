@@ -1,5 +1,8 @@
 #summary Javascript unique entrypoint to interact with the API
 
+This object is the main class of the API and provides method to interact with the server.
+It has to be first initialized usinbg [JavaLargeFileUploader#initialize]  before any other operation.
+
 This object provides the following methods:
 ----
 ===initialize===
