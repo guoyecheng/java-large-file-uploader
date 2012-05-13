@@ -189,7 +189,9 @@ public class UploadServletAsyncProcessor {
 			}
 
 			// define the size of what we read
-			byte[] buffer = new byte[Math.min((int) uploadProcessingConfiguration.getDownloadAllowanceForIteration(), SIZE_OF_THE_BUFFER_IN_BYTES)];
+			int min = Math.min((int) uploadProcessingConfiguration.getDownloadAllowanceForIteration(), SIZE_OF_THE_BUFFER_IN_BYTES);
+			min = (int) Math.min(uploadProcessingConfigurationManager.getMasterProcessingConfiguration().getDownloadAllowanceForIteration(), min);
+			byte[] buffer = new byte[min];
 
 			// read from stream
 			int bytesCount = inputStream.read(buffer);
