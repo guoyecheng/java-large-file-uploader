@@ -178,21 +178,20 @@ function JavaLargeFileUploader() {
 						
 			        	//remove it from new file ids (as we are now sure it is not a new file)
 			        	potentialNewFiles.splice(potentialNewFiles.indexOf(e.target.pendingFile), 1);
+
+			        	//if that file is not already being uploaded:
+			        	if (!e.target.pendingFile.processing) {
+							
+				        	//fill pending file to check with new info
+							//populate stuff retrieved in initialization 
+				        	e.target.pendingFile.fileCompletionInBytes = e.target.pendingFileToCheck.fileCompletionInBytes;
+				        	e.target.pendingFile.crcedBytes = e.target.pendingFileToCheck.crcedBytes;
+							e.target.pendingFile.firstChunkCrc = e.target.pendingFileToCheck.firstChunkCrc;
+							e.target.pendingFile.id = e.target.pendingFileToCheck.id;
+							
+							//put it into the pending files array
+							pendingFiles[e.target.pendingFileToCheck.id] = e.target.pendingFile;
 						
-			        	//fill pending file to check with new info
-						//populate stuff retrieved in initialization 
-			        	e.target.pendingFile.fileCompletionInBytes = e.target.pendingFileToCheck.fileCompletionInBytes;
-			        	e.target.pendingFile.crcedBytes = e.target.pendingFileToCheck.crcedBytes;
-						e.target.pendingFile.firstChunkCrc = e.target.pendingFileToCheck.firstChunkCrc;
-						e.target.pendingFile.processing = e.target.pendingFileToCheck.processing;
-						e.target.pendingFile.id = e.target.pendingFileToCheck.id;
-						
-						//put it into the pending files array
-						pendingFiles[e.target.pendingFileToCheck.id] = e.target.pendingFile;
-						
-						
-						//if that file is not already being uploaded:
-						if (!e.target.pendingFile.processing) {
 							// process the upload
 							fileResumeProcessStarter(e.target.pendingFile);
 						}
