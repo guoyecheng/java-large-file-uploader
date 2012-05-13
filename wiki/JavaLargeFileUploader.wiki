@@ -56,4 +56,22 @@ Example:
 jlfu.cancelFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(fileId) {
 	//do something when the call is complete
 });
+----
 }}} 
+===pauseFileUpload===
+{{{
+jlfu.pauseFileUpload(pendingFileId, callback);
+}}}
+Pauses the file with the specified id on the server.
+This upload will be paused.
+  * pendingFileId (string) :
+  the id of the file to pause.
+  * callback:
+  A function with that will be executed once the file has been paused containg the following parameters:
+    # pendingFile (PendingFile) : the pending file object instance that has been paused. 
+Example: 
+{{{
+jlfu.pauseFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(pendingFile) {
+	//do something when the call is complete
+});
+}}}
