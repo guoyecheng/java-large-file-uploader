@@ -6,6 +6,8 @@ function JavaLargeFileUploader() {
 	var uploadServletMapping = "javaLargeFileUploaderAsyncServlet";
 	var pendingFiles = new Object();
 	var bytesPerChunk;
+	var maxNumberOfConcurrentUploads = 5; 
+	//This value is important, we have one progress poller, and all the uploads. FF and chrome are limited to 6 connections per hostname, so if you want to be able to perform some other calls, you might want to reduce this number. The uploads are queued until one is finished.
 	
 	var errorMessages = [];
 	errorMessages[0] = "Request failed for an unknown reason, please contact an administrator if the problem persists.";
@@ -17,6 +19,7 @@ function JavaLargeFileUploader() {
 	errorMessages[6] = "No files have been selected, please select at least one file!";
 	errorMessages[7] = "Resuming file upload with previous slice as the last part is invalid.";
 	errorMessages[8] = "Error while uploading a slice of the file";
+	errorMessages[9] = "Maximum number of concurrent uploads reached, the upload is queued and waiting for one to finish.";
 	
 	this.initialize = function (initializationCallback, exceptionCallback) {
 		
@@ -74,6 +77,7 @@ function JavaLargeFileUploader() {
 				if (callback) {
 					callback(fileId);
 				}
+				processNextInQueue();
 			});
 		}
 	};
@@ -383,17 +387,41 @@ function JavaLargeFileUploader() {
 		
 	}
 	
+	function canUploadBeProcessed() {
+		var numberOfUploadsCurrentlyBeingProcessed = 0;
+		for(fileId in pendingFiles) {
+			var pendingFile = pendingFiles[fileId];
+			if (pendingFile.started ) {
+				numberOfUploadsCurrentlyBeingProcessed++;
+			}
+		}
+		//we can process only if we are under the capacity
+		return numberOfUploadsCurrentlyBeingProcessed < maxNumberOfConcurrentUploads;
+	}
+	
 	function fileUploadProcessStarter(pendingFile) {
 		
 		//if the file is not complete
 		if (pendingFile.fileCompletionInBytes < pendingFile.originalFileSizeInBytes) {
 
-			// start
-			pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
-			pendingFile.started = true;
-			
-			// then process the recursive function
-			go(pendingFile);
+			//check if we can process the upload
+			if (canUploadBeProcessed() === true) {
+				
+				// start
+				pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
+				pendingFile.started = true;
+				pendingFile.queued = false;
+				
+				// then process the recursive function
+				go(pendingFile);
+
+			} else {
+				//queue it
+				pendingFile.queued = true;
+				
+				//specify to user
+				pendingFile.exceptionCallback(errorMessages[9], pendingFile.referenceToFileElement, pendingFile);
+			}
 			
 		} 
 		//otherwise
@@ -439,7 +467,7 @@ function JavaLargeFileUploader() {
 					if (xhr.readyState == 4) {
 		
 						if (xhr.status != 200) {
-							pendingFile.started=false;
+							uploadEnd(pendingFile);
 							if (pendingFile.exceptionCallback) {
 								pendingFile.exceptionCallback(errorMessages[8], pendingFile.referenceToFileElement, pendingFile);
 							}
@@ -456,7 +484,7 @@ function JavaLargeFileUploader() {
 							setTimeout(go, 5, pendingFile);
 						} else {
 							pendingFile.fileComplete=true;
-							pendingFile.started=false;
+							uploadEnd(pendingFile);
 							// finish callback
 							if (pendingFile.finishCallback) {
 								pendingFile.finishCallback(pendingFile, pendingFile.referenceToFileElement);
@@ -472,7 +500,7 @@ function JavaLargeFileUploader() {
 						xhr.send(formData);
 					}
 				} catch (e) {
-					pendingFile.started=false;
+					uploadEnd(pendingFile);
 					if (pendingFile.exceptionCallback) {
 						pendingFile.exceptionCallback(errorMessages[8], endingFile.referenceToFileElement, pendingFile);
 					}
@@ -485,6 +513,24 @@ function JavaLargeFileUploader() {
 		reader.readAsBinaryString(chunk);
 
 	
+	}
+	
+	function uploadEnd(pendingFile) {
+		
+		//the file is not started anymore
+		pendingFile.started=false;
+		
+		//process the queue
+		processNextInQueue();
+	}
+	
+	function processNextInQueue() {
+		for(fileId in pendingFiles) {
+			if (pendingFiles[fileId].queued) {
+				fileUploadProcessStarter(pendingFiles[fileId]);
+				return;
+			}
+		}
 	}
 	
 	function getFormattedSize(size) {
