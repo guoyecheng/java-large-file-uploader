@@ -47,7 +47,7 @@ If the crc32 are not matching, the file is truncated to match the [PendingFile#c
 
 ===File-Streaming===
 
-The file streaming process is started only if the number of files currently uploading is below the value of the maxNumberOfConcurrentUploads. If this value is reached, the file is queued until another one is finished or cancelled.    
+The file streaming process is started only if the number of files currently uploading is below the value of the [ConfigurableProperties#MaxNumberOfConcurrentUploads]. If this value is reached, the file is queued until another one is finished or cancelled.    
 
 The file streaming process slices the file and stream them to the server. The size of the slice is defined by the configuration retrieved on [JavaLargeFileUploader#initialize].
 
