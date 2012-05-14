@@ -72,11 +72,11 @@ function JavaLargeFileUploader() {
 	this.cancelFileUpload = function (fileIdI, callback) {
 		var fileId = fileIdI;
 		if(fileId && pendingFiles[fileId]) {
-			delete pendingFiles[fileId];
 			$.get(globalServletMapping + "?action=clearFile&fileId=" + fileId,	function(e) {
 				if (callback) {
 					callback(fileId);
 				}
+				delete pendingFiles[fileId];
 				processNextInQueue();
 			});
 		}
