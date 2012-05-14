@@ -161,9 +161,12 @@ public class RateLimiterConfigurationManager {
 	public boolean markRequestHasShallBeCancelled(String fileId) {
 		UploadProcessingConfiguration ifPresent = requestConfigMap.getIfPresent(fileId);
 		if (ifPresent != null) {
-			requestConfigMap.getUnchecked(fileId).cancelRequest = true;
+			UploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
+			unchecked.cancelRequest = true;
+			return unchecked.isProcessing; 
+		} else {
+			return false;
 		}
-		return ifPresent != null;
 	}
 
 
