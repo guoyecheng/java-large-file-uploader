@@ -437,6 +437,7 @@ function JavaLargeFileUploader() {
 					if (xhr.readyState == 4) {
 		
 						if (xhr.status != 200) {
+							pendingFile.started=false;
 							if (pendingFile.exceptionCallback) {
 								pendingFile.exceptionCallback(errorMessages[8], pendingFile.referenceToFileElement, pendingFile);
 							}
@@ -469,6 +470,7 @@ function JavaLargeFileUploader() {
 						xhr.send(formData);
 					}
 				} catch (e) {
+					pendingFile.started=false;
 					if (pendingFile.exceptionCallback) {
 						pendingFile.exceptionCallback(errorMessages[8], endingFile.referenceToFileElement, pendingFile);
 					}

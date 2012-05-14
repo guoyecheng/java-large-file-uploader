@@ -107,9 +107,9 @@ function appendFileInputElement() {
 	  		}, 
 	  		
 	  		//define an exception callback
-	  		function(message, origin, fileId /* file id can be null! if null, it is a general error */) {
-	  			if (fileId) {
-	  				document.getElementById(fileId).children[0].textContent = message;
+	  		function(message, origin, pendingFile /* pending file object that can be null! if null, it is a general error */) {
+	  			if (pendingFile) {
+	  				document.getElementById(pendingFile.id).children[0].textContent = message;
 	  			} else {
 	  				document.getElementById("error").textContent = message;
 	  			}
