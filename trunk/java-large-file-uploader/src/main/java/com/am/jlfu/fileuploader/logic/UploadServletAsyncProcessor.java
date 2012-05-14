@@ -6,13 +6,11 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.zip.CRC32;
 
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,18 +92,18 @@ public class UploadServletAsyncProcessor {
 		}
 
 		// initialize the streams
-		OutputStream outputStream = new FileOutputStream(file, true);
+		FileOutputStream outputStream = new FileOutputStream(file, true);
 
 		// init the task
 		final WriteChunkToFileTask task =
 				new WriteChunkToFileTask(fileId, uploadProcessingConfiguration, crc, inputStream, outputStream, completionListener, clientId);
 
-		//mark the file as processing
+		// mark the file as processing
 		uploadProcessingConfiguration.setProcessing(true);
 
 		// then submit the task to the workers pool
 		uploadWorkersPool.submit(task);
-		
+
 	}
 
 
@@ -123,7 +121,7 @@ public class UploadServletAsyncProcessor {
 
 
 		private final InputStream inputStream;
-		private final OutputStream outputStream;
+		private final FileOutputStream outputStream;
 		private final String fileId;
 		private final String clientId;
 		private final String crc;
@@ -139,7 +137,7 @@ public class UploadServletAsyncProcessor {
 
 		public WriteChunkToFileTask(String fileId, UploadProcessingConfiguration uploadProcessingConfiguration, String crc,
 				InputStream inputStream,
-				OutputStream outputStream, WriteChunkCompletionListener completionListener, String clientId) {
+				FileOutputStream outputStream, WriteChunkCompletionListener completionListener, String clientId) {
 			this.fileId = fileId;
 			this.uploadProcessingConfiguration = uploadProcessingConfiguration;
 			this.crc = crc;
@@ -155,7 +153,8 @@ public class UploadServletAsyncProcessor {
 				throws Exception {
 			try {
 				// if we have not exceeded our byte to write allowance
-				if (uploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0 && uploadProcessingConfigurationManager.getMasterProcessingConfiguration().getDownloadAllowanceForIteration() > 0) {
+				if (uploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0 &&
+						uploadProcessingConfigurationManager.getMasterProcessingConfiguration().getDownloadAllowanceForIteration() > 0) {
 					// process
 					write();
 				}
@@ -165,14 +164,8 @@ public class UploadServletAsyncProcessor {
 					uploadWorkersPool.submit(this);
 				}
 			}
-			catch (IOException e) {
-				if (e.getMessage().equals("Stream ended unexpectedly")) {
-					completeWithError(new Exception("User has stopped streaming"));// TODO custom
-																					// exception
-				}
-			}
 			catch (Exception e) {
-				log.error("Error while sending data chunk, aborting (" + fileId + ")", e);
+				// forward exception
 				completeWithError(e);
 			}
 			return null;
@@ -184,7 +177,8 @@ public class UploadServletAsyncProcessor {
 
 			// check if user wants to cancel
 			if (uploadProcessingConfigurationManager.requestHasToBeCancelled(fileId)) {
-				completeWithError(new Exception("User cancellation"));// TODO custom exceptions
+				log.debug("User cancellation detected.");
+				success();
 				return;
 			}
 
@@ -210,8 +204,8 @@ public class UploadServletAsyncProcessor {
 
 				// and update allowance
 				uploadProcessingConfiguration.bytesConsumedFromAllowance(bytesCount);
-				
-				//also update master allowance
+
+				// also update master allowance
 				uploadProcessingConfigurationManager.getMasterProcessingConfiguration().bytesConsumedFromAllowance(bytesCount);
 
 				// submit again
@@ -226,9 +220,7 @@ public class UploadServletAsyncProcessor {
 
 				// compare the checksum of the chunks
 				if (!calculatedChecksum.equals(crc)) {
-					InvalidCrcException invalidCrcException = new InvalidCrcException(calculatedChecksum, crc);
-					log.error(invalidCrcException.getMessage(), invalidCrcException);
-					completeWithError(invalidCrcException);
+					completeWithError(new InvalidCrcException(calculatedChecksum, crc));
 					return;
 				}
 
@@ -243,18 +235,30 @@ public class UploadServletAsyncProcessor {
 
 		public void completeWithError(Exception e) {
 			log.debug("error for " + fileId + ". closing file stream");
+			closeFileStream();
 			clean(fileId);
-			IOUtils.closeQuietly(outputStream);
 			completionListener.error(e);
 		}
 
 
 		public void success() {
 			log.debug("completion for " + fileId + ". closing file stream");
+			closeFileStream();
 			clean(fileId);
-			IOUtils.closeQuietly(outputStream);
 			completionListener.success();
 		}
+
+
+		private void closeFileStream() {
+			log.debug("Closing FileOutputStream of " + fileId);
+			try {
+				outputStream.close();
+			}
+			catch (Exception e) {
+				log.error("Error closing file output stream for id " + fileId + ": " + e.getMessage());
+			}
+		}
+
 
 	}
 

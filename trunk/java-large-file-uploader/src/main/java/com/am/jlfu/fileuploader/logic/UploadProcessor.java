@@ -9,16 +9,14 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.io.IOUtils;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +40,10 @@ import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 
 
@@ -71,7 +73,7 @@ public class UploadProcessor {
 	public static final int SIZE_OF_FIRST_CHUNK_VALIDATION = 8192;
 
 	/** Executor service for closing streams */
-	private ExecutorService streamCloserExecutor = Executors.newSingleThreadExecutor();
+	private ListeningExecutorService streamCloserExecutor = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(20));
 
 	/**
 	 * Size of a slice <br>
@@ -86,21 +88,21 @@ public class UploadProcessor {
 		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
 
 		if (entity != null) {
-			
-			//order files by age
+
+			// order files by age
 			Ordering<String> ordering = Ordering.from(new Comparator<StaticFileState>() {
-		
-					@Override
-					public int compare(StaticFileState o1, StaticFileState o2) {
-						int compareTo = o1.getStaticFileStateJson().getCreationDate().compareTo(o2.getStaticFileStateJson().getCreationDate());
-						return compareTo != 0 ? compareTo : 1;
-					}
-				
+
+				@Override
+				public int compare(StaticFileState o1, StaticFileState o2) {
+					int compareTo = o1.getStaticFileStateJson().getCreationDate().compareTo(o2.getStaticFileStateJson().getCreationDate());
+					return compareTo != 0 ? compareTo : 1;
+				}
+
 			}).onResultOf(Functions.forMap(entity.getFileStates()));
-	
-			//apply comparator
+
+			// apply comparator
 			ImmutableSortedMap<String, StaticFileState> sortedMap = ImmutableSortedMap.copyOf(entity.getFileStates(), ordering);
-			
+
 			// fill pending files from static state
 			config.setPendingFiles(Maps.transformValues(sortedMap, new Function<StaticFileState, FileStateJson>() {
 
@@ -136,12 +138,6 @@ public class UploadProcessor {
 
 
 			}));
-		}
-		
-
-		// reset pause
-		for (String fileId : entity.getFileStates().keySet()) {
-			uploadProcessingConfigurationManager.resume(fileId);
 		}
 
 		// fill configuration
@@ -192,38 +188,45 @@ public class UploadProcessor {
 	}
 
 
-	private void closeStreamForFile(final String fileId) {
+	private void closeStreamForFiles(String... fileIds) {
 
-		// ask for the stream to close
-		boolean needToCloseStream = uploadProcessingConfigurationManager.markRequestHasShallBeCancelled(fileId);
+		// submit them
+		Map<String, ListenableFuture<?>> submits = Maps.newHashMap();
+		for (final String fileId : fileIds) {
 
-		if (needToCloseStream) {
-			log.debug("waiting for the stream to be closed for " + fileId);
+			log.debug("asking for deletion for file with id " + fileId);
 
-			// then wait for the stream to be closed
-			Future<?> submit = streamCloserExecutor.submit(new Runnable() {
+			// ask for the stream to close
+			boolean needToCloseStream = uploadProcessingConfigurationManager.markRequestHasShallBeCancelled(fileId);
 
-				@Override
-				public void run() {
-					while (uploadProcessingConfigurationManager.requestHasToBeCancelled(fileId)) {
-						try {
-							Thread.sleep(10);
+			if (needToCloseStream) {
+				log.debug("waiting for the stream to be closed for " + fileId);
+
+				// then wait for the stream to be closed
+				submits.put(fileId, streamCloserExecutor.submit(new Runnable() {
+
+					@Override
+					public void run() {
+						DateTime start = new DateTime();
+						while (uploadProcessingConfigurationManager.requestHasToBeCancelled(fileId)) {
+							if (new DateTime().isAfter(start.plusMillis(1000))) {
+								log.debug("cannot confirm that file stream is closed for " + fileId);
+								return;
+							}
+							try {
+								Thread.sleep(10);
+							}
+							catch (InterruptedException e) {
+								throw new RuntimeException(e);
+							}
 						}
-						catch (InterruptedException e) {
-							throw new RuntimeException(e);
-						}
+						log.debug("file stream has been closed for " + fileId);
 					}
-				}
-			});
-			try {
-				// get the future
-				submit.get(1, TimeUnit.SECONDS);
-			}
-			catch (Exception e) {
-				// if we timeout delete anyway, just log
-				log.debug("cannot confirm that the stream is closed for " + fileId);
+				}));
 			}
 		}
+
+		Futures.getUnchecked(Futures.allAsList(submits.values()));
 
 	}
 
@@ -232,8 +235,7 @@ public class UploadProcessor {
 			throws InterruptedException, ExecutionException, TimeoutException {
 
 		// ask for the stream to be closed
-		log.debug("asking for deletion for file with id " + fileId);
-		closeStreamForFile(fileId);
+		closeStreamForFiles(fileId);
 
 		// then delete
 		staticStateManager.clearFile(fileId);
@@ -244,10 +246,7 @@ public class UploadProcessor {
 			throws InterruptedException, ExecutionException, TimeoutException {
 
 		// close any pending stream before clearing the file
-		for (String fileId : staticStateManager.getEntity().getFileStates().keySet()) {
-			log.debug("asking for deletion for file with id " + fileId);
-			closeStreamForFile(fileId);
-		}
+		closeStreamForFiles(staticStateManager.getEntity().getFileStates().keySet().toArray(new String[] {}));
 
 		// then clear everything
 		staticStateManager.clear();
@@ -312,17 +311,19 @@ public class UploadProcessor {
 	}
 
 
-	public CRCResult getCRCOfFirstChunk(String fileId) throws IOException {
+	public CRCResult getCRCOfFirstChunk(String fileId)
+			throws IOException {
 		log.debug("on the fly resume for " + fileId + ". generating crc.");
-		
+
 		String absoluteFullPathOfUploadedFile = staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
 		return getCRCOfFirstChunk(new File(absoluteFullPathOfUploadedFile));
-		
+
 	}
-	
+
+
 	public CRCResult getCRCOfFirstChunk(File file)
 			throws IOException {
-		log.debug("resuming file " + file.getName() + ". processing crc validation of first chunk.");
+		log.debug("processing crc validation of first chunk for " + file.getName());
 
 		// if the file does not exist, there is an issue!
 		if (!file.exists()) {
@@ -331,10 +332,12 @@ public class UploadProcessor {
 
 		// extract from the file input stream to get the crc of the same part:
 		byte[] b = new byte[(int) Math.min(file.length(), SIZE_OF_FIRST_CHUNK_VALIDATION)];
-		IOUtils.read(new FileInputStream(file), b);
-		ByteArrayInputStream fileInputStream = new ByteArrayInputStream(b);
-		CRCResult bufferedCrc = crcHelper.getBufferedCrc(fileInputStream);
+		FileInputStream fileInputStream = new FileInputStream(file);
+		IOUtils.read(fileInputStream, b);
+		ByteArrayInputStream byteInputStream = new ByteArrayInputStream(b);
+		CRCResult bufferedCrc = crcHelper.getBufferedCrc(byteInputStream);
 		IOUtils.closeQuietly(fileInputStream);
+		IOUtils.closeQuietly(byteInputStream);
 
 		// if the size is under value, show warning
 		if (bufferedCrc.getTotalRead() < SIZE_OF_FIRST_CHUNK_VALIDATION) {

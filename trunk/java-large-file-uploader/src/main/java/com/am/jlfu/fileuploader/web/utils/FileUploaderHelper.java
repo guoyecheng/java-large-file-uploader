@@ -14,9 +14,11 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.exception.IncorrectRequestException;
+import com.am.jlfu.fileuploader.exception.JavaFileUploaderException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
 import com.am.jlfu.fileuploader.json.SimpleJsonObject;
 import com.am.jlfu.fileuploader.web.UploadServletParameter;
+import com.am.jlfu.fileuploader.web.utils.ExceptionCodeMappingHelper.ExceptionCodeMapping;
 import com.google.gson.Gson;
 
 
@@ -32,12 +34,12 @@ public class FileUploaderHelper {
 
 
 	public FileUploadConfiguration extractFileUploadConfiguration(HttpServletRequest request)
-			throws IncorrectRequestException, MissingParameterException, FileUploadException, IOException {
+			throws IncorrectRequestException, MissingParameterException, FileUploadException, IOException, JavaFileUploaderException {
 		final FileUploadConfiguration fileUploadConfiguration = new FileUploadConfiguration();
 
 		// check if the request is multipart:
 		if (!ServletFileUpload.isMultipartContent(request)) {
-			throw new IncorrectRequestException("Request should be multipart");
+			throw new JavaFileUploaderException(ExceptionCodeMapping.requestIsNotMultipart);
 		}
 
 		// extract the fields
@@ -53,7 +55,7 @@ public class FileUploaderHelper {
 
 		// throw exception if item is null
 		if (item == null) {
-			throw new IncorrectRequestException("No file to upload found in the request");
+			throw new JavaFileUploaderException(ExceptionCodeMapping.NoFileToUploadInTheRequest);
 		}
 
 		// extract input stream
@@ -81,9 +83,9 @@ public class FileUploaderHelper {
 	}
 
 
-	public void writeExceptionToResponse(final Exception e, ServletResponse servletResponse)
+	public void writeExceptionToResponse(final JavaFileUploaderException e, ServletResponse servletResponse)
 			throws IOException {
-		writeToResponse(new SimpleJsonObject(e.getMessage()), servletResponse);
+		writeToResponse(new SimpleJsonObject(Integer.valueOf(e.getExceptionCodeMapping().getExceptionIdentifier()).toString()), servletResponse);
 	}
 
 

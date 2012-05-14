@@ -18,9 +18,11 @@ import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
+import com.am.jlfu.fileuploader.exception.MissingParameterException;
 import com.am.jlfu.fileuploader.json.PrepareUploadJson;
 import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.logic.UploadProcessor;
+import com.am.jlfu.fileuploader.web.utils.ExceptionCodeMappingHelper;
 import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
@@ -45,6 +47,9 @@ public class UploadServlet extends HttpRequestHandlerServlet
 
 	@Autowired
 	FileUploaderHelper fileUploaderHelper;
+
+	@Autowired
+	ExceptionCodeMappingHelper exceptionCodeMappingHelper;
 
 
 
@@ -71,8 +76,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 		}
 		// If exception, write it
 		catch (Exception e) {
-			log.error(e.getMessage(), e);
-			fileUploaderHelper.writeExceptionToResponse(e, response);
+			exceptionCodeMappingHelper.processException(e, response);
 		}
 
 	}
@@ -88,27 +92,13 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				returnObject = uploadProcessor.getConfig();
 				break;
 			case verifyCrcOfUncheckedPart:
-				try {
-					uploadProcessor.verifyCrcOfUncheckedPart(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId),
-							fileUploaderHelper.getParameterValue(request, UploadServletParameter.crc));
-				}
-				catch (InvalidCrcException e) {
-					// no need to log this exception, a fallback behaviour is defined in the
-					// throwing method.
-				}
+				verifyCrcOfUncheckedPart(request);
 				break;
 			case getCrcOfFirstChunk:
 				returnObject = uploadProcessor.getCRCOfFirstChunk(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
 				break;
 			case prepareUpload:
-				PrepareUploadJson[] fromJson =
-						new Gson()
-								.fromJson(fileUploaderHelper.getParameterValue(request, UploadServletParameter.newFiles), PrepareUploadJson[].class);
-				returnObject = Maps.newHashMap();
-				for (PrepareUploadJson prepareUploadJson : fromJson) {
-					String idOfTheFile = uploadProcessor.prepareUpload(prepareUploadJson.getSize(), prepareUploadJson.getFileName());
-					((HashMap<String, String>) returnObject).put(prepareUploadJson.getTempId().toString(), idOfTheFile);
-				}
+				returnObject = prepareUpload(request);
 				break;
 			case clearFile:
 				uploadProcessor.clearFile(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
@@ -127,27 +117,63 @@ public class UploadServlet extends HttpRequestHandlerServlet
 						Long.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.rate)));
 				break;
 			case getProgress:
-				String[] ids = 
-					new Gson()
-						.fromJson(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId), String[].class);
-				returnObject = Maps.newHashMap();
-				for (String fileId : ids) {
-					try {
-						Float progress = uploadProcessor.getProgress(fileId);
-						Long uploadStat = uploadProcessor.getUploadStat(fileId);
-						ProgressJson progressJson = new ProgressJson();
-						progressJson.setProgress(progress);
-						if (uploadStat != null) {
-							progressJson.setUploadRate(uploadStat);
-						}
-						((HashMap<String, ProgressJson>) returnObject).put(fileId,progressJson);
-					} catch (FileNotFoundException e) {
-						log.debug("No progress will be retrieved for "+fileId+ " because "+e.getMessage());
-					}
-				}
+				returnObject = getProgress(request);
 				break;
 		}
 		return returnObject;
 	}
-}
 
+
+	private Serializable getProgress(HttpServletRequest request)
+			throws MissingParameterException {
+		Serializable returnObject;
+		String[] ids =
+				new Gson()
+						.fromJson(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId), String[].class);
+		returnObject = Maps.newHashMap();
+		for (String fileId : ids) {
+			try {
+				Float progress = uploadProcessor.getProgress(fileId);
+				Long uploadStat = uploadProcessor.getUploadStat(fileId);
+				ProgressJson progressJson = new ProgressJson();
+				progressJson.setProgress(progress);
+				if (uploadStat != null) {
+					progressJson.setUploadRate(uploadStat);
+				}
+				((HashMap<String, ProgressJson>) returnObject).put(fileId, progressJson);
+			}
+			catch (FileNotFoundException e) {
+				log.debug("No progress will be retrieved for " + fileId + " because " + e.getMessage());
+			}
+		}
+		return returnObject;
+	}
+
+
+	private Serializable prepareUpload(HttpServletRequest request)
+			throws MissingParameterException, IOException {
+		Serializable returnObject;
+		PrepareUploadJson[] fromJson =
+				new Gson()
+						.fromJson(fileUploaderHelper.getParameterValue(request, UploadServletParameter.newFiles), PrepareUploadJson[].class);
+		returnObject = Maps.newHashMap();
+		for (PrepareUploadJson prepareUploadJson : fromJson) {
+			String idOfTheFile = uploadProcessor.prepareUpload(prepareUploadJson.getSize(), prepareUploadJson.getFileName());
+			((HashMap<String, String>) returnObject).put(prepareUploadJson.getTempId().toString(), idOfTheFile);
+		}
+		return returnObject;
+	}
+
+
+	private void verifyCrcOfUncheckedPart(HttpServletRequest request)
+			throws IOException, MissingParameterException {
+		try {
+			uploadProcessor.verifyCrcOfUncheckedPart(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId),
+					fileUploaderHelper.getParameterValue(request, UploadServletParameter.crc));
+		}
+		catch (InvalidCrcException e) {
+			// no need to log this exception, a fallback behaviour is defined in the
+			// throwing method.
+		}
+	}
+}

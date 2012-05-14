@@ -1,5 +1,6 @@
 package com.am.jlfu.fileuploader.limiter;
 
+
 public class UploadProcessingConfiguration {
 
 	/**
@@ -33,7 +34,7 @@ public class UploadProcessingConfiguration {
 	/**
 	 * Boolean specifying whether the upload is paused or not.
 	 */
-	volatile boolean isProcessing = false;
+	private volatile boolean isProcessing = false;
 
 
 	/**
@@ -68,6 +69,7 @@ public class UploadProcessingConfiguration {
 		}
 	}
 
+
 	public long getAndResetBytesWritten() {
 		synchronized (bytesWrittenLock) {
 			final long temp = bytesWritten;
@@ -75,6 +77,7 @@ public class UploadProcessingConfiguration {
 			return temp;
 		}
 	}
+
 
 	/**
 	 * Specifies the bytes that have been read from the files.
@@ -99,6 +102,7 @@ public class UploadProcessingConfiguration {
 	long getInstantRateInBytes() {
 		return instantRateInBytes;
 	}
+
 
 	public void setProcessing(boolean isProcessing) {
 		this.isProcessing = isProcessing;

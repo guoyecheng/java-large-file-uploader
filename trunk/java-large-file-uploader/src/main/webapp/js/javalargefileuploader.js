@@ -7,6 +7,17 @@ function JavaLargeFileUploader() {
 	var pendingFiles = new Object();
 	var bytesPerChunk;
 	
+	var errorMessages = [];
+	errorMessages[0] = "Request failed for an unknown reason, please contact an administrator if the problem persists.";
+	errorMessages[1] = "The request is not multipart.";
+	errorMessages[2] = "No file to upload found in the request.";
+	errorMessages[3] = "CRC32 Validation of the part failed.";
+	errorMessages[4] = "The request cannot be processed because a parameter is missing.";
+	errorMessages[5] = "Cannot retrieve the configuration.";
+	errorMessages[6] = "No files have been selected, please select at least one file!";
+	errorMessages[7] = "Resuming file upload with previous slice as the last part is invalid.";
+	errorMessages[8] = "Error while uploading a slice of the file";
+	
 	this.initialize = function (initializationCallback, exceptionCallback) {
 		
 		// get the configuration
@@ -29,7 +40,8 @@ function JavaLargeFileUploader() {
 	
 			} else {
 				if (exceptionCallback) {
-					exceptionCallback("Error! Cannot retrieve the configuration!");
+					//cannot retrieve the configuration
+					exceptionCallback(errorMessages[5]);
 				}
 			}
 		});
@@ -239,7 +251,8 @@ function JavaLargeFileUploader() {
 		var files = referenceToFileElement.files;
 		if (!files.length) {
 			if (exceptionCallback) {
-				exceptionCallback("Please select at least one file!", referenceToFileElement);
+				//no file selected
+				exceptionCallback(errorMessages[6], referenceToFileElement);
 			}
 		} else {
 			for (fileKey in files) {
@@ -341,7 +354,7 @@ function JavaLargeFileUploader() {
 					$.get(globalServletMapping + "?action=verifyCrcOfUncheckedPart&fileId=" + pendingFile.id + "&crc=" + decimalToHexString(digest),	function(data) {
 						//verify stuff!
 						if (data) {
-							pendingFile.exceptionCallback("Resuming file upload with previous slice as the last part is invalid.", pendingFile.referenceToFileElement, pendingFile);
+							pendingFile.exceptionCallback(errorMessages[7], pendingFile.referenceToFileElement, pendingFile);
 							
 							//and assign the completion to last verified
 							pendingFile.fileCompletionInBytes = pendingFile.crcedBytes;
@@ -425,7 +438,7 @@ function JavaLargeFileUploader() {
 		
 						if (xhr.status != 200) {
 							if (pendingFile.exceptionCallback) {
-								pendingFile.exceptionCallback("Error while uploading slice of byte " + pendingFile.fileCompletionInBytes + "-" + (pendingFile.fileCompletionInBytes + bytesPerChunk), pendingFile.referenceToFileElement, pendingFile);
+								pendingFile.exceptionCallback(errorMessages[8], pendingFile.referenceToFileElement, pendingFile);
 							}
 							return;
 						}
@@ -457,7 +470,7 @@ function JavaLargeFileUploader() {
 					}
 				} catch (e) {
 					if (pendingFile.exceptionCallback) {
-						pendingFile.exceptionCallback(e.message, pendingFile.referenceToFileElement, pendingFile);
+						pendingFile.exceptionCallback(errorMessages[8], endingFile.referenceToFileElement, pendingFile);
 					}
 					return;
 				}
