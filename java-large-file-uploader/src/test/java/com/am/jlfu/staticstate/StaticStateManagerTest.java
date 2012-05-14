@@ -66,6 +66,9 @@ public class StaticStateManagerTest {
 		// clear
 		staticStateManager.clear();
 
+		// wait a bit
+		Thread.sleep((long) (StaticStateManager.DELETION_DELAY * 1.5));
+
 		// assert directory is deleted
 		Assert.assertFalse(uuidFileParent.exists());
 	}
@@ -100,6 +103,9 @@ public class StaticStateManagerTest {
 		// reget it
 		StaticFileState staticFileState = staticStateManager.getEntity().getFileStates().get(fileId);
 		Assert.assertNull(staticFileState);
+
+		// wait a bit
+		Thread.sleep((long) (StaticStateManager.DELETION_DELAY * 1.5));
 
 		// assert file deleted
 		Assert.assertFalse(file.exists());

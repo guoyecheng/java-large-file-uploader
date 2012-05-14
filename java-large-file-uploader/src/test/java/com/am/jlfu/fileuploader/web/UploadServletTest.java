@@ -25,6 +25,7 @@ import com.am.jlfu.fileuploader.json.InitializationConfiguration;
 import com.am.jlfu.fileuploader.json.PrepareUploadJson;
 import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.json.SimpleJsonObject;
+import com.am.jlfu.fileuploader.web.utils.ExceptionCodeMappingHelper.ExceptionCodeMapping;
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -100,10 +101,11 @@ public class UploadServletTest {
 
 		// handle request
 		uploadServlet.handleRequest(request, response);
-		
-		HashMap<String, ProgressJson> fromJson = new Gson().fromJson(response.getContentAsString(), new TypeToken<Map<String, ProgressJson>>(){}.getType());
+
+		HashMap<String, ProgressJson> fromJson = new Gson().fromJson(response.getContentAsString(), new TypeToken<Map<String, ProgressJson>>() {
+		}.getType());
 		Assert.assertThat(fromJson.size(), is(Integer.valueOf(0)));
-		
+
 	}
 
 
@@ -123,8 +125,9 @@ public class UploadServletTest {
 		// handle request
 		uploadServlet.handleRequest(request, response);
 		Assert.assertThat(response.getStatus(), is(200));
-		
-		HashMap<String, ProgressJson> fromJson = new Gson().fromJson(response.getContentAsString(), new TypeToken<Map<String, ProgressJson>>(){}.getType());
+
+		HashMap<String, ProgressJson> fromJson = new Gson().fromJson(response.getContentAsString(), new TypeToken<Map<String, ProgressJson>>() {
+		}.getType());
 		ProgressJson[] array = new ProgressJson[] {};
 		array = fromJson.values().toArray(array);
 		Assert.assertThat(Float.valueOf(array[0].getProgress()), is(Float.valueOf(0)));
@@ -139,7 +142,7 @@ public class UploadServletTest {
 		// handle request
 		uploadServletAsync.handleRequest(request, response);
 		SimpleJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), SimpleJsonObject.class);
-		Assert.assertThat("Request should be multipart", is(fromJson.getValue()));
+		Assert.assertThat(ExceptionCodeMapping.requestIsNotMultipart.getExceptionIdentifier(), is(Integer.valueOf(fromJson.getValue())));
 
 	}
 
@@ -177,7 +180,8 @@ public class UploadServletTest {
 		// handle request
 		uploadServlet.handleRequest(request, response);
 		Assert.assertThat(response.getStatus(), is(200));
-		HashMap<String, String> fromJson = new Gson().fromJson(response.getContentAsString(), new TypeToken<Map<String, String>>(){}.getType());
+		HashMap<String, String> fromJson = new Gson().fromJson(response.getContentAsString(), new TypeToken<Map<String, String>>() {
+		}.getType());
 
 		return fromJson;
 	}
@@ -210,7 +214,7 @@ public class UploadServletTest {
 		// assert that we have an error
 		SimpleJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), SimpleJsonObject.class);
 
-		Assert.assertThat("The parameter fileId is missing for this request.", is(fromJson.getValue()));
+		Assert.assertThat(ExceptionCodeMapping.MissingParameterException.getExceptionIdentifier(), is(Integer.valueOf(fromJson.getValue())));
 
 	}
 

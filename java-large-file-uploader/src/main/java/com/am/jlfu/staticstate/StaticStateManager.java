@@ -9,6 +9,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -41,7 +42,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 	private static final Logger log = LoggerFactory.getLogger(StaticStateManager.class);
 	private static final String FILENAME = "StaticState.xml";
-	public static final int DELETION_DELAY = 100;
+	public static final int DELETION_DELAY = 250;
 
 	@Autowired
 	StaticStateIdentifierManager staticStateIdentifierManager;
@@ -58,6 +59,9 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 	/** The executor that could write stuff asynchronously into the static state */
 	private ThreadPoolExecutor fileStateUpdaterExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+
+	/** The executor that deletes files asynchronously */
+	private ScheduledThreadPoolExecutor fileAsynchronousDeleterExecutor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
 
 
 
@@ -158,13 +162,15 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 */
 	public void processEntityTreatment(T entity) {
 		String uuid = staticStateIdentifierManager.getIdentifier();
-		log.debug("writing state for "+uuid);
+		log.debug("writing state for " + uuid);
 		cache.put(uuid, entity);
 		write(entity, new File(staticStateDirectoryManager.getUUIDFileParent(), FILENAME));
 	}
-	
+
+
 	/**
 	 * Persists modifications onto filesystem only.
+	 * 
 	 * @param entity
 	 */
 	public void writeEntity(String uuid, T entity) {
@@ -186,18 +192,25 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 		final File uuidFileParent = staticStateDirectoryManager.getUUIDFileParent();
 
+		fileAsynchronousDeleterExecutor.schedule(new Runnable() {
 
-		// remove files
-		try {
-			FileUtils.deleteDirectory(uuidFileParent);
-		}
-		catch (IOException e) {
-			log.error(
-					"Cannot delete file located at " +
-							uuidFileParent +
-							". Manual intervention required to immediately free space. Note that this directory should be automatically deleted by the quarts cleaner job. Cause: " +
-							e.getMessage(), e);
-		}
+			@Override
+			public void run() {
+				// remove files
+				try {
+					FileUtils.deleteDirectory(uuidFileParent);
+					log.debug("successfully deleted folder located at " + uuidFileParent);
+				}
+				catch (IOException e) {
+					log.error(
+							"Cannot delete file located at " +
+									uuidFileParent +
+									". Manual intervention required to immediately free space. Note that this directory should be automatically deleted by the quarts cleaner job. Cause: " +
+									e.getMessage(), e);
+				}
+
+			}
+		}, DELETION_DELAY, TimeUnit.MILLISECONDS);
 
 
 		// remove entity from cache
@@ -224,9 +237,33 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 			}
 		});
 		if (listFiles.length > 0) {
-			File file = listFiles[0];
+			final File file = listFiles[0];
 			if (file.exists()) {
-				file.delete();
+				fileAsynchronousDeleterExecutor.schedule(new Runnable() {
+
+					@Override
+					public void run() {
+						// remove files
+						boolean delete;
+						try {
+							delete = file.delete();
+						}
+						catch (SecurityException e) {
+							delete = false;
+						}
+						// if not successful, log!
+						if (!delete) {
+							log.error(
+									"Cannot delete file located at " +
+											file.getAbsolutePath() +
+											". Manual intervention required to immediately free space. Note that this directory should be automatically deleted by the quarts cleaner job.");
+						}
+						else {
+							log.debug("successfully deleted file located at " + file.getAbsolutePath());
+						}
+
+					}
+				}, DELETION_DELAY, TimeUnit.MILLISECONDS);
 			}
 		}
 
@@ -289,20 +326,21 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * Writes in the file that the last slice has been successfully uploaded.
 	 * 
 	 * @param fileId
-	 * @param fileId2 
+	 * @param fileId2
 	 */
 	public void setCrcBytesValidated(final String clientId, String fileId, final long validated) {
-		log.debug(validated + " bytes have been validated for file "+fileId +" for client id "+clientId);
-		
+		log.debug(validated + " bytes have been validated for file " + fileId + " for client id " + clientId);
+
 		final T entity = cache.getUnchecked(clientId);
 		final StaticFileState staticFileState = entity.getFileStates().get(fileId);
 		staticFileState.getStaticFileStateJson().setCrcedBytes(
 				staticFileState.getStaticFileStateJson().getCrcedBytes() + validated);
 
 		fileStateUpdaterExecutor.submit(new Runnable() {
+
 			@Override
 			public void run() {
-				//TODO write this later on.
+				// TODO write this later on.
 				writeEntity(clientId, entity);
 			}
 		});
