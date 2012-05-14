@@ -22,7 +22,7 @@ function JavaLargeFileUploader() {
 						pendingFile.fileCompletion = getFormattedSize(pendingFile.fileCompletionInBytes);
 						pendingFile.originalFileSize = getFormattedSize(pendingFile.originalFileSizeInBytes);
 						pendingFile.percentageCompleted = format(pendingFile.fileCompletionInBytes * 100 / pendingFile.originalFileSizeInBytes);
-						pendingFile.processing = false;
+						pendingFile.started = false;
 					});
 				}
 				initializationCallback(pendingFiles);
@@ -68,8 +68,8 @@ function JavaLargeFileUploader() {
 	
 	this.pauseFileUpload = function (fileIdI, callback) {
 		var fileId = fileIdI;
-		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].processing === true) {
-			pendingFiles[fileId].processing = false;
+		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused === false) {
+			pendingFiles[fileId].paused = true;
 			$.get(globalServletMapping + "?action=pauseFile&fileId=" + fileId,	function(e) {
 				if (callback) {
 					callback(pendingFiles[fileId]);
@@ -79,18 +79,23 @@ function JavaLargeFileUploader() {
 	};
 
 	this.resumeFileUpload = function (fileIdI, callback) {
-		var fileId = fileIdI;
-		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].processing === false) {
-			//set as not processing anymore
-			pendingFiles[fileId].processing = true;
+		if (fileIdI && pendingFiles[fileIdI]) {
+			resumeFileUploadInternal(pendingFiles[fileIdI], callback);
+		}
+	};
+	
+	function resumeFileUploadInternal(pendingFile, callback) {
+		if(pendingFile && pendingFile.paused === true) {
+			//set as not paused anymore
+			pendingFile.paused = false;
 			//and restart flow
-			$.get(globalServletMapping + "?action=resumeFile&fileId=" + fileId,	function(e) {
+			$.get(globalServletMapping + "?action=resumeFile&fileId=" + pendingFile.id,	function(e) {
 				if (callback) {
-					callback(pendingFiles[fileId]);
+					callback(pendingFile);
 				}
 			});
 		}
-	};
+	}
 	
 	this.fileUploadProcess = function (referenceToFileElement, startCallback, progressCallback,
 			finishCallback, exceptionCallback) {
@@ -178,15 +183,16 @@ function JavaLargeFileUploader() {
 						
 			        	//remove it from new file ids (as we are now sure it is not a new file)
 			        	potentialNewFiles.splice(potentialNewFiles.indexOf(e.target.pendingFile), 1);
-
+						
 			        	//if that file is not already being uploaded:
-			        	if (!e.target.pendingFile.processing) {
-							
-				        	//fill pending file to check with new info
+			        	if (!e.target.pendingFileToCheck.started) {
+
+			        		//fill pending file to check with new info
 							//populate stuff retrieved in initialization 
 				        	e.target.pendingFile.fileCompletionInBytes = e.target.pendingFileToCheck.fileCompletionInBytes;
 				        	e.target.pendingFile.crcedBytes = e.target.pendingFileToCheck.crcedBytes;
 							e.target.pendingFile.firstChunkCrc = e.target.pendingFileToCheck.firstChunkCrc;
+							e.target.pendingFile.started = e.target.pendingFileToCheck.started;
 							e.target.pendingFile.id = e.target.pendingFileToCheck.id;
 							
 							//put it into the pending files array
@@ -195,6 +201,13 @@ function JavaLargeFileUploader() {
 							// process the upload
 							fileResumeProcessStarter(e.target.pendingFile);
 						}
+			        	
+			        	//if that file is paused 
+			        	if (e.target.pendingFileToCheck.paused) {
+			        		//resume it
+			        		resumeFileUploadInternal(e.target.pendingFileToCheck);
+			        	}
+			        	
 					} else {
 						console.log("Invalid resume crc for "+e.target.pendingFileToCheck.originalFileName+". processing as a new file.");
 					}
@@ -244,6 +257,7 @@ function JavaLargeFileUploader() {
 					pendingFile.startCallback= startCallback;
 					pendingFile.finishCallback= finishCallback;
 					pendingFile.exceptionCallback= exceptionCallback;
+					pendingFile.paused=false;
 					
 					//put it into the temporary new file array as every file is potentially a new file until it is proven it is not a new file
 					newFiles.push(pendingFile);
@@ -361,13 +375,13 @@ function JavaLargeFileUploader() {
 
 			// start
 			pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
-			pendingFile.processing = true;
+			pendingFile.started = true;
 			
 			// then process the recursive function
 			go(pendingFile);
 			
 		} 
-		//if the file is complete
+		//otherwise
 		else {
 			//mark it as complete
 			pendingFile.fileComplete=true;
@@ -426,7 +440,7 @@ function JavaLargeFileUploader() {
 							setTimeout(go, 5, pendingFile);
 						} else {
 							pendingFile.fileComplete=true;
-							pendingFile.processing=false;
+							pendingFile.started=false;
 							// finish callback
 							if (pendingFile.finishCallback) {
 								pendingFile.finishCallback(pendingFile, pendingFile.referenceToFileElement);
@@ -475,8 +489,8 @@ function JavaLargeFileUploader() {
 	}
 	
 	function uploadIsActive(pendingFile) {
-		//process only if we have this id in the pending files and if the file is incomplete and if the file is being processed
-		return pendingFiles[pendingFile.id] && !pendingFile.fileComplete && pendingFile.processing;
+		//process only if we have this id in the pending files and if the file is incomplete and if the file is not paused and if the file is started!
+		return pendingFiles[pendingFile.id] && !pendingFile.paused && !pendingFile.fileComplete && pendingFile.started;
 	}
 	
 	function startProgressPoller() {
