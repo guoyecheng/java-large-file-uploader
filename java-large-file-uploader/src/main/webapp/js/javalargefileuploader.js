@@ -552,11 +552,16 @@ function JavaLargeFileUploader() {
 						}
 				  });
 				  
+				  //reschedule when the have the answer 
+				  setTimeout(startProgressPoller, 500);
+
 			  });
+		} 
+		//reschedule immediately if there is no pending upload
+		else {
+			setTimeout(startProgressPoller, 500);
 		}
 
-		//and reschedule 
-		setTimeout(startProgressPoller, 500);
 
 	}
 	
