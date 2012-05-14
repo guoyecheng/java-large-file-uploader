@@ -160,7 +160,9 @@ function JavaLargeFileUploader() {
 			$.get(globalServletMapping + "?action=getCrcOfFirstChunk&fileId="+pendingFileToCheck.id, function(data) {
 				
 				//populate crc data
-				pendingFileToCheck.firstChunkCrc = data;
+				pendingFileToCheck.firstChunkCrc = data.firstChunkCrc;
+				pendingFileToCheck.crcedBytes = data.crcedBytes;
+				pendingFileToCheck.fileCompletionInBytes = data.fileCompletionInBytes;
 
 				//check the crc first slice 
 				processCrcFirstSlice(potentialNewFiles, pendingFile, pendingFileToCheck, potentialResumeCounter);

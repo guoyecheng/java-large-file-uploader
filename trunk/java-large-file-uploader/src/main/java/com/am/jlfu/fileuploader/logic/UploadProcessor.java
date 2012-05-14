@@ -108,32 +108,7 @@ public class UploadProcessor {
 
 				@Override
 				public FileStateJson apply(StaticFileState value) {
-
-					File file = new File(value.getAbsoluteFullPathOfUploadedFile());
-					Long fileSize = file.length();
-
-					FileStateJsonBase staticFileStateJson = value.getStaticFileStateJson();
-					FileStateJson fileStateJson = new FileStateJson();
-					fileStateJson.setFileComplete(staticFileStateJson.getCrcedBytes().equals(staticFileStateJson.getOriginalFileSizeInBytes()));
-					fileStateJson.setFileCompletionInBytes(fileSize);
-					fileStateJson.setOriginalFileName(staticFileStateJson.getOriginalFileName());
-					fileStateJson.setOriginalFileSizeInBytes(staticFileStateJson.getOriginalFileSizeInBytes());
-					fileStateJson.setRateInKiloBytes(staticFileStateJson.getRateInKiloBytes());
-					fileStateJson.setCrcedBytes(staticFileStateJson.getCrcedBytes());
-					fileStateJson.setCreationDate(staticFileStateJson.getCreationDate());
-					if (!fileStateJson.getFileComplete()) {
-						try {
-							fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
-						}
-						catch (IOException e) {
-							log.error("Cannot calculate the first chunk crc of file " + file, e);
-						}
-					}
-					log.debug("returning pending file " + fileStateJson.getOriginalFileName() + " with target size " +
-							fileStateJson.getOriginalFileSizeInBytes() + " out of " + fileSize + " completed which includes " +
-							fileStateJson.getCrcedBytes() + " bytes validated and " + (fileSize - fileStateJson.getCrcedBytes()) + " unvalidated.");
-
-					return fileStateJson;
+					return getFileStateJson(value);
 				}
 
 
@@ -144,6 +119,35 @@ public class UploadProcessor {
 		config.setInByte(sliceSizeInBytes);
 
 		return config;
+	}
+
+
+	private FileStateJson getFileStateJson(StaticFileState value) {
+		File file = new File(value.getAbsoluteFullPathOfUploadedFile());
+		Long fileSize = file.length();
+
+		FileStateJsonBase staticFileStateJson = value.getStaticFileStateJson();
+		FileStateJson fileStateJson = new FileStateJson();
+		fileStateJson.setFileComplete(staticFileStateJson.getCrcedBytes().equals(staticFileStateJson.getOriginalFileSizeInBytes()));
+		fileStateJson.setFileCompletionInBytes(fileSize);
+		fileStateJson.setOriginalFileName(staticFileStateJson.getOriginalFileName());
+		fileStateJson.setOriginalFileSizeInBytes(staticFileStateJson.getOriginalFileSizeInBytes());
+		fileStateJson.setRateInKiloBytes(staticFileStateJson.getRateInKiloBytes());
+		fileStateJson.setCrcedBytes(staticFileStateJson.getCrcedBytes());
+		fileStateJson.setCreationDate(staticFileStateJson.getCreationDate());
+		if (!fileStateJson.getFileComplete()) {
+			try {
+				fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
+			}
+			catch (IOException e) {
+				log.error("Cannot calculate the first chunk crc of file " + file, e);
+			}
+		}
+		log.debug("returning pending file " + fileStateJson.getOriginalFileName() + " with target size " +
+				fileStateJson.getOriginalFileSizeInBytes() + " out of " + fileSize + " completed which includes " +
+				fileStateJson.getCrcedBytes() + " bytes validated and " + (fileSize - fileStateJson.getCrcedBytes()) + " unvalidated.");
+
+		return fileStateJson;
 	}
 
 
@@ -171,6 +175,9 @@ public class UploadProcessor {
 		jsonFileState.setOriginalFileSizeInBytes(size);
 		jsonFileState.setCreationDate(new Date());
 
+		// write the state
+		staticStateManager.processEntityTreatment(model);
+
 		// and returns the file identifier
 		log.debug("File prepared for client " + staticStateIdentifierManager.getIdentifier() + " at path " + file.getAbsolutePath());
 		return fileId;
@@ -181,8 +188,10 @@ public class UploadProcessor {
 	private String extractExtensionOfFileName(String fileName) {
 		String[] split = fileName.split("\\.");
 		String fileExtension = "";
-		if (split.length > 0) {
-			fileExtension = '.' + split[split.length - 1];
+		if (split.length > 1) {
+			if (split.length > 0) {
+				fileExtension = '.' + split[split.length - 1];
+			}
 		}
 		return fileExtension;
 	}
@@ -311,12 +320,10 @@ public class UploadProcessor {
 	}
 
 
-	public CRCResult getCRCOfFirstChunk(String fileId)
+	public FileStateJson getCRCOfFirstChunk(String fileId)
 			throws IOException {
-		log.debug("on the fly resume for " + fileId + ". generating crc.");
-
-		String absoluteFullPathOfUploadedFile = staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
-		return getCRCOfFirstChunk(new File(absoluteFullPathOfUploadedFile));
+		log.debug("on the fly resume for " + fileId + ". retrieving information of server.");
+		return getFileStateJson(staticStateManager.getEntity().getFileStates().get(fileId));
 
 	}
 
