@@ -3,16 +3,21 @@
 ==MBean attributes==
 The following java attributes can be modified at runtime:
 
+
 ====defaultRatePerRequestInKiloBytes====
+
 The default upload rate per request in kilo bytes. (Default is 1024 (1MB/s))
 
 ====defaultRatePerClientInKiloBytes====
+
 The default upload rate per client in kilo bytes. (Default is 10240 (10MB/s))
 
 ====maximumRatePerClientInKiloBytes====
+
 The maximum upload rate per client in kilo bytes. (Default is 10240 (10MB/s))
 
 ====maximumOverAllRateInKiloBytes====
+
 The maximum total upload rate in kilo bytes. (Default is 10240 (10MB/s))
 
 ----
@@ -20,5 +25,9 @@ The maximum total upload rate in kilo bytes. (Default is 10240 (10MB/s))
 ==Javascript attributes==
 
 ====maxNumberOfConcurrentUploads====
-All browsers are limiting the number of concurrent requests that are active against a similar domain. Chrome and Firefox limit is set to 6. All requests are then queued but the problem is that the upload streaming requests are (as you can imagine) quite long. If that limit is more than 6, the progress poller requests would be queued and no progress would be retrieved for as long as the files are streamed.
+
+All browsers are limiting the number of concurrent requests that are active against a similar domain. Chrome and Firefox limit is set to 6. 
+
+All requests are then queued but the problem is that the upload streaming requests are (as you can imagine) quite long. If that limit is more than 6, the progress poller requests would be queued and no progress would be retrieved for as long as the files are streamed.
+
 Also, depending of what you want to achieve, it could make sense to allow a maximum of 1 concurrent request as the bandwidth is shared anyway between all the concurrent uploads.
