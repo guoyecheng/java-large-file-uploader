@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager.UploadProcessingConfiguration;
 
 
 
@@ -76,7 +75,7 @@ public class RateLimiter
 					count.getValue().setDownloadAllowanceForIteration(allowedCapacityPerIteration);
 	
 					log.trace("giving an allowance of " + allowedCapacityPerIteration + " bytes to " + count.getKey() + ". (consumed " +
-							count.getValue().getInstantRateInBytes() + " bytes during previous iteration)");
+							count.getValue().getInstantRateInBytes() / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND + " bytes during previous iteration)");
 				}
 			}
 		
