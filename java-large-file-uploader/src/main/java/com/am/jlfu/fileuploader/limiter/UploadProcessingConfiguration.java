@@ -41,7 +41,7 @@ public class UploadProcessingConfiguration {
 	 * 
 	 * @return
 	 */
-	long instantRateInBytes;
+	volatile long instantRateInBytes;
 
 
 
