@@ -17,8 +17,8 @@ The object contains the following information:
   (string) : the original file size formatted with its unit.
 ====percentageCompleted====
   (float) : completion of the file in percent (2 decimal places)
-====processing====
-  (boolean) : true if the file is currently being uploaded, false either if it is a file present on the server filesystem that can be resumed or if the upload is paused.
+====started====
+  (boolean) : true if the file is currently being uploaded, false if it is a file present on the server filesystem and can be resumed.
 ====crcedBytes====
   (long) : amount of bytes that are validated on the server
 ====firstChunkCrc====
@@ -27,6 +27,8 @@ The object contains the following information:
     * read (int) : number of bytes which have been used to compute firstChunkCrc
 ====blob====
   (object) : the file submitted with a file input element
+====paused====
+  (boolean) : specifies whether this upload is paused or not.
 ====progressCallback====
   (function) : function processed
 ====startCallback====
