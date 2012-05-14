@@ -502,7 +502,7 @@ function JavaLargeFileUploader() {
 	}
 	
 	function format(size) {
-		return size.toFixed(2);
+		return Math.ceil(size*100)/100;
 	}
 	
 	function uploadIsActive(pendingFile) {
@@ -538,7 +538,7 @@ function JavaLargeFileUploader() {
 						if(uploadIsActive(pendingFile)) {
 
 							//if we have information about the rate:
-							if (progress.uploadRate) {
+							if (progress.uploadRate != undefined) {
 								var uploadRate = getFormattedSize(progress.uploadRate);
 							}
 							
