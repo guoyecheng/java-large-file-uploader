@@ -29,6 +29,9 @@ import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 public class StaticStateManagerTest {
 
 	@Autowired
+	FileDeleter fileDeleter;
+
+	@Autowired
 	StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
 
 	@Autowired
@@ -66,8 +69,8 @@ public class StaticStateManagerTest {
 		// clear
 		staticStateManager.clear();
 
-		// wait a bit
-		Thread.sleep((long) (StaticStateManager.DELETION_DELAY * 1.5));
+		// force file deleter to delete stuff
+		fileDeleter.run();
 
 		// assert directory is deleted
 		Assert.assertFalse(uuidFileParent.exists());
@@ -104,8 +107,8 @@ public class StaticStateManagerTest {
 		StaticFileState staticFileState = staticStateManager.getEntity().getFileStates().get(fileId);
 		Assert.assertNull(staticFileState);
 
-		// wait a bit
-		Thread.sleep((long) (StaticStateManager.DELETION_DELAY * 1.5));
+		// force file deleter to run
+		fileDeleter.run();
 
 		// assert file deleted
 		Assert.assertFalse(file.exists());

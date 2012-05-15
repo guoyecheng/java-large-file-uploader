@@ -14,7 +14,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +41,9 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 	private static final Logger log = LoggerFactory.getLogger(StaticStateManager.class);
 	private static final String FILENAME = "StaticState.xml";
-	public static final int DELETION_DELAY = 250;
+
+	@Autowired
+	FileDeleter fileDeleter;
 
 	@Autowired
 	StaticStateIdentifierManager staticStateIdentifierManager;
@@ -192,26 +193,8 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 		final File uuidFileParent = staticStateDirectoryManager.getUUIDFileParent();
 
-		fileAsynchronousDeleterExecutor.schedule(new Runnable() {
-
-			@Override
-			public void run() {
-				// remove files
-				try {
-					FileUtils.deleteDirectory(uuidFileParent);
-					log.debug("successfully deleted folder located at " + uuidFileParent);
-				}
-				catch (IOException e) {
-					log.error(
-							"Cannot delete file located at " +
-									uuidFileParent +
-									". Manual intervention required to immediately free space. Note that this directory should be automatically deleted by the quarts cleaner job. Cause: " +
-									e.getMessage(), e);
-				}
-
-			}
-		}, DELETION_DELAY, TimeUnit.MILLISECONDS);
-
+		// schedule file for deletion
+		fileDeleter.deleteFile(uuidFileParent);
 
 		// remove entity from cache
 		cache.invalidate(staticStateIdentifierManager.getIdentifier());
@@ -230,43 +213,12 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 
 		// remove the uploaded file for this particular id
-		File[] listFiles = uuidFileParent.listFiles(new FilenameFilter() {
+		fileDeleter.deleteFile(uuidFileParent.listFiles(new FilenameFilter() {
 
 			public boolean accept(File dir, String name) {
 				return name.startsWith(fileId);
 			}
-		});
-		if (listFiles.length > 0) {
-			final File file = listFiles[0];
-			if (file.exists()) {
-				fileAsynchronousDeleterExecutor.schedule(new Runnable() {
-
-					@Override
-					public void run() {
-						// remove files
-						boolean delete;
-						try {
-							delete = file.delete();
-						}
-						catch (SecurityException e) {
-							delete = false;
-						}
-						// if not successful, log!
-						if (!delete) {
-							log.error(
-									"Cannot delete file located at " +
-											file.getAbsolutePath() +
-											". Manual intervention required to immediately free space. Note that this directory should be automatically deleted by the quarts cleaner job.");
-						}
-						else {
-							log.debug("successfully deleted file located at " + file.getAbsolutePath());
-						}
-
-					}
-				}, DELETION_DELAY, TimeUnit.MILLISECONDS);
-			}
-		}
-
+		}));
 
 		// remove the file information in entity
 		T entity = getEntity();
