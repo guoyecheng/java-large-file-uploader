@@ -153,3 +153,16 @@ jlfu.fileUploadProcess(fileElement,
 	}
 );
 }}}
+----
+===setMaxNumberOfConcurrentUploads===
+{{{
+jlfu.setMaxNumberOfConcurrentUploads(number);
+}}}
+Specifies the maximum number of uploads that are streamed concurrently.
+  * number (int) :
+  the number (between 1 and 3)
+Please see [ConfigurableProperties#maxNumberOfConcurrentUploads]
+Example: 
+{{{
+jlfu.setMaxNumberOfConcurrentUploads(1);
+}}} 
