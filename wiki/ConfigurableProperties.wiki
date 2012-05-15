@@ -26,7 +26,7 @@ The maximum total upload rate in kilo bytes. (Default is 10240 (10MB/s))
 
 ====maxNumberOfConcurrentUploads====
 
-*default value is 5*
+_default value is *5*_
 
 All browsers are limiting the number of concurrent requests that are active against a similar domain. Chrome and Firefox limit is set to 6. 
 
