@@ -135,13 +135,11 @@ public class UploadProcessor {
 		fileStateJson.setRateInKiloBytes(staticFileStateJson.getRateInKiloBytes());
 		fileStateJson.setCrcedBytes(staticFileStateJson.getCrcedBytes());
 		fileStateJson.setCreationDate(staticFileStateJson.getCreationDate());
-		if (!fileStateJson.getFileComplete()) {
-			try {
-				fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
-			}
-			catch (IOException e) {
-				log.error("Cannot calculate the first chunk crc of file " + file, e);
-			}
+		try {
+			fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
+		}
+		catch (IOException e) {
+			log.error("Cannot calculate the first chunk crc of file " + file, e);
 		}
 		log.debug("returning pending file " + fileStateJson.getOriginalFileName() + " with target size " +
 				fileStateJson.getOriginalFileSizeInBytes() + " out of " + fileSize + " completed which includes " +
