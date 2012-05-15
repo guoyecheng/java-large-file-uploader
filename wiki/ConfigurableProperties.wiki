@@ -31,3 +31,24 @@ All browsers are limiting the number of concurrent requests that are active agai
 All requests are then queued but the problem is that the upload streaming requests are (as you can imagine) quite long. If that limit is more than 6, the progress poller requests would be queued and no progress would be retrieved for as long as the files are streamed.
 
 Also, depending of what you want to achieve, it could make sense to allow a maximum of 1 concurrent request as the bandwidth is shared anyway between all the concurrent uploads.
+
+Use [JavaLargeFileUploader#setMaxNumberOfConcurrentUploads].
+
+====errorMessages====
+
+The error messages can be modified and/or translated by the page using the API.
+They are stored inside a map that can be modified from the page.
+They initial content of the map is:
+{{{
+errorMessages[0] = "Request failed for an unknown reason, please contact an administrator if the problem persists.";
+errorMessages[1] = "The request is not multipart.";
+errorMessages[2] = "No file to upload found in the request.";
+errorMessages[3] = "CRC32 Validation of the part failed.";
+errorMessages[4] = "The request cannot be processed because a parameter is missing.";
+errorMessages[5] = "Cannot retrieve the configuration.";
+errorMessages[6] = "No files have been selected, please select at least one file!";
+errorMessages[7] = "Resuming file upload with previous slice as the last part is invalid.";
+errorMessages[8] = "Error while uploading a slice of the file";
+errorMessages[9] = "Maximum number of concurrent uploads reached, the upload is queued and waiting for one to finish.";
+}}}
+You can retrieve this map using [JavaLargeFileUploader#getErrorMessages] and modify them directly.
