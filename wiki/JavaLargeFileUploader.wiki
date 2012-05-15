@@ -160,7 +160,7 @@ jlfu.setMaxNumberOfConcurrentUploads(number);
 }}}
 Specifies the maximum number of uploads that are streamed concurrently.
   * number (int) :
-  the number (between 1 and 3)
+  the number (between 1 and 5)
 Please see [ConfigurableProperties#maxNumberOfConcurrentUploads].
 
 Example: 
