@@ -7,6 +7,7 @@ function JavaLargeFileUploader() {
 	var pendingFiles = new Object();
 	var bytesPerChunk;
 
+	progressPollerRefreshRate = 500;
 	maxNumberOfConcurrentUploads = 5; 
 	errorMessages = new Object();
 	errorMessages[0] = "Request failed for an unknown reason, please contact an administrator if the problem persists.";
@@ -26,6 +27,10 @@ function JavaLargeFileUploader() {
 
 	this.getErrorMessages = function () {
 		return errorMessages;
+	};
+	
+	this.setProgressPollerRefreshRate = function(progressPollerRefreshRateI) {
+		progressPollerRefreshRate = progressPollerRefreshRateI;
 	};
 	
 	this.initialize = function (initializationCallback, exceptionCallback) {
@@ -606,7 +611,7 @@ function JavaLargeFileUploader() {
 				  });
 				  
 				  //reschedule when the have the answer 
-				  setTimeout(startProgressPoller, 500);
+				  setTimeout(startProgressPoller, progressPollerRefreshRate);
 
 			  });
 		} 
