@@ -161,6 +161,7 @@ jlfu.setMaxNumberOfConcurrentUploads(number);
 Specifies the maximum number of uploads that are streamed concurrently.
   * number (int) :
   the number (between 1 and 5)
+
 Please see [ConfigurableProperties#maxNumberOfConcurrentUploads].
 
 Example: 
@@ -174,9 +175,26 @@ jlfu.getErrorMessages();
 }}}
 Retrieves the map of all the error messages.
 
+Please see [ConfigurableProperties#errorMessages].
+
 This map can be modified directly:
 
 Example: 
 {{{
 jlfu.getErrorMessages()[9] = "File queued!";
 }}}
+----
+===setProgressPollerRefreshRate===
+{{{
+jlfu.setProgressPollerRefreshRate(newRate);
+}}}
+Specifies the progress poller refresh rate in milliseconds.
+  * newRate (int) :
+  the new rate 
+
+Please see [ConfigurableProperties#progressPollerRefreshRate].
+
+Example: 
+{{{
+jlfu.setProgressPollerRefreshRate(1000);
+}}} 
