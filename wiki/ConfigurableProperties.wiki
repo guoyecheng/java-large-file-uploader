@@ -26,6 +26,8 @@ The maximum total upload rate in kilo bytes. (Default is 10240 (10MB/s))
 
 ====maxNumberOfConcurrentUploads====
 
+*default value is 5*
+
 All browsers are limiting the number of concurrent requests that are active against a similar domain. Chrome and Firefox limit is set to 6. 
 
 All requests are then queued but the problem is that the upload streaming requests are (as you can imagine) quite long. If that limit is more than 6, the progress poller requests would be queued and no progress would be retrieved for as long as the files are streamed.
