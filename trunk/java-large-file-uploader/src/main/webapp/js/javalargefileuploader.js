@@ -6,10 +6,9 @@ function JavaLargeFileUploader() {
 	var uploadServletMapping = "javaLargeFileUploaderAsyncServlet";
 	var pendingFiles = new Object();
 	var bytesPerChunk;
-	var maxNumberOfConcurrentUploads = 5; 
-	//This value is important, we have one progress poller, and all the uploads. FF and chrome are limited to 6 connections per hostname, so if you want to be able to perform some other calls, you might want to reduce this number. The uploads are queued until one is finished.
-	
-	var errorMessages = [];
+
+	maxNumberOfConcurrentUploads = 5; 
+	errorMessages = new Object();
 	errorMessages[0] = "Request failed for an unknown reason, please contact an administrator if the problem persists.";
 	errorMessages[1] = "The request is not multipart.";
 	errorMessages[2] = "No file to upload found in the request.";
@@ -20,6 +19,14 @@ function JavaLargeFileUploader() {
 	errorMessages[7] = "Resuming file upload with previous slice as the last part is invalid.";
 	errorMessages[8] = "Error while uploading a slice of the file";
 	errorMessages[9] = "Maximum number of concurrent uploads reached, the upload is queued and waiting for one to finish.";
+	
+	this.setMaxNumberOfConcurrentUploads = function (maxNumberOfConcurrentUploadsI) {
+		maxNumberOfConcurrentUploads = maxNumberOfConcurrentUploadsI;
+	};
+
+	this.getErrorMessages = function () {
+		return errorMessages;
+	};
 	
 	this.initialize = function (initializationCallback, exceptionCallback) {
 		

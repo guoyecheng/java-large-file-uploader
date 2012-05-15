@@ -54,6 +54,10 @@ $(document).ready(function() {
 		alert(message);
 	});
 	
+	//specify some configuration
+	jlfu.setMaxNumberOfConcurrentUploads(3);
+	jlfu.getErrorMessages()[9] = "More than 3 pending upload, file is queued.";
+	
 	//add a file upload element
 	appendFileInputElement();	
  
