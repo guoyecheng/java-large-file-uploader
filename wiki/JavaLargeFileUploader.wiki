@@ -8,7 +8,9 @@ jlfu = new JavaLargeFileUploader();
 
 It has to be first initialized using [JavaLargeFileUploader#initialize]  before any other operation.
 
-This object provides the following methods:
+This object have a few attributes that are configurable, please see [Configuration#Javascript-attributes]
+
+This object provides the following interaction methods:
 ----
 ===initialize===
 {{{
