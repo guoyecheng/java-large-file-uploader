@@ -117,9 +117,16 @@ function JavaLargeFileUploader() {
 			//set as not paused anymore
 			pendingFile.paused = false;
 			//and restart flow
-			$.get(globalServletMapping + "?action=resumeFile&fileId=" + pendingFile.id,	function(e) {
+			$.get(globalServletMapping + "?action=resumeFile&fileId=" + pendingFile.id,	function(data) {
 				if (callback) {
 					callback(pendingFile);
+					
+					//populate crc data
+					pendingFile.crcedBytes = data.crcedBytes;
+					pendingFile.fileCompletionInBytes = data.fileCompletionInBytes;
+						
+					//try to validate the unvalidated chunks and resume it
+					fileResumeProcessStarter(pendingFile);
 				}
 			});
 		}
@@ -480,8 +487,13 @@ function JavaLargeFileUploader() {
 		
 						if (xhr.status != 200) {
 							uploadEnd(pendingFile);
-							if (pendingFile.exceptionCallback) {
-								pendingFile.exceptionCallback(errorMessages[8], pendingFile.referenceToFileElement, pendingFile);
+							if (xhr.status == 499) {
+								//paused
+								console.log("The file is paused.");
+							} else {
+								if (pendingFile.exceptionCallback) {
+									pendingFile.exceptionCallback(errorMessages[8], pendingFile.referenceToFileElement, pendingFile);
+								}
 							}
 							return;
 						}

@@ -32,9 +32,14 @@ public class UploadProcessingConfiguration {
 	volatile Long rateInKiloBytes;
 
 	/**
-	 * Boolean specifying whether the upload is paused or not.
+	 * Boolean specifying whether the upload is processing or not.
 	 */
 	private volatile boolean isProcessing = false;
+
+	/**
+	 * Boolean specifying whether the upload is paused or not.
+	 */
+	private volatile boolean isPaused = false;
 
 
 	/**
@@ -107,4 +112,16 @@ public class UploadProcessingConfiguration {
 	public void setProcessing(boolean isProcessing) {
 		this.isProcessing = isProcessing;
 	}
+
+
+	public boolean isPaused() {
+		return isPaused;
+	}
+
+
+	public void setPaused(boolean isPaused) {
+		this.isPaused = isPaused;
+	}
+
+
 }

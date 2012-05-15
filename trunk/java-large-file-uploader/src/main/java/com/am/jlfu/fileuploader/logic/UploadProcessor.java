@@ -108,11 +108,16 @@ public class UploadProcessor {
 
 				@Override
 				public FileStateJson apply(StaticFileState value) {
-					return getFileStateJson(value);
+					return getFileStateJson(value, true);
 				}
 
 
 			}));
+
+			// reset paused attribute
+			for (String fileId : sortedMap.keySet()) {
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).setPaused(false);
+			}
 		}
 
 		// fill configuration
@@ -122,7 +127,7 @@ public class UploadProcessor {
 	}
 
 
-	private FileStateJson getFileStateJson(StaticFileState value) {
+	private FileStateJson getFileStateJson(StaticFileState value, boolean withCrcOfFirstChunk) {
 		File file = new File(value.getAbsoluteFullPathOfUploadedFile());
 		Long fileSize = file.length();
 
@@ -135,11 +140,13 @@ public class UploadProcessor {
 		fileStateJson.setRateInKiloBytes(staticFileStateJson.getRateInKiloBytes());
 		fileStateJson.setCrcedBytes(staticFileStateJson.getCrcedBytes());
 		fileStateJson.setCreationDate(staticFileStateJson.getCreationDate());
-		try {
-			fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
-		}
-		catch (IOException e) {
-			log.error("Cannot calculate the first chunk crc of file " + file, e);
+		if (withCrcOfFirstChunk) {
+			try {
+				fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
+			}
+			catch (IOException e) {
+				log.error("Cannot calculate the first chunk crc of file " + file, e);
+			}
 		}
 		log.debug("returning pending file " + fileStateJson.getOriginalFileName() + " with target size " +
 				fileStateJson.getOriginalFileSizeInBytes() + " out of " + fileSize + " completed which includes " +
@@ -201,7 +208,7 @@ public class UploadProcessor {
 		Map<String, ListenableFuture<?>> submits = Maps.newHashMap();
 		for (final String fileId : fileIds) {
 
-			log.debug("asking for deletion for file with id " + fileId);
+			log.debug("asking for stream close for file with id " + fileId);
 
 			// ask for the stream to close
 			boolean needToCloseStream = uploadProcessingConfigurationManager.markRequestHasShallBeCancelled(fileId);
@@ -309,19 +316,30 @@ public class UploadProcessor {
 
 
 	public void pauseFile(String fileId) {
+
+		// specify as paused
 		uploadProcessingConfigurationManager.pause(fileId);
+
+		// close stream
+		closeStreamForFiles(fileId);
+
 	}
 
 
-	public void resumeFile(String fileId) {
+	public FileStateJson resumeFile(String fileId) {
+
+		// set as resumed
 		uploadProcessingConfigurationManager.resume(fileId);
+
+		// and return some information about it
+		return getFileStateJson(staticStateManager.getEntity().getFileStates().get(fileId), false);
 	}
 
 
 	public FileStateJson getCRCOfFirstChunk(String fileId)
 			throws IOException {
 		log.debug("on the fly resume for " + fileId + ". retrieving information of server.");
-		return getFileStateJson(staticStateManager.getEntity().getFileStates().get(fileId));
+		return getFileStateJson(staticStateManager.getEntity().getFileStates().get(fileId), true);
 
 	}
 
