@@ -57,3 +57,11 @@ errorMessages[8] = "Error while uploading a slice of the file";
 errorMessages[9] = "Maximum number of concurrent uploads reached, the upload is queued and waiting for one to finish.";
 }}}
 You can retrieve this map using [JavaLargeFileUploader#getErrorMessages] and modify them directly.
+
+====progressPollerRefreshRate====
+
+_default value is *500*_
+
+The [Flow#Progress-Poller progress poller] is sending a new request to the server every _x_ amount of milliseconds, _x_ being the value of this variable.
+
+Use [JavaLargeFileUploader#setProgressPollerRefreshRate] to set this value up.
