@@ -22,7 +22,7 @@ The maximum total upload rate in kilo bytes. (Default is 10240 (10MB/s))
 
 ----
 
-==Javascript attributes==
+==javascript-attributes==
 
 ====maxNumberOfConcurrentUploads====
 
