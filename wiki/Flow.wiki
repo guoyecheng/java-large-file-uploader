@@ -59,6 +59,8 @@ When the file has been completely uploaded, the [PendingFile#finishCallback] is 
 
 ===Progress-Poller===  
 
-The progress poller is an infinite loop which retrieves from the server every 500ms the completion and upload rate of all the pending uploads if at least one upload is currently being processed.
+The progress poller is an infinite loop which retrieves from the server the completion and upload rate of all the pending uploads if at least one upload is currently being processed.
 
 It will trigger the [PendingFile#progressCallback] for each of them.
+
+The rate can be configured, see [ConfigurableProperties#progressPollerRefreshRate here].
