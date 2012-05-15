@@ -9,7 +9,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +56,7 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 
 
 	@Override
-	public void handleRequest(HttpServletRequest request, final HttpServletResponse response)
+	public void handleRequest(final HttpServletRequest request, final HttpServletResponse response)
 			throws ServletException, IOException {
 
 		// process the request
@@ -66,59 +65,67 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 			// extract stuff from request
 			final FileUploadConfiguration process = fileUploaderHelper.extractFileUploadConfiguration(request);
 
+			// check if the file is paused or not, if paused, we do not process this request
+			if (uploadServletAsyncProcessor.isPausedOrCancelled(process.getFileId())) {
+				log.debug(process.getFileId() + " is paused, request ignored.");
+				response.sendError(499);
+				return;
+			}
+
 			// process the request asynchronously
 			final AsyncContext asyncContext = request.startAsync();
 			asyncContext.setTimeout(taskTimeOut);
 
 
-			// add a listener to clear bucket and close inputstream when process is complete or with
+			// add a listener to clear bucket and close inputstream when process is complete or
+			// with
 			// error
 			asyncContext.addListener(new UploadServletAsyncListenerAdapter(process.getFileId()) {
 
 				@Override
 				void clean() {
-					log.debug("closing input stream for " + process.getFileId());
-					// close input stream
-					IOUtils.closeQuietly(process.getInputStream());
+					log.debug("request " + request + " completed.");
+					// we do not need to clear the inputstream here.
 					// and tell processor to clean its shit!
 					uploadServletAsyncProcessor.clean(process.getFileId());
 				}
 			});
 
 			// then process
-			uploadServletAsyncProcessor.process(process.getFileId(), process.getCrc(), process.getInputStream(), new WriteChunkCompletionListener() {
+			uploadServletAsyncProcessor.process(process.getFileId(), process.getCrc(), process.getInputStream(),
+					new WriteChunkCompletionListener() {
 
-				@Override
-				public void success() {
-					asyncContext.complete();
-				}
+						@Override
+						public void success() {
+							asyncContext.complete();
+						}
 
 
-				@Override
-				public void error(Exception exception) {
-					// handles a stream ended unexpectedly , it just means the user has stopped the
-					// stream
-					if (exception.getMessage().equals("Stream ended unexpectedly")) {
-						log.warn("User has stopped streaming for file " + process.getFileId());
-					}
-					else if (exception.getMessage().equals("User cancellation")) {
-						log.warn("User has cancelled streaming for file id " + process.getFileId());
-						// do nothing
-					}
-					else {
-						exceptionCodeMappingHelper.processException(exception, response);
-					}
+						@Override
+						public void error(Exception exception) {
+							// handles a stream ended unexpectedly , it just means the user has
+							// stopped the
+							// stream
+							if (exception.getMessage().equals("Stream ended unexpectedly")) {
+								log.warn("User has stopped streaming for file " + process.getFileId());
+							}
+							else if (exception.getMessage().equals("User cancellation")) {
+								log.warn("User has cancelled streaming for file id " + process.getFileId());
+								// do nothing
+							}
+							else {
+								exceptionCodeMappingHelper.processException(exception, response);
+							}
 
-					asyncContext.complete();
-				}
+							asyncContext.complete();
+						}
 
-			});
+					});
 		}
 		catch (Exception e) {
 			exceptionCodeMappingHelper.processException(e, response);
 		}
 
 	}
-
 
 }

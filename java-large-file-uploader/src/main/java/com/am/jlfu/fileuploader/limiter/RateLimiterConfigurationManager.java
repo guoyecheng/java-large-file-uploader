@@ -123,12 +123,12 @@ public class RateLimiterConfigurationManager {
 
 
 	public void pause(String fileId) {
-		requestConfigMap.getUnchecked(fileId).setProcessing(false);
+		requestConfigMap.getUnchecked(fileId).setPaused(true);
 	}
 
 
 	public void resume(String fileId) {
-		requestConfigMap.getUnchecked(fileId).setProcessing(true);
+		requestConfigMap.getUnchecked(fileId).setPaused(false);
 	}
 
 

@@ -65,11 +65,14 @@ public class UploadServletAsyncProcessor {
 		final UploadProcessingConfiguration uploadProcessingConfiguration =
 				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
 
+		// get static file state
+		StaticFileState staticFileState = model.getFileStates().get(fileId);
+
 		// if there is no configuration in the map
 		if (uploadProcessingConfiguration.getRateInKiloBytes() == null) {
 
 			// and if there is a specific configuration in th file
-			FileStateJsonBase staticFileStateJson = model.getFileStates().get(fileId).getStaticFileStateJson();
+			FileStateJsonBase staticFileStateJson = staticFileState.getStaticFileStateJson();
 			if (staticFileStateJson != null && staticFileStateJson.getRateInKiloBytes() != null) {
 
 				// use it
@@ -79,7 +82,7 @@ public class UploadServletAsyncProcessor {
 		}
 
 		// get the file
-		StaticFileState fileState = model.getFileStates().get(fileId);
+		StaticFileState fileState = staticFileState;
 		if (fileState == null) {
 			throw new FileNotFoundException("File with id " + fileId + " not found");
 		}
@@ -273,6 +276,18 @@ public class UploadServletAsyncProcessor {
 	public void clean(String identifier) {
 		log.debug("resetting token bucket for " + identifier);
 		uploadProcessingConfigurationManager.reset(identifier);
+	}
+
+
+	/**
+	 * Checks whether is file is paused or not.
+	 * 
+	 * @param fileId
+	 * @return
+	 */
+	public boolean isPausedOrCancelled(String fileId) {
+		return staticStateManager.getEntity().getFileStates().get(fileId) == null ||
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).isPaused();
 	}
 
 
