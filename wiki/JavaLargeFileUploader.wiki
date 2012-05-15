@@ -173,7 +173,9 @@ jlfu.setMaxNumberOfConcurrentUploads(1);
 jlfu.getErrorMessages();
 }}}
 Retrieves the map of all the error messages.
+
 This map can be modified directly:
+
 Example: 
 {{{
 jlfu.getErrorMessages()[9] = "File queued!";
