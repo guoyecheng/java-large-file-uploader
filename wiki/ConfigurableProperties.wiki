@@ -38,7 +38,8 @@ Use [JavaLargeFileUploader#setMaxNumberOfConcurrentUploads].
 
 The error messages can be modified and/or translated by the page using the API.
 They are stored inside a map that can be modified from the page.
-They initial content of the map is:
+
+The initial content of the map is:
 {{{
 errorMessages[0] = "Request failed for an unknown reason, please contact an administrator if the problem persists.";
 errorMessages[1] = "The request is not multipart.";
