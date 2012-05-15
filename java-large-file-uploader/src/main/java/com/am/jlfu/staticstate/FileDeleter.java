@@ -58,8 +58,14 @@ public class FileDeleter
 
 		// extract all the files to an immutable list
 		ImmutableList<File> copyOf;
-		synchronized (files) {
-			copyOf = ImmutableList.copyOf(files);
+		synchronized (this.files) {
+			copyOf = ImmutableList.copyOf(this.files);
+		}
+
+		// log
+		boolean weHaveFilesToDelete = !copyOf.isEmpty();
+		if (weHaveFilesToDelete) {
+			log.debug(copyOf.size() + " files to delete");
 		}
 
 		// and create a new list
@@ -78,8 +84,13 @@ public class FileDeleter
 
 		// all the files have been processed
 		// remove the deleted files from queue
-		synchronized (files) {
-			Iterables.removeAll(files, successfullyDeletedFiles);
+		synchronized (this.files) {
+			Iterables.removeAll(this.files, successfullyDeletedFiles);
+		}
+
+		// log
+		if (weHaveFilesToDelete) {
+			log.debug(successfullyDeletedFiles.size() + " deleted files");
 		}
 
 		// and reschedule
@@ -134,7 +145,7 @@ public class FileDeleter
 
 
 	public void deleteFiles(Collection<File> files) {
-		synchronized (files) {
+		synchronized (this.files) {
 			this.files.addAll(files);
 		}
 	}
