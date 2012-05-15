@@ -34,6 +34,8 @@ All requests are then queued but the problem is that the upload streaming reques
 
 Also, depending of what you want to achieve, it could make sense to allow a maximum of 1 concurrent request as the bandwidth is shared anyway between all the concurrent uploads.
 
+It is advised to use a number between 1 and 5 so that there is always at least one request left for progress poller.
+
 Use [JavaLargeFileUploader#setMaxNumberOfConcurrentUploads].
 
 ====errorMessages====
