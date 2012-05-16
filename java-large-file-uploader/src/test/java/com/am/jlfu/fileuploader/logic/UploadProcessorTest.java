@@ -160,7 +160,7 @@ public class UploadProcessorTest {
 			throws ServletException, IOException, InterruptedException, ExecutionException, TimeoutException {
 
 		// begin a file upload process
-		String fileId = uploadProcessor.prepareUpload(fileSize, fileName);
+		String fileId = uploadProcessor.prepareUpload(fileSize, fileName, "lala");
 
 		// assert that the state has what we want
 		StaticFileState value = staticStateManager.getEntity().getFileStates().get(fileId);

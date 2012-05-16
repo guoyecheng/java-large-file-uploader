@@ -1,7 +1,9 @@
 package com.am.jlfu.fileuploader.json;
 
+
 import java.io.Serializable;
 import java.util.Date;
+
 
 
 public class FileStateJsonBase
@@ -17,7 +19,7 @@ public class FileStateJsonBase
 
 	/** When the file was originally created */
 	private Date creationDate;
-	
+
 	/**
 	 * The rate of the client in kilo bytes.<br>
 	 * */
@@ -28,6 +30,9 @@ public class FileStateJsonBase
 	 * When resuming an upload, all bytes in the file that have not been validated are revalidated.
 	 */
 	private long crcedBytes;
+
+	/** the first chunk crc information */
+	private String firstChunkCrc;
 
 
 
@@ -89,5 +94,14 @@ public class FileStateJsonBase
 	}
 
 
-	
+	public String getFirstChunkCrc() {
+		return firstChunkCrc;
+	}
+
+
+	public void setFirstChunkCrc(String firstChunkCrc) {
+		this.firstChunkCrc = firstChunkCrc;
+	}
+
+
 }
