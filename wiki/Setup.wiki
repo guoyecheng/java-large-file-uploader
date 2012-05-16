@@ -1,9 +1,29 @@
 #summary How to configure your project
 
-=java=
+===java===
 
-WIP
+This project is really easy to configure as the dependency is a war containing a simple javascript file and a jar which includes all the web configuration (using web fragment from servlet 3.0 specification).
+[ConfigurableProperties Some properties] are exposed as MBeans and can be changed at runtime and others can be set directly in the javascript.
 
-=javascript=
+Just define the maven dependency:
+{{{
+<dependency>
+	<groupId>com.am</groupId>
+	<artifactId>java-large-file-uploader</artifactId>
+	<version>0.3.4-SNAPSHOT</version>
+	<type>war</type>
+	<scope>runtime</scope>
+</dependency>
+}}}
+And the repository:
+{{{
+<repository>
+	<id>java large file uploader repository</id>
+	<url>http://java-large-file-uploader.googlecode.com/svn/mvnrepo</url>
+</repository>
+}}}
+And do not forget to specify `version="3.0"` in the `web-app` element of your web.xml !
+
+===javascript===
 
 See [JavaLargeFileUploader]
