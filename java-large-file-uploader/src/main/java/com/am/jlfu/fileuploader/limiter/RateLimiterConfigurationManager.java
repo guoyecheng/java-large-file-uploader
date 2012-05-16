@@ -85,8 +85,15 @@ public class RateLimiterConfigurationManager {
 	}
 
 
+	public boolean requestIsReset(String fileId) {
+		UploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
+		return unchecked.cancelRequest && !unchecked.isProcessing();
+	}
+
+
 	public boolean requestHasToBeCancelled(String fileId) {
-		return requestConfigMap.getUnchecked(fileId).cancelRequest;
+		UploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
+		return unchecked.cancelRequest;
 	}
 
 

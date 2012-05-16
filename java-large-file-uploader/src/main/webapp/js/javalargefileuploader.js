@@ -9,6 +9,8 @@ function JavaLargeFileUploader() {
 
 	progressPollerRefreshRate = 500;
 	maxNumberOfConcurrentUploads = 5; 
+	autoRetry = true; 
+	autoRetryDelay = 1000; 
 	errorMessages = new Object();
 	errorMessages[0] = "Request failed for an unknown reason, please contact an administrator if the problem persists.";
 	errorMessages[1] = "The request is not multipart.";
@@ -20,6 +22,8 @@ function JavaLargeFileUploader() {
 	errorMessages[7] = "Resuming file upload with previous slice as the last part is invalid.";
 	errorMessages[8] = "Error while uploading a slice of the file";
 	errorMessages[9] = "Maximum number of concurrent uploads reached, the upload is queued and waiting for one to finish.";
+	errorMessages[10] = "Connection lost. Retrying ...";
+	errorMessages[11] = "Connection lost. Automatically retrying in a moment.";
 	
 	this.setMaxNumberOfConcurrentUploads = function (maxNumberOfConcurrentUploadsI) {
 		maxNumberOfConcurrentUploads = maxNumberOfConcurrentUploadsI;
@@ -31,6 +35,11 @@ function JavaLargeFileUploader() {
 	
 	this.setProgressPollerRefreshRate = function(progressPollerRefreshRateI) {
 		progressPollerRefreshRate = progressPollerRefreshRateI;
+	};
+	
+	this.setAutoRetry = function (autoRetryBoolean, autoRetryDelayI) {
+		autoRetry = autoRetryBoolean;
+		autoRetryDelay = autoRetryDelayI;
 	};
 	
 	this.initialize = function (initializationCallback, exceptionCallback) {
@@ -112,21 +121,51 @@ function JavaLargeFileUploader() {
 		}
 	};
 	
-	function resumeFileUploadInternal(pendingFile, callback) {
-		if(pendingFile && pendingFile.paused === true) {
+	this.retryFileUpload = function (fileIdI, callback) {
+		if (fileIdI && pendingFiles[fileIdI]) {
+			resumeFileUploadInternal(pendingFiles[fileIdI], null, callback);
+		}
+	};
+	
+	function retryRecursive(pendingFile) {
+		if(pendingFile.exceptionCallback) {
+			pendingFile.exceptionCallback(errorMessages[10], pendingFile.referenceToFileElement, pendingFile);
+		}
+		if (pendingFile) {
+			resumeFileUploadInternal(pendingFile, null, function(ok) {
+				if (ok === false) {
+					if(pendingFile.exceptionCallback) {
+						pendingFile.exceptionCallback(errorMessages[11], pendingFile.referenceToFileElement, pendingFile);
+					}					
+					setTimeout(retryRecursive, autoRetryDelay, pendingFile);
+				}
+			});
+		}
+	}
+	
+	function resumeFileUploadInternal(pendingFile, callback, retryCallback) {
+		if(pendingFile) {
 			//set as not paused anymore
 			pendingFile.paused = false;
 			//and restart flow
 			$.get(globalServletMapping + "?action=resumeFile&fileId=" + pendingFile.id,	function(data) {
 				if (callback) {
 					callback(pendingFile);
+				}
 					
-					//populate crc data
-					pendingFile.crcedBytes = data.crcedBytes;
-					pendingFile.fileCompletionInBytes = data.fileCompletionInBytes;
-						
-					//try to validate the unvalidated chunks and resume it
-					fileResumeProcessStarter(pendingFile);
+				//populate crc data
+				pendingFile.crcedBytes = data.crcedBytes;
+				pendingFile.fileCompletionInBytes = data.fileCompletionInBytes;
+					
+				//try to validate the unvalidated chunks and resume it
+				fileResumeProcessStarter(pendingFile);
+			}).success(function(e) {
+				if (retryCallback) {
+					retryCallback(true);
+				}
+			}).error(function(e) {
+				if (retryCallback) {
+					retryCallback(false);
 				}
 			});
 		}
@@ -378,7 +417,7 @@ function JavaLargeFileUploader() {
 			        //and send it
 					$.get(globalServletMapping + "?action=verifyCrcOfUncheckedPart&fileId=" + pendingFile.id + "&crc=" + decimalToHexString(digest),	function(data) {
 						//verify stuff!
-						if (data) {
+						if (data === false) {
 							pendingFile.exceptionCallback(errorMessages[7], pendingFile.referenceToFileElement, pendingFile);
 							
 							//and assign the completion to last verified
@@ -494,6 +533,10 @@ function JavaLargeFileUploader() {
 								if (pendingFile.exceptionCallback) {
 									pendingFile.exceptionCallback(errorMessages[8], pendingFile.referenceToFileElement, pendingFile);
 								}
+								if (autoRetry) {
+									//submit retry
+									retryRecursive(pendingFile);
+								}
 							}
 							return;
 						}
@@ -527,6 +570,10 @@ function JavaLargeFileUploader() {
 					uploadEnd(pendingFile);
 					if (pendingFile.exceptionCallback) {
 						pendingFile.exceptionCallback(errorMessages[8], endingFile.referenceToFileElement, pendingFile);
+					}
+					if (autoRetry) {
+						//submit retry
+						retryRecursive(pendingFile);
 					}
 					return;
 				}
@@ -598,38 +645,38 @@ function JavaLargeFileUploader() {
 		}
 			
 		if (fileIds.length > 0) {
-			  $.getJSON(globalServletMapping + "?action=getProgress", {fileId: JSON.stringify(fileIds)}, function(data) {
-				  
-				  //now populate our local entries with ids
-				  $.each(data, function(fileId, progress) {
-					  	var pendingFile = pendingFiles[fileId];
-					
-					  	//if the pending file status has not been deleted while we querying:
-						if(uploadIsActive(pendingFile)) {
-
-							//if we have information about the rate:
-							if (progress.uploadRate != undefined) {
-								var uploadRate = getFormattedSize(progress.uploadRate);
+				  $.getJSON(globalServletMapping + "?action=getProgress", {fileId: JSON.stringify(fileIds)}, function(data) {
+					  
+					  //now populate our local entries with ids
+					  $.each(data, function(fileId, progress) {
+						  	var pendingFile = pendingFiles[fileId];
+						
+						  	//if the pending file status has not been deleted while we querying:
+							if(uploadIsActive(pendingFile)) {
+	
+								//if we have information about the rate:
+								if (progress.uploadRate != undefined) {
+									var uploadRate = getFormattedSize(progress.uploadRate);
+								}
+								
+								//keep progress
+								pendingFile.percentageCompleted = format(progress.progress);
+								
+								// specify progress
+								pendingFile.progressCallback(pendingFile, pendingFile.percentageCompleted, uploadRate,
+										pendingFile.referenceToFileElement);
+								
 							}
-							
-							//keep progress
-							pendingFile.percentageCompleted = format(progress.progress);
-							
-							// specify progress
-							pendingFile.progressCallback(pendingFile, pendingFile.percentageCompleted, uploadRate,
-									pendingFile.referenceToFileElement);
-							
-						}
+					  });
+				  }).complete(function() {
+					  
+					  //reschedule when the have the answer 
+					  setTimeout(startProgressPoller, progressPollerRefreshRate);
 				  });
-				  
-				  //reschedule when the have the answer 
-				  setTimeout(startProgressPoller, progressPollerRefreshRate);
-
-			  });
 		} 
 		//reschedule immediately if there is no pending upload
 		else {
-			setTimeout(startProgressPoller, 500);
+			setTimeout(startProgressPoller, progressPollerRefreshRate);
 		}
 
 

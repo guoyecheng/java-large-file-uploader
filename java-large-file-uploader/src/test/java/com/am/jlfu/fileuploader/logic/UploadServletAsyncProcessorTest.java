@@ -54,7 +54,7 @@ public class UploadServletAsyncProcessorTest {
 
 	@Autowired
 	RateLimiterConfigurationManager rateLimiterConfigurationManager;
-	
+
 	@Autowired
 	CRCHelper crcHelper;
 
@@ -168,6 +168,7 @@ public class UploadServletAsyncProcessorTest {
 		Assert.assertTrue(semaphore.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
 	}
 
+
 	@Test
 	public void testClassicGranular()
 			throws ServletException, IOException, InvalidCrcException, IncorrectRequestException, MissingParameterException, FileUploadException,
@@ -211,9 +212,11 @@ public class UploadServletAsyncProcessorTest {
 
 		// get progress
 		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(100));
-		
-		//check crc
-		CRCResult fileCrc = crcHelper.getBufferedCrc(new FileInputStream(new File(staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile())));
+
+		// check crc
+		CRCResult fileCrc =
+				crcHelper.getBufferedCrc(new FileInputStream(new File(staticStateManager.getEntity().getFileStates().get(fileId)
+						.getAbsoluteFullPathOfUploadedFile())));
 		Assert.assertThat(fileCrc, is(bufferedCrc));
 	}
 
@@ -229,11 +232,6 @@ public class UploadServletAsyncProcessorTest {
 		private int sliceToFailAtCode;
 		private boolean invalidCrc;
 
-
-
-		public RunnableInTheProcessWithStreamDisconnection(int sliceToFailAtCode) {
-			this.sliceToFailAtCode = sliceToFailAtCode;
-		}
 
 
 		public RunnableInTheProcessWithStreamDisconnection(int sliceToFailAtCode, boolean invalidCrc) {
@@ -368,7 +366,7 @@ public class UploadServletAsyncProcessorTest {
 	@Test
 	public void testStreamDisconnectionInFirstSlice()
 			throws Exception {
-		testFileComplete(new RunnableInTheProcessWithStreamDisconnection(0));
+		testFileComplete(new RunnableInTheProcessWithStreamDisconnection(0, false));
 	}
 
 
@@ -382,28 +380,28 @@ public class UploadServletAsyncProcessorTest {
 	@Test
 	public void testStreamDisconnectionInMiddleSlice()
 			throws Exception {
-		testFileComplete(new RunnableInTheProcessWithStreamDisconnection(1));
+		testFileComplete(new RunnableInTheProcessWithStreamDisconnection(1, false));
 	}
 
 
 	@Test
 	public void testStreamDisconnectionInMiddleSliceWithInvalidity()
 			throws Exception {
-		testFileComplete(new RunnableInTheProcessWithStreamDisconnection(1, false));
+		testFileComplete(new RunnableInTheProcessWithStreamDisconnection(1, true));
 	}
 
 
 	@Test
 	public void testStreamDisconnectionInLastSlice()
 			throws Exception {
-		testFileComplete(new RunnableInTheProcessWithStreamDisconnection(2));
+		testFileComplete(new RunnableInTheProcessWithStreamDisconnection(2, false));
 	}
 
 
 	@Test
 	public void testStreamDisconnectionInLastSliceWithInvalidity()
 			throws Exception {
-		testFileComplete(new RunnableInTheProcessWithStreamDisconnection(2, false));
+		testFileComplete(new RunnableInTheProcessWithStreamDisconnection(2, true));
 	}
 
 

@@ -84,7 +84,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 
 	private Serializable processAction(UploadServletAction actionByParameterName, HttpServletRequest request)
 			throws Exception {
-		log.trace("Processing action " + actionByParameterName.name());
+		log.debug("Processing action " + actionByParameterName.name());
 
 		Serializable returnObject = null;
 		switch (actionByParameterName) {
@@ -92,7 +92,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				returnObject = uploadProcessor.getConfig();
 				break;
 			case verifyCrcOfUncheckedPart:
-				verifyCrcOfUncheckedPart(request);
+				returnObject = verifyCrcOfUncheckedPart(request);
 				break;
 			case getCrcOfFirstChunk:
 				returnObject = uploadProcessor.getCRCOfFirstChunk(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
@@ -165,15 +165,19 @@ public class UploadServlet extends HttpRequestHandlerServlet
 	}
 
 
-	private void verifyCrcOfUncheckedPart(HttpServletRequest request)
+	private Boolean verifyCrcOfUncheckedPart(HttpServletRequest request)
 			throws IOException, MissingParameterException {
+		String fileId = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId);
 		try {
-			uploadProcessor.verifyCrcOfUncheckedPart(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId),
+			uploadProcessor.verifyCrcOfUncheckedPart(fileId,
 					fileUploaderHelper.getParameterValue(request, UploadServletParameter.crc));
 		}
 		catch (InvalidCrcException e) {
 			// no need to log this exception, a fallback behaviour is defined in the
 			// throwing method.
+			// but we need to return something!
+			return Boolean.FALSE;
 		}
+		return Boolean.TRUE;
 	}
 }
