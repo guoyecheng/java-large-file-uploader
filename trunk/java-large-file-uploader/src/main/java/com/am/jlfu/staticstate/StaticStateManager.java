@@ -155,6 +155,16 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 
 	/**
+	 * Retrieves the entity from cache or null if this entity is not present.
+	 * 
+	 * @return
+	 */
+	public StaticStatePersistedOnFileSystemEntity getEntityIfPresent() {
+		return cache.getIfPresent(staticStateIdentifierManager.getIdentifier());
+	}
+
+
+	/**
 	 * Persist modifications to file and cache.
 	 * 
 	 * @param entity
@@ -281,12 +291,25 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * @param fileId2
 	 */
 	public void setCrcBytesValidated(final String clientId, String fileId, final long validated) {
-		log.debug(validated + " bytes have been validated for file " + fileId + " for client id " + clientId);
 
 		final T entity = cache.getUnchecked(clientId);
 		final StaticFileState staticFileState = entity.getFileStates().get(fileId);
+		Long crcredBytes = staticFileState.getStaticFileStateJson().getCrcedBytes();
 		staticFileState.getStaticFileStateJson().setCrcedBytes(
-				staticFileState.getStaticFileStateJson().getCrcedBytes() + validated);
+				crcredBytes + validated);
+
+		log.debug(validated + " more bytes have been validated appended to the already " + crcredBytes + " bytes validated for file " + fileId +
+				" for client id " + clientId);
+
+		// TODO remove when stable :)
+		if (staticFileState.getStaticFileStateJson().getCrcedBytes() > staticFileState.getStaticFileStateJson().getOriginalFileSizeInBytes()) {
+			log.error("###############################################################################");
+			log.error("###############################################################################");
+			log.error("# " + staticFileState.getStaticFileStateJson().getCrcedBytes() + " crced bytes are more than it should be: " +
+					staticFileState.getStaticFileStateJson().getOriginalFileSizeInBytes() + " #");
+			log.error("###############################################################################");
+			log.error("###############################################################################");
+		}
 
 		fileStateUpdaterExecutor.submit(new Runnable() {
 

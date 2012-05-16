@@ -9,14 +9,13 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.io.IOUtils;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,20 +27,22 @@ import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
+import com.am.jlfu.fileuploader.limiter.UploadProcessingConfiguration;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
+import com.am.jlfu.fileuploader.utils.ConditionProvider;
+import com.am.jlfu.fileuploader.utils.GeneralUtils;
 import com.am.jlfu.fileuploader.utils.UploadLockMap;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
-import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Maps.EntryTransformer;
 import com.google.common.collect.Ordering;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -70,10 +71,16 @@ public class UploadProcessor {
 	@Autowired
 	UploadLockMap lockMap;
 
+	@Autowired
+	GeneralUtils generalUtils;
+
 	public static final int SIZE_OF_FIRST_CHUNK_VALIDATION = 8192;
 
 	/** Executor service for closing streams */
-	private ListeningExecutorService streamCloserExecutor = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(20));
+	private ListeningExecutorService streamCloserExecutor = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(5));
+
+	/** Executor checking for completion of processing */
+	private ListeningExecutorService configExecutor = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(5));
 
 	/**
 	 * Size of a slice <br>
@@ -104,14 +111,12 @@ public class UploadProcessor {
 			ImmutableSortedMap<String, StaticFileState> sortedMap = ImmutableSortedMap.copyOf(entity.getFileStates(), ordering);
 
 			// fill pending files from static state
-			config.setPendingFiles(Maps.transformValues(sortedMap, new Function<StaticFileState, FileStateJson>() {
+			config.setPendingFiles(Maps.transformEntries(sortedMap, new EntryTransformer<String, StaticFileState, FileStateJson>() {
 
 				@Override
-				public FileStateJson apply(StaticFileState value) {
-					return getFileStateJson(value, true);
+				public FileStateJson transformEntry(String fileId, StaticFileState value) {
+					return getFileStateJson(fileId, value, true);
 				}
-
-
 			}));
 
 			// reset paused attribute
@@ -127,7 +132,30 @@ public class UploadProcessor {
 	}
 
 
-	private FileStateJson getFileStateJson(StaticFileState value, boolean withCrcOfFirstChunk) {
+	private void waitUntilProcessingAreFinished(String fileId) {
+		final UploadProcessingConfiguration uploadProcessingConfiguration =
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
+		generalUtils.waitForConditionToCompleteRunnable(1000, new ConditionProvider() {
+
+			@Override
+			public boolean condition() {
+				return !uploadProcessingConfiguration.isProcessing();
+			}
+
+
+			public void onFail() {
+				log.error("/!\\ One of the pending file upload is still processing !!");
+			};
+		});
+	}
+
+
+	private FileStateJson getFileStateJson(String fileId, StaticFileState value, boolean withCrcOfFirstChunk) {
+
+		// wait until pending processing is performed
+		waitUntilProcessingAreFinished(fileId);
+
+		// process
 		File file = new File(value.getAbsoluteFullPathOfUploadedFile());
 		Long fileSize = file.length();
 
@@ -205,7 +233,7 @@ public class UploadProcessor {
 	private void closeStreamForFiles(String... fileIds) {
 
 		// submit them
-		Map<String, ListenableFuture<?>> submits = Maps.newHashMap();
+		List<ConditionProvider> conditionProviders = Lists.newArrayList();
 		for (final String fileId : fileIds) {
 
 			log.debug("asking for stream close for file with id " + fileId);
@@ -216,31 +244,31 @@ public class UploadProcessor {
 			if (needToCloseStream) {
 				log.debug("waiting for the stream to be closed for " + fileId);
 
-				// then wait for the stream to be closed
-				submits.put(fileId, streamCloserExecutor.submit(new Runnable() {
+				conditionProviders.add(new ConditionProvider() {
 
 					@Override
-					public void run() {
-						DateTime start = new DateTime();
-						while (uploadProcessingConfigurationManager.requestHasToBeCancelled(fileId)) {
-							if (new DateTime().isAfter(start.plusMillis(1000))) {
-								log.debug("cannot confirm that file stream is closed for " + fileId);
-								return;
-							}
-							try {
-								Thread.sleep(10);
-							}
-							catch (InterruptedException e) {
-								throw new RuntimeException(e);
-							}
-						}
+					public boolean condition() {
+						return !uploadProcessingConfigurationManager.requestIsReset(fileId);
+					}
+
+
+					@Override
+					public void onSuccess() {
 						log.debug("file stream has been closed for " + fileId);
 					}
-				}));
+
+
+					@Override
+					public void onFail() {
+						log.warn("cannot confirm that file stream is closed for " + fileId);
+					}
+
+				});
+
 			}
 		}
 
-		Futures.getUnchecked(Futures.allAsList(submits.values()));
+		generalUtils.waitForConditionToCompleteRunnable(1000, conditionProviders);
 
 	}
 
@@ -261,6 +289,7 @@ public class UploadProcessor {
 
 		// close any pending stream before clearing the file
 		closeStreamForFiles(staticStateManager.getEntity().getFileStates().keySet().toArray(new String[] {}));
+
 
 		// then clear everything
 		staticStateManager.clear();
@@ -332,14 +361,14 @@ public class UploadProcessor {
 		uploadProcessingConfigurationManager.resume(fileId);
 
 		// and return some information about it
-		return getFileStateJson(staticStateManager.getEntity().getFileStates().get(fileId), false);
+		return getFileStateJson(fileId, staticStateManager.getEntity().getFileStates().get(fileId), false);
 	}
 
 
 	public FileStateJson getCRCOfFirstChunk(String fileId)
 			throws IOException {
 		log.debug("on the fly resume for " + fileId + ". retrieving information of server.");
-		return getFileStateJson(staticStateManager.getEntity().getFileStates().get(fileId), true);
+		return getFileStateJson(fileId, staticStateManager.getEntity().getFileStates().get(fileId), true);
 
 	}
 

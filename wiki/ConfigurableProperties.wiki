@@ -65,3 +65,14 @@ _default value is *500*_
 The [Flow#Progress-Poller progress poller] is sending a new request to the server every _x_ amount of milliseconds, _x_ being the value of this variable.
 
 Use [JavaLargeFileUploader#setProgressPollerRefreshRate] to set this value up.
+
+====autoretry====
+
+_default autoretry value is *true*_
+_default autoretry delay is *1000*_
+
+Whenever the connection is lost, the API can try to resume the file upload automatically. 
+
+If the autoretry value is true, it will retry every _x_ milliseconds, _x_ being the delay.
+
+Use [JavaLargeFileUploader#setAutoRetry] to set these values up.
