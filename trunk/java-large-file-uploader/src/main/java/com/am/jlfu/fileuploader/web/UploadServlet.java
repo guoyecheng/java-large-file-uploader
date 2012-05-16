@@ -94,9 +94,6 @@ public class UploadServlet extends HttpRequestHandlerServlet
 			case verifyCrcOfUncheckedPart:
 				returnObject = verifyCrcOfUncheckedPart(request);
 				break;
-			case getCrcOfFirstChunk:
-				returnObject = uploadProcessor.getCRCOfFirstChunk(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
-				break;
 			case prepareUpload:
 				returnObject = prepareUpload(request);
 				break;
@@ -158,7 +155,8 @@ public class UploadServlet extends HttpRequestHandlerServlet
 						.fromJson(fileUploaderHelper.getParameterValue(request, UploadServletParameter.newFiles), PrepareUploadJson[].class);
 		returnObject = Maps.newHashMap();
 		for (PrepareUploadJson prepareUploadJson : fromJson) {
-			String idOfTheFile = uploadProcessor.prepareUpload(prepareUploadJson.getSize(), prepareUploadJson.getFileName());
+			String idOfTheFile =
+					uploadProcessor.prepareUpload(prepareUploadJson.getSize(), prepareUploadJson.getFileName(), prepareUploadJson.getCrc());
 			((HashMap<String, String>) returnObject).put(prepareUploadJson.getTempId().toString(), idOfTheFile);
 		}
 		return returnObject;

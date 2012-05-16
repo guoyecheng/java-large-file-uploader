@@ -149,7 +149,7 @@ public class UploadServletAsyncProcessorTest {
 			throws IOException, IncorrectRequestException, MissingParameterException, FileUploadException, InvalidCrcException, InterruptedException {
 
 		// begin a file upload process
-		String fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName);
+		String fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName, "lala");
 
 		// upload with bad crc
 		TestFileSplitResult splitResult = UploadProcessorTest.getByteArrayFromFile(tinyFile, 0, 3);
@@ -177,7 +177,7 @@ public class UploadServletAsyncProcessorTest {
 		final Semaphore waitForMe = new Semaphore(0);
 
 		// begin a file upload process
-		String fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName);
+		String fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName, "lala");
 		CRCResult bufferedCrc = crcHelper.getBufferedCrc(new ByteArrayInputStream(tinyFileContent.clone()));
 
 		// get progress
@@ -534,7 +534,7 @@ public class UploadServletAsyncProcessorTest {
 		new Random().nextBytes(fileContent);
 
 		// prepare upload
-		String fileId = uploadProcessor.prepareUpload(size, fileName);
+		String fileId = uploadProcessor.prepareUpload(size, fileName, "lala");
 		String absoluteFullPathOfUploadedFile = staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
 
 		// set a 100mb rate

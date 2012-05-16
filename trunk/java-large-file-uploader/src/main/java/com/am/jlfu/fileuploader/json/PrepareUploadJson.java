@@ -14,6 +14,8 @@ public class PrepareUploadJson
 
 	private Long size;
 
+	private String crc;
+
 
 
 	/**
@@ -51,6 +53,16 @@ public class PrepareUploadJson
 
 	public void setSize(Long size) {
 		this.size = size;
+	}
+
+
+	public String getCrc() {
+		return crc;
+	}
+
+
+	public void setCrc(String crc) {
+		this.crc = crc;
 	}
 
 

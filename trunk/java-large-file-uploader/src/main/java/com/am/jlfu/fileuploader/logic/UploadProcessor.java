@@ -1,7 +1,6 @@
 package com.am.jlfu.fileuploader.logic;
 
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -115,7 +114,7 @@ public class UploadProcessor {
 
 				@Override
 				public FileStateJson transformEntry(String fileId, StaticFileState value) {
-					return getFileStateJson(fileId, value, true);
+					return getFileStateJson(fileId, value);
 				}
 			}));
 
@@ -150,7 +149,7 @@ public class UploadProcessor {
 	}
 
 
-	private FileStateJson getFileStateJson(String fileId, StaticFileState value, boolean withCrcOfFirstChunk) {
+	private FileStateJson getFileStateJson(String fileId, StaticFileState value) {
 
 		// wait until pending processing is performed
 		waitUntilProcessingAreFinished(fileId);
@@ -167,15 +166,8 @@ public class UploadProcessor {
 		fileStateJson.setOriginalFileSizeInBytes(staticFileStateJson.getOriginalFileSizeInBytes());
 		fileStateJson.setRateInKiloBytes(staticFileStateJson.getRateInKiloBytes());
 		fileStateJson.setCrcedBytes(staticFileStateJson.getCrcedBytes());
+		fileStateJson.setFirstChunkCrc(staticFileStateJson.getFirstChunkCrc());
 		fileStateJson.setCreationDate(staticFileStateJson.getCreationDate());
-		if (withCrcOfFirstChunk) {
-			try {
-				fileStateJson.setFirstChunkCrc(getCRCOfFirstChunk(file));
-			}
-			catch (IOException e) {
-				log.error("Cannot calculate the first chunk crc of file " + file, e);
-			}
-		}
 		log.debug("returning pending file " + fileStateJson.getOriginalFileName() + " with target size " +
 				fileStateJson.getOriginalFileSizeInBytes() + " out of " + fileSize + " completed which includes " +
 				fileStateJson.getCrcedBytes() + " bytes validated and " + (fileSize - fileStateJson.getCrcedBytes()) + " unvalidated.");
@@ -184,7 +176,7 @@ public class UploadProcessor {
 	}
 
 
-	public String prepareUpload(Long size, String fileName)
+	public String prepareUpload(Long size, String fileName, String crc)
 			throws IOException {
 
 		// retrieve model
@@ -206,6 +198,7 @@ public class UploadProcessor {
 		// add info to the state
 		jsonFileState.setOriginalFileName(fileName);
 		jsonFileState.setOriginalFileSizeInBytes(size);
+		jsonFileState.setFirstChunkCrc(crc);
 		jsonFileState.setCreationDate(new Date());
 
 		// write the state
@@ -361,43 +354,7 @@ public class UploadProcessor {
 		uploadProcessingConfigurationManager.resume(fileId);
 
 		// and return some information about it
-		return getFileStateJson(fileId, staticStateManager.getEntity().getFileStates().get(fileId), false);
-	}
-
-
-	public FileStateJson getCRCOfFirstChunk(String fileId)
-			throws IOException {
-		log.debug("on the fly resume for " + fileId + ". retrieving information of server.");
-		return getFileStateJson(fileId, staticStateManager.getEntity().getFileStates().get(fileId), true);
-
-	}
-
-
-	public CRCResult getCRCOfFirstChunk(File file)
-			throws IOException {
-		log.debug("processing crc validation of first chunk for " + file.getName());
-
-		// if the file does not exist, there is an issue!
-		if (!file.exists()) {
-			throw new FileNotFoundException("File " + file + " not found");
-		}
-
-		// extract from the file input stream to get the crc of the same part:
-		byte[] b = new byte[(int) Math.min(file.length(), SIZE_OF_FIRST_CHUNK_VALIDATION)];
-		FileInputStream fileInputStream = new FileInputStream(file);
-		IOUtils.read(fileInputStream, b);
-		ByteArrayInputStream byteInputStream = new ByteArrayInputStream(b);
-		CRCResult bufferedCrc = crcHelper.getBufferedCrc(byteInputStream);
-		IOUtils.closeQuietly(fileInputStream);
-		IOUtils.closeQuietly(byteInputStream);
-
-		// if the size is under value, show warning
-		if (bufferedCrc.getTotalRead() < SIZE_OF_FIRST_CHUNK_VALIDATION) {
-			log.debug("First chunk was smaller than " + SIZE_OF_FIRST_CHUNK_VALIDATION + " bytes.");
-		}
-
-		// return it
-		return bufferedCrc;
+		return getFileStateJson(fileId, staticStateManager.getEntity().getFileStates().get(fileId));
 	}
 
 
