@@ -525,10 +525,10 @@ function JavaLargeFileUploader() {
 					if (xhr.readyState == 4) {
 		
 						if (xhr.status != 200) {
-							uploadEnd(pendingFile);
 							if (xhr.status == 499) {
 								//paused
 								console.log("The file is paused.");
+								uploadEnd(pendingFile, false);
 							} else {
 								if (pendingFile.exceptionCallback) {
 									pendingFile.exceptionCallback(errorMessages[8], pendingFile.referenceToFileElement, pendingFile);
@@ -537,6 +537,7 @@ function JavaLargeFileUploader() {
 									//submit retry
 									retryRecursive(pendingFile);
 								}
+								uploadEnd(pendingFile, true);
 							}
 							return;
 						}
@@ -551,7 +552,7 @@ function JavaLargeFileUploader() {
 							setTimeout(go, 5, pendingFile);
 						} else {
 							pendingFile.fileComplete=true;
-							uploadEnd(pendingFile);
+							uploadEnd(pendingFile, false);
 							// finish callback
 							if (pendingFile.finishCallback) {
 								pendingFile.finishCallback(pendingFile, pendingFile.referenceToFileElement);
@@ -567,7 +568,7 @@ function JavaLargeFileUploader() {
 						xhr.send(formData);
 					}
 				} catch (e) {
-					uploadEnd(pendingFile);
+					uploadEnd(pendingFile, true);
 					if (pendingFile.exceptionCallback) {
 						pendingFile.exceptionCallback(errorMessages[8], endingFile.referenceToFileElement, pendingFile);
 					}
@@ -586,13 +587,16 @@ function JavaLargeFileUploader() {
 	
 	}
 	
-	function uploadEnd(pendingFile) {
+	function uploadEnd(pendingFile, withException) {
 		
 		//the file is not started anymore
 		pendingFile.started=false;
 		
-		//process the queue
-		processNextInQueue();
+		
+		//process the queue if it was not an exception and if there is no auto retry
+		if (withException === false) {
+			processNextInQueue();
+		}
 	}
 	
 	function processNextInQueue() {
