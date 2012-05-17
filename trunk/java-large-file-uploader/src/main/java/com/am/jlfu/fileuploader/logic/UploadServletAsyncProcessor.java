@@ -127,7 +127,7 @@ public class UploadServletAsyncProcessor {
 		public void success();
 	}
 
-	private class WriteChunkToFileTask
+	public class WriteChunkToFileTask
 			implements Callable<Void> {
 
 
@@ -258,18 +258,6 @@ public class UploadServletAsyncProcessor {
 		}
 
 
-		private int minOf(int... numbers) {
-			int min = -1;
-			if (numbers.length > 0) {
-				min = numbers[0];
-				for (int i = 1; i < numbers.length; i++) {
-					min = Math.min(min, numbers[i]);
-				}
-			}
-			return min;
-		}
-
-
 		public void completeWithError(Exception e) {
 			log.debug("error for " + fileId + ". closing file stream");
 			closeFileStream();
@@ -323,6 +311,18 @@ public class UploadServletAsyncProcessor {
 		StaticStatePersistedOnFileSystemEntity entityIfPresent = staticStateManager.getEntityIfPresent();
 		return entityIfPresent != null && (entityIfPresent.getFileStates().get(fileId) == null ||
 				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId).isPaused());
+	}
+
+
+	public static int minOf(int... numbers) {
+		int min = -1;
+		if (numbers.length > 0) {
+			min = numbers[0];
+			for (int i = 1; i < numbers.length; i++) {
+				min = Math.min(min, numbers[i]);
+			}
+		}
+		return min;
 	}
 
 
