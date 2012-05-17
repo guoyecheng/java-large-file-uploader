@@ -11,6 +11,7 @@ It has to be first initialized using [JavaLargeFileUploader#initialize]  before 
 This object have a few attributes that are configurable, please see [ConfigurableProperties#javascript-attributes].
 
 This object provides the following interaction methods:
+<wiki:toc />
 ----
 ===initialize===
 {{{
