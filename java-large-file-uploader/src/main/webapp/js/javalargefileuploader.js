@@ -105,8 +105,8 @@ function JavaLargeFileUploader() {
 	
 	this.pauseFileUpload = function (fileIdI, callback) {
 		var fileId = fileIdI;
-		if(fileId && pendingFiles[fileId] && pendingFiles[fileId].paused === false) {
-			pendingFiles[fileId].paused = true;
+		if(fileId && pendingFiles[fileId] && isFilePaused(pendingFiles[fileId]) === false  && pendingFiles[fileIdI].resuming === false) {
+			pendingFiles[fileId].pausing = true;
 			$.get(globalServletMapping + "?action=pauseFile&fileId=" + fileId,	function(e) {
 				if (callback) {
 					callback(pendingFiles[fileId]);
@@ -114,10 +114,17 @@ function JavaLargeFileUploader() {
 			});
 		}
 	};
-
+	
+	function isFilePaused(pendingFile) {
+		return pendingFile.paused || pendingFile.pausing;
+	}
+	
 	this.resumeFileUpload = function (fileIdI, callback) {
 		if (fileIdI && pendingFiles[fileIdI]) {
-			resumeFileUploadInternal(pendingFiles[fileIdI], callback);
+			if (pendingFiles[fileIdI].paused === true && pendingFiles[fileIdI].resuming === false) {
+				pendingFiles[fileIdI].resuming = true;
+				resumeFileUploadInternal(pendingFiles[fileIdI], callback);
+			}
 		}
 	};
 	
@@ -145,8 +152,6 @@ function JavaLargeFileUploader() {
 	
 	function resumeFileUploadInternal(pendingFile, callback, retryCallback) {
 		if(pendingFile) {
-			//set as not paused anymore
-			pendingFile.paused = false;
 			//and restart flow
 			$.get(globalServletMapping + "?action=resumeFile&fileId=" + pendingFile.id,	function(data) {
 				if (callback) {
@@ -272,7 +277,7 @@ function JavaLargeFileUploader() {
 					}
 		        	
 		        	//if that file is paused 
-		        	if (pendingFileToCheck.paused) {
+		        	if (isFilePaused(pendingFileToCheck)) {
 		        		//resume it
 		        		resumeFileUploadInternal(pendingFileToCheck);
 		        	}
@@ -323,6 +328,7 @@ function JavaLargeFileUploader() {
 					pendingFile.finishCallback= finishCallback;
 					pendingFile.exceptionCallback= exceptionCallback;
 					pendingFile.paused=false;
+					pendingFile.pausing=false;
 					
 					//put it into the temporary new file array as every file is potentially a new file until it is proven it is not a new file
 					newFiles.push(pendingFile);
@@ -408,13 +414,14 @@ function JavaLargeFileUploader() {
 			    if (e.target.readyState == FileReader.DONE) { // DONE == 2
 					//calculate crc of the chunk read
 			        var digest = crc32(e.target.result);
-			
+
 			        //and send it
 					$.get(globalServletMapping + "?action=verifyCrcOfUncheckedPart&fileId=" + pendingFile.id + "&crc=" + decimalToHexString(digest),	function(data) {
 						//verify stuff!
 						if (data === false) {
 							pendingFile.exceptionCallback(errorMessages[7], pendingFile.referenceToFileElement, pendingFile);
 							
+							console.log("crc verification failed for unchecked chunk, filecompletion is truncated to "+pendingFile.crcedBytes+" (was "+pendingFile.fileCompletionInBytes+")");
 							//and assign the completion to last verified
 							pendingFile.fileCompletionInBytes = pendingFile.crcedBytes;
 
@@ -460,11 +467,17 @@ function JavaLargeFileUploader() {
 			//check if we can process the upload
 			if (canUploadBeProcessed() === true) {
 				
+				
 				// start
 				pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
 				pendingFile.started = true;
 				pendingFile.queued = false;
+				pendingFile.paused = false;
+				pendingFile.pausing = false;
+				pendingFile.resuming = false;
 				
+				console.log("processing "+pendingFile.id+" for slice "+pendingFile.fileCompletionInBytes + " - "+pendingFile.end);
+
 				// then process the recursive function
 				go(pendingFile);
 
@@ -524,6 +537,7 @@ function JavaLargeFileUploader() {
 								//paused
 								console.log("The file is paused.");
 								uploadEnd(pendingFile, false);
+								pendingFile.paused=true;
 							} else {
 								if (pendingFile.exceptionCallback) {
 									pendingFile.exceptionCallback(errorMessages[8], pendingFile.referenceToFileElement, pendingFile);
@@ -623,7 +637,7 @@ function JavaLargeFileUploader() {
 	
 	function uploadIsActive(pendingFile) {
 		//process only if we have this id in the pending files and if the file is incomplete and if the file is not paused and if the file is started!
-		return pendingFiles[pendingFile.id] && !pendingFile.paused && !pendingFile.fileComplete && pendingFile.started;
+		return pendingFiles[pendingFile.id] && !isFilePaused(pendingFile) && !pendingFile.fileComplete && pendingFile.started;
 	}
 	
 	function startProgressPoller() {
