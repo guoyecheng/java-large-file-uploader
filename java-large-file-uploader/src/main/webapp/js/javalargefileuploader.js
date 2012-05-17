@@ -225,19 +225,21 @@ function JavaLargeFileUploader() {
 		reader.onloadend = function(e) {
 			//if the read is complete
 			if (e.target.readyState == FileReader.DONE) { // DONE == 2
-				callback(decimalToHexString(crc32(e.target.result)));
+				callback(decimalToHexString(crc32(e.target.result)), blob);
 			}
 		};
 		reader.readAsBinaryString(slice(blob, 0, end));
 
 	}
 	
+	
+	
 	function processCrcFirstSlice(potentialNewFiles, pendingFileI, pendingFileToCheckI, potentialResumeCounter){
 		
 		// prepare the checksum of the slice
 		var pendingFile = pendingFileI;
 		var pendingFileToCheck = pendingFileToCheckI;
-		extractCrcFirstSlice(pendingFile.blob, function(crc32) {
+		extractCrcFirstSlice(pendingFile.blob, function(crc, blob) {
 			
 	    	//if that pendingfile is still there
 	    	if (potentialNewFiles.indexOf(pendingFile) != -1) {
@@ -246,7 +248,7 @@ function JavaLargeFileUploader() {
 		        //compare it 
 		    	//if it is the correct file
 		    	//proceed
-		        if (crc32 == pendingFileToCheck.firstChunkCrc) {
+		        if (crc == pendingFileToCheck.firstChunkCrc) {
 					
 		        	//remove it from new file ids (as we are now sure it is not a new file)
 		        	potentialNewFiles.splice(potentialNewFiles.indexOf(pendingFile), 1);
@@ -351,8 +353,9 @@ function JavaLargeFileUploader() {
 
 			//extract first chunk crc
 			pendingFile.blob.i = fileForPost.tempId;
-			extractCrcFirstSlice(pendingFile.blob, function(crc) {
-				jsonVersionOfNewFiles[pendingFile.blob.i].crc = crc;
+			extractCrcFirstSlice(pendingFile.blob, function(crc, blob) {
+				jsonVersionOfNewFiles[blob.i].crc = crc;
+				pendingFiles[blob.i].firstChunkCrc=crc;
 				crcsCalculated++;
 				if (crcsCalculated == jsonVersionOfNewFiles.length) {
 					$.getJSON(globalServletMapping + "?action=prepareUpload", {newFiles: JSON.stringify(jsonVersionOfNewFiles)}, function(data) {
@@ -364,7 +367,6 @@ function JavaLargeFileUploader() {
 							fileId = fileIdI;
 							pendingFile = pendingFiles[tempIdI];
 							pendingFile.id = fileId;
-							pendingFile.firstChunkCrc=crc;
 							pendingFile.fileComplete = false;
 							pendingFile.fileCompletionInBytes = 0;
 							pendingFiles[fileId] = pendingFile;
