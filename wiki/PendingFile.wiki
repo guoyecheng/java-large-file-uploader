@@ -1,10 +1,5 @@
 #summary Description of the PendingFile object
 
-The object contains the following information:
-<wiki:toc />
-
-----
-
 ====id====
   (string) : identifier of the pending file upload
 ====fileComplete====
