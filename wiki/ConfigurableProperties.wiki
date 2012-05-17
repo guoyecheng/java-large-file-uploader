@@ -1,5 +1,8 @@
 #summary List of the properties available to tweak the API
 
+These are the different properties that can be configured:
+<wiki:toc />
+
 ==MBean attributes==
 The following java attributes can be modified at runtime:
 
