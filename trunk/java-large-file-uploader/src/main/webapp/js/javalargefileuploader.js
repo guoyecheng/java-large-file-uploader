@@ -22,7 +22,7 @@ function JavaLargeFileUploader() {
 	errorMessages[7] = "Resuming file upload with previous slice as the last part is invalid.";
 	errorMessages[8] = "Error while uploading a slice of the file";
 	errorMessages[9] = "Maximum number of concurrent uploads reached, the upload is queued and waiting for one to finish.";
-	errorMessages[10] = "Connection lost. Retrying ...";
+	errorMessages[10] = "An exception occurred. Retrying ...";
 	errorMessages[11] = "Connection lost. Automatically retrying in a moment.";
 	
 	this.setMaxNumberOfConcurrentUploads = function (maxNumberOfConcurrentUploadsI) {
@@ -548,6 +548,20 @@ function JavaLargeFileUploader() {
 								}
 								uploadEnd(pendingFile, true);
 							}
+							return;
+						}
+						
+						//if we have an exception in the response text
+						if (xhr.response) {
+							var resp = JSON.parse(xhr.response);
+							if (pendingFile.exceptionCallback) {
+								pendingFile.exceptionCallback(errorMessages[resp.value], pendingFile.referenceToFileElement, pendingFile);
+							}
+							if (autoRetry) {
+								//submit retry
+								retryRecursive(pendingFile);
+							}
+							uploadEnd(pendingFile, true);
 							return;
 						}
 		
