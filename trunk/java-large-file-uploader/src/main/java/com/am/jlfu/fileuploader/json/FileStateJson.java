@@ -27,11 +27,6 @@ public class FileStateJson
 	}
 
 
-	public void setFileComplete(Boolean fileComplete) {
-		this.fileComplete = fileComplete;
-	}
-
-
 	public Long getFileCompletionInBytes() {
 		return fileCompletionInBytes;
 	}

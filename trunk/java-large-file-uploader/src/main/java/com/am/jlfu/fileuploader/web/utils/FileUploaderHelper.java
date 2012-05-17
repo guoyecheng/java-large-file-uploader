@@ -13,7 +13,6 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.springframework.stereotype.Component;
 
-import com.am.jlfu.fileuploader.exception.IncorrectRequestException;
 import com.am.jlfu.fileuploader.exception.JavaFileUploaderException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
 import com.am.jlfu.fileuploader.json.SimpleJsonObject;
@@ -34,7 +33,7 @@ public class FileUploaderHelper {
 
 
 	public FileUploadConfiguration extractFileUploadConfiguration(HttpServletRequest request)
-			throws IncorrectRequestException, MissingParameterException, FileUploadException, IOException, JavaFileUploaderException {
+			throws MissingParameterException, FileUploadException, IOException, JavaFileUploaderException {
 		final FileUploadConfiguration fileUploadConfiguration = new FileUploadConfiguration();
 
 		// check if the request is multipart:
