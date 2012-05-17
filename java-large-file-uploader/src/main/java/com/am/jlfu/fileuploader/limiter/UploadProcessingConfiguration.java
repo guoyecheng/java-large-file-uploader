@@ -17,30 +17,10 @@ public class UploadProcessingConfiguration {
 	private Object downloadAllowanceForIterationLock = new Object();
 
 	/**
-	 * Boolean specifying whether that request shall be cancelled (and the relating streams
-	 * closed)<br>
-	 * 
-	 * @see RateLimiterConfigurationManager#markRequestHasShallBeCancelled(String)
-	 * @see UploadProcessingConfigurationManager#requestHasToBeCancelled(String))
-	 * */
-	volatile boolean cancelRequest;
-
-	/**
-	 * The desired upload rate for this request. <br>
-	 * Can be null (the default rate is applied).
+	 * The desired upload rate. <br>
+	 * Can be null (the maxmimum rate is applied).
 	 */
 	volatile Long rateInKiloBytes;
-
-	/**
-	 * Boolean specifying whether the upload is processing or not.
-	 */
-	private volatile boolean isProcessing = false;
-
-	/**
-	 * Boolean specifying whether the upload is paused or not.
-	 */
-	private volatile boolean isPaused = false;
-
 
 	/**
 	 * The statistics.
@@ -53,11 +33,6 @@ public class UploadProcessingConfiguration {
 
 	public Long getRateInKiloBytes() {
 		return rateInKiloBytes;
-	}
-
-
-	public boolean isProcessing() {
-		return isProcessing;
 	}
 
 
@@ -106,21 +81,6 @@ public class UploadProcessingConfiguration {
 
 	long getInstantRateInBytes() {
 		return instantRateInBytes;
-	}
-
-
-	public void setProcessing(boolean isProcessing) {
-		this.isProcessing = isProcessing;
-	}
-
-
-	public boolean isPaused() {
-		return isPaused;
-	}
-
-
-	public void setPaused(boolean isPaused) {
-		this.isPaused = isPaused;
 	}
 
 

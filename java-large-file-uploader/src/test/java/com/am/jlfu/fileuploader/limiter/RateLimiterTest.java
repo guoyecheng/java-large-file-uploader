@@ -16,7 +16,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 
 
-
 @ContextConfiguration(locations = { "classpath:jlfu.test.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
 public class RateLimiterTest {
@@ -31,7 +30,8 @@ public class RateLimiterTest {
 		String id = "an id";
 
 		// init config
-		final UploadProcessingConfiguration uploadProcessingConfiguration = uploadProcessingConfigurationManager.getUploadProcessingConfiguration(id);
+		final RequestUploadProcessingConfiguration uploadProcessingConfiguration =
+				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(id);
 		final long originalDownloadAllowanceForIteration = uploadProcessingConfiguration.getDownloadAllowanceForIteration();
 		uploadProcessingConfigurationManager.assignRateToRequest(id, rate);
 		uploadProcessingConfiguration.setProcessing(true);

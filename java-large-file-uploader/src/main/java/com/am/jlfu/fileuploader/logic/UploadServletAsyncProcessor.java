@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
+import com.am.jlfu.fileuploader.limiter.RequestUploadProcessingConfiguration;
 import com.am.jlfu.fileuploader.limiter.UploadProcessingConfiguration;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
@@ -61,9 +62,17 @@ public class UploadServletAsyncProcessor {
 		// get entity
 		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
 
-		// extract the corresponding entity from map
-		final UploadProcessingConfiguration uploadProcessingConfiguration =
-				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
+		// extract the corresponding request entity from map
+		final RequestUploadProcessingConfiguration requestUploadProcessingConfiguration =
+				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId);
+
+		// extract the corresponding client entity from map
+		final UploadProcessingConfiguration clientUploadProcessingConfiguration =
+				uploadProcessingConfigurationManager.getClientUploadProcessingConfiguration(clientId);
+
+		// get the master processing configuration
+		final UploadProcessingConfiguration masterUploadProcessingConfiguration =
+				uploadProcessingConfigurationManager.getMasterProcessingConfiguration();
 
 		// get static file state
 		StaticFileState fileState = model.getFileStates().get(fileId);
@@ -73,7 +82,7 @@ public class UploadServletAsyncProcessor {
 		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
 
 		// if there is no configuration in the map
-		if (uploadProcessingConfiguration.getRateInKiloBytes() == null) {
+		if (requestUploadProcessingConfiguration.getRateInKiloBytes() == null) {
 
 			// and if there is a specific configuration in th file
 			FileStateJsonBase staticFileStateJson = fileState.getStaticFileStateJson();
@@ -96,10 +105,12 @@ public class UploadServletAsyncProcessor {
 
 		// init the task
 		final WriteChunkToFileTask task =
-				new WriteChunkToFileTask(fileId, uploadProcessingConfiguration, crc, inputStream, outputStream, completionListener, clientId);
+				new WriteChunkToFileTask(fileId, requestUploadProcessingConfiguration, clientUploadProcessingConfiguration,
+						masterUploadProcessingConfiguration, crc, inputStream,
+						outputStream, completionListener, clientId);
 
 		// mark the file as processing
-		uploadProcessingConfiguration.setProcessing(true);
+		requestUploadProcessingConfiguration.setProcessing(true);
 
 		// then submit the task to the workers pool
 		uploadWorkersPool.submit(task);
@@ -128,18 +139,24 @@ public class UploadServletAsyncProcessor {
 
 		private final WriteChunkCompletionListener completionListener;
 
-		private UploadProcessingConfiguration uploadProcessingConfiguration;
+		private RequestUploadProcessingConfiguration requestUploadProcessingConfiguration;
+		private UploadProcessingConfiguration clientUploadProcessingConfiguration;
+		private UploadProcessingConfiguration masterUploadProcessingConfiguration;
 
 		private CRC32 crc32 = new CRC32();
 		private long byteProcessed;
 
 
 
-		public WriteChunkToFileTask(String fileId, UploadProcessingConfiguration uploadProcessingConfiguration, String crc,
+		public WriteChunkToFileTask(String fileId, RequestUploadProcessingConfiguration requestUploadProcessingConfiguration,
+				UploadProcessingConfiguration clientUploadProcessingConfiguration, UploadProcessingConfiguration masterUploadProcessingConfiguration,
+				String crc,
 				InputStream inputStream,
 				FileOutputStream outputStream, WriteChunkCompletionListener completionListener, String clientId) {
 			this.fileId = fileId;
-			this.uploadProcessingConfiguration = uploadProcessingConfiguration;
+			this.requestUploadProcessingConfiguration = requestUploadProcessingConfiguration;
+			this.clientUploadProcessingConfiguration = clientUploadProcessingConfiguration;
+			this.masterUploadProcessingConfiguration = masterUploadProcessingConfiguration;
 			this.crc = crc;
 			this.inputStream = inputStream;
 			this.outputStream = outputStream;
@@ -153,8 +170,9 @@ public class UploadServletAsyncProcessor {
 				throws Exception {
 			try {
 				// if we have not exceeded our byte to write allowance
-				if (uploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0 &&
-						uploadProcessingConfigurationManager.getMasterProcessingConfiguration().getDownloadAllowanceForIteration() > 0) {
+				if (requestUploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0 &&
+						clientUploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0 &&
+						masterUploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0) {
 					// process
 					write();
 				}
@@ -183,8 +201,12 @@ public class UploadServletAsyncProcessor {
 			}
 
 			// define the size of what we read
-			int min = Math.min((int) uploadProcessingConfiguration.getDownloadAllowanceForIteration(), SIZE_OF_THE_BUFFER_IN_BYTES);
-			min = (int) Math.min(uploadProcessingConfigurationManager.getMasterProcessingConfiguration().getDownloadAllowanceForIteration(), min);
+			int min =
+					minOf(
+							(int) requestUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
+							(int) clientUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
+							(int) masterUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
+							SIZE_OF_THE_BUFFER_IN_BYTES);
 			byte[] buffer = new byte[min];
 
 			// read from stream
@@ -202,11 +224,14 @@ public class UploadServletAsyncProcessor {
 				// and update crc32
 				crc32.update(buffer, 0, bytesCount);
 
-				// and update allowance
-				uploadProcessingConfiguration.bytesConsumedFromAllowance(bytesCount);
+				// and update request allowance
+				requestUploadProcessingConfiguration.bytesConsumedFromAllowance(bytesCount);
+
+				// and update client allowance
+				clientUploadProcessingConfiguration.bytesConsumedFromAllowance(bytesCount);
 
 				// also update master allowance
-				uploadProcessingConfigurationManager.getMasterProcessingConfiguration().bytesConsumedFromAllowance(bytesCount);
+				masterUploadProcessingConfiguration.bytesConsumedFromAllowance(bytesCount);
 
 				// submit again
 				uploadWorkersPool.submit(this);
@@ -230,6 +255,18 @@ public class UploadServletAsyncProcessor {
 				// and specify as complete
 				success();
 			}
+		}
+
+
+		private int minOf(int... numbers) {
+			int min = -1;
+			if (numbers.length > 0) {
+				min = numbers[0];
+				for (int i = 1; i < numbers.length; i++) {
+					min = Math.min(min, numbers[i]);
+				}
+			}
+			return min;
 		}
 
 
@@ -285,7 +322,7 @@ public class UploadServletAsyncProcessor {
 	public boolean isPausedOrCancelled(String fileId) {
 		StaticStatePersistedOnFileSystemEntity entityIfPresent = staticStateManager.getEntityIfPresent();
 		return entityIfPresent != null && (entityIfPresent.getFileStates().get(fileId) == null ||
-				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).isPaused());
+				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId).isPaused());
 	}
 
 

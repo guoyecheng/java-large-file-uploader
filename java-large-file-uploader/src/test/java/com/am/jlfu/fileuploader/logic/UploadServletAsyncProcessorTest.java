@@ -537,8 +537,8 @@ public class UploadServletAsyncProcessorTest {
 		String absoluteFullPathOfUploadedFile = staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
 
 		// set a 100mb rate
+		rateLimiterConfigurationManager.setMaximumRatePerClientInKiloBytes(100 * 1024);
 		rateLimiterConfigurationManager.setMaximumOverAllRateInKiloBytes(100 * 1024);
-		uploadProcessor.setUploadRate(fileId, 100 * 1024l);
 
 		// for all the slices that we need to send
 		long numberOfSlices = size / UploadProcessor.sliceSizeInBytes;
