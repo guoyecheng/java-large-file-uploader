@@ -106,12 +106,17 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 							// handles a stream ended unexpectedly , it just means the user has
 							// stopped the
 							// stream
-							if (exception.getMessage().equals("Stream ended unexpectedly")) {
-								log.warn("User has stopped streaming for file " + process.getFileId());
-							}
-							else if (exception.getMessage().equals("User cancellation")) {
-								log.warn("User has cancelled streaming for file id " + process.getFileId());
-								// do nothing
+							if (exception.getMessage() != null) {
+								if (exception.getMessage().equals("Stream ended unexpectedly")) {
+									log.warn("User has stopped streaming for file " + process.getFileId());
+								}
+								else if (exception.getMessage().equals("User cancellation")) {
+									log.warn("User has cancelled streaming for file id " + process.getFileId());
+									// do nothing
+								}
+								else {
+									exceptionCodeMappingHelper.processException(exception, response);
+								}
 							}
 							else {
 								exceptionCodeMappingHelper.processException(exception, response);
