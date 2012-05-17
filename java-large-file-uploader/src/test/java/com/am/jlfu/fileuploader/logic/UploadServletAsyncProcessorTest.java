@@ -31,7 +31,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.am.jlfu.fileuploader.exception.IncorrectRequestException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
 import com.am.jlfu.fileuploader.json.CRCResult;
@@ -146,7 +145,7 @@ public class UploadServletAsyncProcessorTest {
 
 	@Test
 	public void testInvalidCrc()
-			throws IOException, IncorrectRequestException, MissingParameterException, FileUploadException, InvalidCrcException, InterruptedException {
+			throws IOException, MissingParameterException, FileUploadException, InvalidCrcException, InterruptedException {
 
 		// begin a file upload process
 		String fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName, "lala");
@@ -171,7 +170,7 @@ public class UploadServletAsyncProcessorTest {
 
 	@Test
 	public void testClassicGranular()
-			throws ServletException, IOException, InvalidCrcException, IncorrectRequestException, MissingParameterException, FileUploadException,
+			throws ServletException, IOException, InvalidCrcException, MissingParameterException, FileUploadException,
 			InterruptedException {
 		TestFileSplitResult splitResult;
 		final Semaphore waitForMe = new Semaphore(0);
