@@ -26,7 +26,7 @@ import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
-import com.am.jlfu.fileuploader.limiter.UploadProcessingConfiguration;
+import com.am.jlfu.fileuploader.limiter.RequestUploadProcessingConfiguration;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
 import com.am.jlfu.fileuploader.utils.ConditionProvider;
 import com.am.jlfu.fileuploader.utils.GeneralUtils;
@@ -120,7 +120,7 @@ public class UploadProcessor {
 
 			// reset paused attribute
 			for (String fileId : sortedMap.keySet()) {
-				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).setPaused(false);
+				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId).setPaused(false);
 			}
 		}
 
@@ -132,8 +132,8 @@ public class UploadProcessor {
 
 
 	private void waitUntilProcessingAreFinished(String fileId) {
-		final UploadProcessingConfiguration uploadProcessingConfiguration =
-				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
+		final RequestUploadProcessingConfiguration uploadProcessingConfiguration =
+				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId);
 		generalUtils.waitForConditionToCompleteRunnable(1000, new ConditionProvider() {
 
 			@Override

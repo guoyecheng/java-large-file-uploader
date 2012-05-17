@@ -23,14 +23,27 @@ public class RateLimiterConfigurationManager {
 
 	private static final Logger log = LoggerFactory.getLogger(RateLimiterConfigurationManager.class);
 
-	final LoadingCache<String, UploadProcessingConfiguration> requestConfigMap = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES)
+
+	final LoadingCache<String, UploadProcessingConfiguration> clientConfigMap = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES)
 			.build(new CacheLoader<String, UploadProcessingConfiguration>() {
 
 				@Override
 				public UploadProcessingConfiguration load(String arg0)
 						throws Exception {
-					log.trace("Created new bucket for #{}", arg0);
+					log.trace("Created new bucket for client with id #{}", arg0);
 					return new UploadProcessingConfiguration();
+				}
+			});
+
+	final LoadingCache<String, RequestUploadProcessingConfiguration> requestConfigMap = CacheBuilder.newBuilder()
+			.expireAfterAccess(10, TimeUnit.MINUTES)
+			.build(new CacheLoader<String, RequestUploadProcessingConfiguration>() {
+
+				@Override
+				public RequestUploadProcessingConfiguration load(String arg0)
+						throws Exception {
+					log.trace("Created new bucket for request with id #{}", arg0);
+					return new RequestUploadProcessingConfiguration();
 				}
 			});
 
@@ -39,13 +52,6 @@ public class RateLimiterConfigurationManager {
 	// ///////////////
 	// Configuration//
 	// ///////////////
-
-	/** The default request capacity. volatile because it can be changed. */
-	// 1mb/s
-	private volatile long defaultRatePerRequestInKiloBytes = 1024;
-
-	// 10mb/s
-	private volatile long defaultRatePerClientInKiloBytes = 10 * 1024;
 
 	// 10mb/s
 	private volatile long maximumRatePerClientInKiloBytes = 10 * 1024;
@@ -65,10 +71,10 @@ public class RateLimiterConfigurationManager {
 	 * @return true if there was a pending upload for this file.
 	 */
 	public boolean markRequestHasShallBeCancelled(String fileId) {
-		UploadProcessingConfiguration ifPresent = requestConfigMap.getIfPresent(fileId);
+		RequestUploadProcessingConfiguration ifPresent = requestConfigMap.getIfPresent(fileId);
 		// if we have a value in the map
 		if (ifPresent != null) {
-			UploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
+			RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
 			// and if this file is currently being processed
 			if (unchecked.isProcessing()) {
 				// we ask for cancellation
@@ -86,24 +92,29 @@ public class RateLimiterConfigurationManager {
 
 
 	public boolean requestIsReset(String fileId) {
-		UploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
+		RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
 		return unchecked.cancelRequest && !unchecked.isProcessing();
 	}
 
 
 	public boolean requestHasToBeCancelled(String fileId) {
-		UploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
+		RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
 		return unchecked.cancelRequest;
 	}
 
 
-	public Set<Entry<String, UploadProcessingConfiguration>> getEntries() {
+	public Set<Entry<String, UploadProcessingConfiguration>> getClientEntries() {
+		return clientConfigMap.asMap().entrySet();
+	}
+
+
+	public Set<Entry<String, RequestUploadProcessingConfiguration>> getRequestEntries() {
 		return requestConfigMap.asMap().entrySet();
 	}
 
 
 	public void reset(String fileId) {
-		final UploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
+		final RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
 		unchecked.cancelRequest = false;
 		unchecked.setProcessing(false);
 	}
@@ -124,8 +135,13 @@ public class RateLimiterConfigurationManager {
 	}
 
 
-	public UploadProcessingConfiguration getUploadProcessingConfiguration(String fileId) {
+	public RequestUploadProcessingConfiguration getRequestUploadProcessingConfiguration(String fileId) {
 		return requestConfigMap.getUnchecked(fileId);
+	}
+
+
+	public UploadProcessingConfiguration getClientUploadProcessingConfiguration(String clientId) {
+		return clientConfigMap.getUnchecked(clientId);
 	}
 
 
@@ -136,30 +152,6 @@ public class RateLimiterConfigurationManager {
 
 	public void resume(String fileId) {
 		requestConfigMap.getUnchecked(fileId).setPaused(false);
-	}
-
-
-	@ManagedAttribute
-	public long getDefaultRatePerRequestInKiloBytes() {
-		return defaultRatePerRequestInKiloBytes;
-	}
-
-
-	@ManagedAttribute
-	public void setDefaultRatePerRequestInKiloBytes(long defaultRatePerRequestInKiloBytes) {
-		this.defaultRatePerRequestInKiloBytes = defaultRatePerRequestInKiloBytes;
-	}
-
-
-	@ManagedAttribute
-	public long getDefaultRatePerClientInKiloBytes() {
-		return defaultRatePerClientInKiloBytes;
-	}
-
-
-	@ManagedAttribute
-	public void setDefaultRatePerClientInKiloBytes(long defaultRatePerClientInKiloBytes) {
-		this.defaultRatePerClientInKiloBytes = defaultRatePerClientInKiloBytes;
 	}
 
 
