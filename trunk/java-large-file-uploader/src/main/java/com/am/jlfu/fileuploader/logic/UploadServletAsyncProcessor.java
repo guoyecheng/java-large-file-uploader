@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jmx.export.annotation.ManagedAttribute;
+import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
@@ -30,6 +31,7 @@ import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 
 
 @Component
+@ManagedResource(objectName = "JavaLargeFileUploader:name=uploadServletAsyncProcessor")
 public class UploadServletAsyncProcessor {
 
 	/** The size of the buffer in bytes */
@@ -47,7 +49,7 @@ public class UploadServletAsyncProcessor {
 	private StaticStateIdentifierManager staticStateIdentifierManager;
 
 	/** The executor that writes the file */
-	private ThreadPoolExecutor uploadWorkersPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+	private ThreadPoolExecutor uploadWorkersPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(5);
 
 
 
@@ -169,12 +171,18 @@ public class UploadServletAsyncProcessor {
 		public Void call()
 				throws Exception {
 			try {
+				// get allowance
+				int available =
+						minOf(
+								(int) requestUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
+								(int) clientUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
+								(int) masterUploadProcessingConfiguration.getDownloadAllowanceForIteration()
+						);
+
 				// if we have not exceeded our byte to write allowance
-				if (requestUploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0 &&
-						clientUploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0 &&
-						masterUploadProcessingConfiguration.getDownloadAllowanceForIteration() > 0) {
+				if (available > 0) {
 					// process
-					write();
+					write(available);
 				}
 				// if we cant
 				else {
@@ -190,7 +198,7 @@ public class UploadServletAsyncProcessor {
 		}
 
 
-		private void write()
+		private void write(int available)
 				throws IOException {
 
 			// check if user wants to cancel
@@ -201,12 +209,7 @@ public class UploadServletAsyncProcessor {
 			}
 
 			// define the size of what we read
-			int min =
-					minOf(
-							(int) requestUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
-							(int) clientUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
-							(int) masterUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
-							SIZE_OF_THE_BUFFER_IN_BYTES);
+			int min = Math.min(available, SIZE_OF_THE_BUFFER_IN_BYTES);
 			byte[] buffer = new byte[min];
 
 			// read from stream
