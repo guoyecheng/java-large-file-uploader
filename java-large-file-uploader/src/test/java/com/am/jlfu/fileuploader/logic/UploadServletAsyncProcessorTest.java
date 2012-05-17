@@ -2,11 +2,13 @@ package com.am.jlfu.fileuploader.logic;
 
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.lessThan;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
@@ -49,7 +51,7 @@ import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 public class UploadServletAsyncProcessorTest {
 
 	private static final Logger log = LoggerFactory.getLogger(UploadServletAsyncProcessorTest.class);
-	public static final int WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS = 1000;
+	public static final int WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS = 2000;
 
 	@Autowired
 	RateLimiterConfigurationManager rateLimiterConfigurationManager;
@@ -98,21 +100,12 @@ public class UploadServletAsyncProcessorTest {
 	private class Listener
 			implements WriteChunkCompletionListener {
 
-		private Semaphore waitForMe;
 		private boolean releaseOnSuccess;
 		private Exception e;
 
 
 
-		public Listener(Semaphore waitForMe, boolean shallSucceed, Exception e) {
-			this.waitForMe = waitForMe;
-			this.releaseOnSuccess = shallSucceed;
-			this.e = e;
-		}
-
-
-		public Listener(Semaphore waitForMe, boolean shallSucceed) {
-			this.waitForMe = waitForMe;
+		public Listener(boolean shallSucceed) {
 			this.releaseOnSuccess = shallSucceed;
 		}
 
@@ -123,19 +116,22 @@ public class UploadServletAsyncProcessorTest {
 			if (releaseOnSuccess) {
 				Assert.fail();
 			}
-			else {
-				waitForMe.release();
-			}
+			release();
 		}
 
 
 		@Override
 		public void success() {
-			if (releaseOnSuccess) {
-				waitForMe.release();
-			}
-			else {
+			if (!releaseOnSuccess) {
 				Assert.fail();
+			}
+			release();
+		}
+
+
+		void release() {
+			synchronized (Listener.this) {
+				Listener.this.notifyAll();
 			}
 		}
 
@@ -152,19 +148,17 @@ public class UploadServletAsyncProcessorTest {
 
 		// upload with bad crc
 		TestFileSplitResult splitResult = UploadProcessorTest.getByteArrayFromFile(tinyFile, 0, 3);
-		final Semaphore semaphore = new Semaphore(0);
-		uploadServletAsyncProcessor.process(fileId, "lala", splitResult.stream, new Listener(semaphore, false) {
+		splitResult.crc = "lala";
 
-			@Override
-			public void error(Exception exception) {
-				Assert.assertTrue(exception instanceof InvalidCrcException);
-				semaphore.release();
-			}
+		processWaitForCompletionAndCheck(fileId, splitResult, InvalidCrcException.class);
+	}
 
 
-		});
-
-		Assert.assertTrue(semaphore.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
+	private void waitForListener(Listener completionListener)
+			throws InterruptedException {
+		synchronized (completionListener) {
+			completionListener.wait(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS);
+		}
 	}
 
 
@@ -173,7 +167,6 @@ public class UploadServletAsyncProcessorTest {
 			throws ServletException, IOException, InvalidCrcException, MissingParameterException, FileUploadException,
 			InterruptedException {
 		TestFileSplitResult splitResult;
-		final Semaphore waitForMe = new Semaphore(0);
 
 		// begin a file upload process
 		String fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName, "lala");
@@ -184,30 +177,21 @@ public class UploadServletAsyncProcessorTest {
 
 		// upload first part
 		splitResult = UploadProcessorTest.getByteArrayFromFile(tinyFile, 0, 3);
-		uploadServletAsyncProcessor.process(fileId, splitResult.crc, splitResult.stream, new Listener(waitForMe, true));
-
-		// wait until processing is done
-		Assert.assertTrue(waitForMe.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
+		processWaitForCompletionAndCheck(fileId, splitResult);
 
 		// get progress
 		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(3 * 100 / tinyFileSize.intValue()));
 
 		// upload second part
 		splitResult = UploadProcessorTest.getByteArrayFromFile(tinyFile, 3, 5);
-		uploadServletAsyncProcessor.process(fileId, splitResult.crc, splitResult.stream, new Listener(waitForMe, true));
-
-		// wait until processing is done
-		Assert.assertTrue(waitForMe.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
+		processWaitForCompletionAndCheck(fileId, splitResult);
 
 		// get progress
 		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(Math.round(5f / tinyFileSize.floatValue() * 100f)));
 
 		// upload last part
 		splitResult = UploadProcessorTest.getByteArrayFromFile(tinyFile, 5, tinyFileSize.intValue());
-		uploadServletAsyncProcessor.process(fileId, splitResult.crc, splitResult.stream, new Listener(waitForMe, true));
-
-		// wait until processing is done
-		Assert.assertTrue(waitForMe.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
+		processWaitForCompletionAndCheck(fileId, splitResult);
 
 		// get progress
 		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(100));
@@ -277,12 +261,7 @@ public class UploadServletAsyncProcessorTest {
 				}
 
 				// and process
-				Semaphore wait = new Semaphore(0);
-				Exception e = null;
-				uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(wait, true, e));
-
-				// we shall have a timeout here:
-				Assert.assertFalse(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
+				processWaitForCompletionAndCheck(fileId, byteArrayFromFile, Exception.class);
 
 				// assert that the validated crc is of the size of the slices that were successfull
 				Long crcedBytesBeforeVerification =
@@ -340,24 +319,17 @@ public class UploadServletAsyncProcessorTest {
 
 
 				// process it
-				wait = new Semaphore(0);
-				uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(wait, true, e));
-				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
+				processWaitForCompletionAndCheck(fileId, byteArrayFromFile);
 
 			}
 			// otherwise process normally
 			else {
 
 				// process it
-				Semaphore wait = new Semaphore(0);
-				Exception e = null;
-				uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(wait, true, e));
-
-				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
+				processWaitForCompletionAndCheck(fileId, byteArrayFromFile);
 			}
 
 		}
-
 	}
 
 
@@ -422,12 +394,8 @@ public class UploadServletAsyncProcessorTest {
 								UploadProcessor.sliceSizeInBytes);
 
 				// process it
-				Semaphore wait = new Semaphore(0);
-				Exception e = null;
-				uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(wait, true, e));
+				processWaitForCompletionAndCheck(fileId, byteArrayFromFile);
 
-				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit
-						.SECONDS));
 
 			}
 		});
@@ -477,12 +445,7 @@ public class UploadServletAsyncProcessorTest {
 
 				}
 
-				// process it normally
-				Semaphore wait = new Semaphore(0);
-				uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, new Listener(wait, true));
-
-				// and wait for it
-				Assert.assertTrue(wait.tryAcquire(WAIT_THAT_TIME_FOR_LOCKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS));
+				processWaitForCompletionAndCheck(fileId, byteArrayFromFile);
 
 			}
 		});
@@ -561,6 +524,26 @@ public class UploadServletAsyncProcessorTest {
 		// assert the same
 		Assert.assertThat(valueCopied, is(valueSource));
 
+	}
+
+
+	private void processWaitForCompletionAndCheck(String fileId, TestFileSplitResult byteArrayFromFile)
+			throws FileNotFoundException, InterruptedException {
+		processWaitForCompletionAndCheck(fileId, byteArrayFromFile, null);
+	}
+
+
+	private void processWaitForCompletionAndCheck(String fileId, TestFileSplitResult byteArrayFromFile, Class<? extends Exception> expectedException)
+			throws FileNotFoundException, InterruptedException {
+		Listener completionListener = new Listener(expectedException == null);
+		uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, completionListener);
+		waitForListener(completionListener);
+		if (expectedException == null) {
+			Assert.assertThat(completionListener.e, nullValue());
+		}
+		else {
+			Assert.assertTrue(expectedException.isInstance(completionListener.e));
+		}
 	}
 
 
