@@ -182,7 +182,10 @@ public class UploadServletAsyncProcessor {
 						(masterAllowance = masterUploadProcessingConfiguration.getDownloadAllowanceForIteration()) > 0) {
 
 					// keep first time
-					completionTimeTakenReference = new Date().getTime();
+					if (completionTimeTakenReference == 0) {
+						completionTimeTakenReference = new Date().getTime();
+						log.trace("first write " + completionTimeTakenReference);
+					}
 
 					// process
 					write(minOf(
@@ -192,9 +195,18 @@ public class UploadServletAsyncProcessor {
 				}
 				// if have exceeded it
 				else {
-					final long delay = RateLimiter.BUCKET_FILLED_EVERY_X_MILLISECONDS -
-							(new Date().getTime() - completionTimeTakenReference);
-					log.trace("waiting for allowance, fillbucket is expected in " + delay);
+					// by default, wait for default value
+					long delay = RateLimiter.BUCKET_FILLED_EVERY_X_MILLISECONDS;
+					// if we have a first write time
+					if (completionTimeTakenReference != 0) {
+						final long time = new Date().getTime();
+						final long lastWriteWasAgo = new Date().getTime() - completionTimeTakenReference;
+						delay = RateLimiter.BUCKET_FILLED_EVERY_X_MILLISECONDS - lastWriteWasAgo;
+						log.trace("waiting for allowance, fillbucket is expected in " + delay + "(last write was " + lastWriteWasAgo + " ago (" +
+								time +
+								" - " + completionTimeTakenReference + "))");
+						completionTimeTakenReference = 0;
+					}
 					// resubmit it
 					// calculate the delay which is basically the iteration time minus the time it
 					// took to use our allowance in this iteration, so that we go directly to the
