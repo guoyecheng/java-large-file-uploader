@@ -68,3 +68,13 @@ Whenever the connection is lost, the API can try to resume the file upload autom
 If the autoretry value is true, it will retry every _x_ milliseconds, _x_ being the delay.
 
 Use [JavaLargeFileUploader#setAutoRetry] to set these values up.
+
+====javaLargeFileUploaderHost====
+
+_default value is *empty* (same host than the server hosting the resource)_
+
+If your javascript resources are hosted on a different machine, you can specify the server handling the calls with this value.
+
+Watch out for same origin policy !
+
+Use [JavaLargeFileUploader#setJavaLargeFileUploaderHost] to set this value.
