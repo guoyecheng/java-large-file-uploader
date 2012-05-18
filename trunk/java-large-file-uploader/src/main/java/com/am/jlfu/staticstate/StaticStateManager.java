@@ -9,7 +9,6 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -60,9 +59,6 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 	/** The executor that could write stuff asynchronously into the static state */
 	private ThreadPoolExecutor fileStateUpdaterExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-
-	/** The executor that deletes files asynchronously */
-	private ScheduledThreadPoolExecutor fileAsynchronousDeleterExecutor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
 
 
 
