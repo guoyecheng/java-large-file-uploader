@@ -87,6 +87,7 @@ public class ExceptionCodeMappingHelper {
 		// write exception to response
 		if (exceptionCodeMappingByType != null) {
 			try {
+				log.error("managed error " + exceptionCodeMappingByType.getExceptionIdentifier() + ": " + e.getMessage());
 				fileUploaderHelper.writeExceptionToResponse(new JavaFileUploaderException(exceptionCodeMappingByType), response);
 			}
 			catch (IOException ee) {
