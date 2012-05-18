@@ -536,7 +536,8 @@ public class UploadServletAsyncProcessorTest {
 	private void processWaitForCompletionAndCheck(String fileId, TestFileSplitResult byteArrayFromFile, Class<? extends Exception> expectedException)
 			throws FileNotFoundException, InterruptedException {
 		Listener completionListener = new Listener(expectedException == null);
-		uploadServletAsyncProcessor.process(fileId, byteArrayFromFile.crc, byteArrayFromFile.stream, completionListener);
+		uploadServletAsyncProcessor.process(staticStateManager.getEntity().getFileStates().get(fileId), fileId, byteArrayFromFile.crc,
+				byteArrayFromFile.stream, completionListener);
 		waitForListener(completionListener);
 		if (expectedException == null) {
 			Assert.assertThat(completionListener.e, nullValue());

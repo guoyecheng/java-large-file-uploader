@@ -93,8 +93,20 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 */
 	private T createOrRestore(String uuid)
 			throws IOException {
+
 		// restore cache from file:
 		File uuidFileParent = staticStateDirectoryManager.getUUIDFileParent();
+
+		// if that file is scheduled for deletion, we do not restore it
+		if (fileDeleter.deletionQueueContains(uuidFileParent)) {
+			log.debug("trying to restore from state a file that is scheduled for deletion");
+			// invalidate identifier
+			staticStateIdentifierManager.clearIdentifier();
+			// get a new one
+			// and recreate file
+			uuidFileParent = staticStateDirectoryManager.getUUIDFileParent();
+		}
+
 		File uuidFile = new File(uuidFileParent, FILENAME);
 		T entity = null;
 
@@ -299,7 +311,10 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 */
 	public void setCrcBytesValidated(final String clientId, String fileId, final long validated) {
 
-		final T entity = cache.getUnchecked(clientId);
+		final T entity = cache.getIfPresent(clientId);
+		if (entity == null) {
+			return;
+		}
 		final StaticFileState staticFileState = entity.getFileStates().get(fileId);
 		Long crcredBytes = staticFileState.getStaticFileStateJson().getCrcedBytes();
 		staticFileState.getStaticFileStateJson().setCrcedBytes(

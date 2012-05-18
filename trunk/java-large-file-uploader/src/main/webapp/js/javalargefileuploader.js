@@ -81,6 +81,9 @@ function JavaLargeFileUploader() {
 	};
 	
 	this.clearFileUpload = function (callback) {
+		$.each(pendingFiles, function(key, pendingFile) {
+			pendingFile.cancelled = true;
+		});
 		pendingFiles = new Object();
 		$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=clearAll", function(e) {
 			if (callback) {
@@ -98,6 +101,7 @@ function JavaLargeFileUploader() {
 	this.cancelFileUpload = function (fileIdI, callback) {
 		var fileId = fileIdI;
 		if(fileId && pendingFiles[fileId]) {
+			pendingFiles[fileId].cancelled = true;
 			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=clearFile&fileId=" + fileId,	function(e) {
 				if (callback) {
 					callback(fileId);
@@ -538,6 +542,9 @@ function JavaLargeFileUploader() {
 					if (xhr.readyState == 4) {
 		
 						if (xhr.status != 200) {
+							if (pendingFile.cancelled === true) {
+								return;
+							}
 							if (xhr.status == 499) {
 								//paused
 								console.log("The file is paused.");

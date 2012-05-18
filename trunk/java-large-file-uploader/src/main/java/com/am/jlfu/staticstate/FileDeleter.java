@@ -150,4 +150,17 @@ public class FileDeleter
 		}
 	}
 
+
+	/**
+	 * Returns true if the specified file is scheduled for deletion
+	 * 
+	 * @param file
+	 * @return
+	 */
+	public boolean deletionQueueContains(File file) {
+		synchronized (this.files) {
+			return files.contains(file);
+		}
+	}
+
 }
