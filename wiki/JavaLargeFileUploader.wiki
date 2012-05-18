@@ -233,3 +233,18 @@ Example:
 {{{
 jlfu.setAutoRetry(true, 5000);
 }}} 
+----
+===setJavaLargeFileUploaderHost===
+{{{
+jlfu.setJavaLargeFileUploaderHost(javaLargeFileUploaderHost);
+}}}
+Specifies the full url of the application hosting the servlet handlers.
+  * javaLargeFileUploaderHost(string) :
+  host url
+  
+Please see [ConfigurableProperties#javaLargeFileUploaderHost].
+
+Example: 
+{{{
+jlfu.setJavaLargeFileUploaderHost(http://localhost:8888/demo/);
+}}} 
