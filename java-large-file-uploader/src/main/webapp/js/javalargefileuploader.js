@@ -7,6 +7,7 @@ function JavaLargeFileUploader() {
 	var pendingFiles = new Object();
 	var bytesPerChunk;
 
+	javaLargeFileUploaderHost = "";
 	progressPollerRefreshRate = 1000;
 	maxNumberOfConcurrentUploads = 5; 
 	autoRetry = true; 
@@ -24,6 +25,10 @@ function JavaLargeFileUploader() {
 	errorMessages[9] = "Maximum number of concurrent uploads reached, the upload is queued and waiting for one to finish.";
 	errorMessages[10] = "An exception occurred. Retrying ...";
 	errorMessages[11] = "Connection lost. Automatically retrying in a moment.";
+	
+	this.setJavaLargeFileUploaderHost = function (javaLargeFileUploaderHostI) {
+		javaLargeFileUploaderHost = javaLargeFileUploaderHostI;
+	};
 	
 	this.setMaxNumberOfConcurrentUploads = function (maxNumberOfConcurrentUploadsI) {
 		maxNumberOfConcurrentUploads = maxNumberOfConcurrentUploadsI;
@@ -45,7 +50,7 @@ function JavaLargeFileUploader() {
 	this.initialize = function (initializationCallback, exceptionCallback) {
 		
 		// get the configuration
-		$.get(globalServletMapping + "?action=getConfig", function(data) {
+		$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=getConfig", function(data) {
 			if (data) {
 				bytesPerChunk = data.inByte;
 	
@@ -77,7 +82,7 @@ function JavaLargeFileUploader() {
 	
 	this.clearFileUpload = function (callback) {
 		pendingFiles = new Object();
-		$.get(globalServletMapping + "?action=clearAll", function(e) {
+		$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=clearAll", function(e) {
 			if (callback) {
 				callback();
 			}
@@ -86,14 +91,14 @@ function JavaLargeFileUploader() {
 	
 	this.setRateInKiloBytes = function (fileId, rate) {
 		if(fileId && rate)  {
-			$.get(globalServletMapping + "?action=setRate&rate="+rate+"&fileId="+fileId);
+			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=setRate&rate="+rate+"&fileId="+fileId);
 		}
 	};
 	
 	this.cancelFileUpload = function (fileIdI, callback) {
 		var fileId = fileIdI;
 		if(fileId && pendingFiles[fileId]) {
-			$.get(globalServletMapping + "?action=clearFile&fileId=" + fileId,	function(e) {
+			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=clearFile&fileId=" + fileId,	function(e) {
 				if (callback) {
 					callback(fileId);
 				}
@@ -107,7 +112,7 @@ function JavaLargeFileUploader() {
 		var fileId = fileIdI;
 		if(fileId && pendingFiles[fileId] && isFilePaused(pendingFiles[fileId]) === false  && pendingFiles[fileIdI].resuming === false) {
 			pendingFiles[fileId].pausing = true;
-			$.get(globalServletMapping + "?action=pauseFile&fileId=" + fileId,	function(e) {
+			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=pauseFile&fileId=" + fileId,	function(e) {
 				if (callback) {
 					callback(pendingFiles[fileId]);
 				}
@@ -153,7 +158,7 @@ function JavaLargeFileUploader() {
 	function resumeFileUploadInternal(pendingFile, callback, retryCallback) {
 		if(pendingFile) {
 			//and restart flow
-			$.get(globalServletMapping + "?action=resumeFile&fileId=" + pendingFile.id,	function(data) {
+			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=resumeFile&fileId=" + pendingFile.id,	function(data) {
 				if (callback) {
 					callback(pendingFile);
 				}
@@ -364,7 +369,7 @@ function JavaLargeFileUploader() {
 				pendingFiles[blob.i].firstChunkCrc=crc;
 				crcsCalculated++;
 				if (crcsCalculated == jsonVersionOfNewFiles.length) {
-					$.getJSON(globalServletMapping + "?action=prepareUpload", {newFiles: JSON.stringify(jsonVersionOfNewFiles)}, function(data) {
+					$.getJSON(javaLargeFileUploaderHost + globalServletMapping + "?action=prepareUpload", {newFiles: JSON.stringify(jsonVersionOfNewFiles)}, function(data) {
 						
 						//now populate our local entries with ids
 						$.each(data , function(tempIdI, fileIdI) {
@@ -416,7 +421,7 @@ function JavaLargeFileUploader() {
 			        var digest = crc32(e.target.result);
 
 			        //and send it
-					$.get(globalServletMapping + "?action=verifyCrcOfUncheckedPart&fileId=" + pendingFile.id + "&crc=" + decimalToHexString(digest),	function(data) {
+					$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=verifyCrcOfUncheckedPart&fileId=" + pendingFile.id + "&crc=" + decimalToHexString(digest),	function(data) {
 						//verify stuff!
 						if (data === false) {
 							pendingFile.exceptionCallback(errorMessages[7], pendingFile.referenceToFileElement, pendingFile);
@@ -526,7 +531,7 @@ function JavaLargeFileUploader() {
 		
 				// prepare xhr request
 				var xhr = new XMLHttpRequest();
-				xhr.open('POST', uploadServletMapping + '?action=upload&fileId=' + pendingFile.id + '&crc=' + decimalToHexString(digest), true);
+				xhr.open('POST', javaLargeFileUploaderHost + uploadServletMapping + '?action=upload&fileId=' + pendingFile.id + '&crc=' + decimalToHexString(digest), true);
 		
 				// assign callback
 				xhr.onreadystatechange = function() {
@@ -672,7 +677,7 @@ function JavaLargeFileUploader() {
 		}
 			
 		if (fileIds.length > 0) {
-				  $.getJSON(globalServletMapping + "?action=getProgress", {fileId: JSON.stringify(fileIds)}, function(data) {
+				  $.getJSON(javaLargeFileUploaderHost + globalServletMapping + "?action=getProgress", {fileId: JSON.stringify(fileIds)}, function(data) {
 					  
 					  //now populate our local entries with ids
 					  $.each(data, function(fileId, progress) {
