@@ -246,5 +246,5 @@ Please see [ConfigurableProperties#javaLargeFileUploaderHost].
 
 Example: 
 {{{
-jlfu.setJavaLargeFileUploaderHost(http://localhost:8888/demo/);
+jlfu.setJavaLargeFileUploaderHost("http://localhost:8888/demo/");
 }}} 
