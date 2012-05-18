@@ -150,7 +150,7 @@ public class UploadServletAsyncProcessor {
 
 		private CRC32 crc32 = new CRC32();
 		private long byteProcessed;
-		private long completionTimeTakenReference = new Date().getTime();
+		private long completionTimeTakenReference;
 
 
 
@@ -180,6 +180,12 @@ public class UploadServletAsyncProcessor {
 				if ((requestAllowance = requestUploadProcessingConfiguration.getDownloadAllowanceForIteration()) > 0 &&
 						(clientAllowance = clientUploadProcessingConfiguration.getDownloadAllowanceForIteration()) > 0 &&
 						(masterAllowance = masterUploadProcessingConfiguration.getDownloadAllowanceForIteration()) > 0) {
+
+					// keep first time
+					if (completionTimeTakenReference == 0) {
+						completionTimeTakenReference = new Date().getTime();
+					}
+
 					// process
 					write(minOf(
 							(int) requestAllowance,
