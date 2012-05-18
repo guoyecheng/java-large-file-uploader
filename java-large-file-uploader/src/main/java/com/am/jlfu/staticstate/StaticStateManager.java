@@ -144,6 +144,17 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 
 	/**
+	 * Retrieves the entity from cache using a client identifier
+	 * 
+	 * @param clientIdentifier
+	 * @return
+	 */
+	public T getEntityIfPresentWithIdentifier(String clientIdentifier) {
+		return cache.getIfPresent(clientIdentifier);
+	}
+
+
+	/**
 	 * Retrieves the entity from cookie or cache if it exists or create one if it does not exists.
 	 * 
 	 * @return
@@ -160,7 +171,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * @return
 	 */
 	public StaticStatePersistedOnFileSystemEntity getEntityIfPresent() {
-		return cache.getIfPresent(staticStateIdentifierManager.getIdentifier());
+		return getEntityIfPresentWithIdentifier(staticStateIdentifierManager.getIdentifier());
 	}
 
 
