@@ -1,6 +1,7 @@
 package com.am.jlfu.fileuploader.web;
 
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import javax.servlet.AsyncContext;
@@ -23,6 +24,9 @@ import com.am.jlfu.fileuploader.web.utils.ExceptionCodeMappingHelper;
 import com.am.jlfu.fileuploader.web.utils.FileUploadConfiguration;
 import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
+import com.am.jlfu.staticstate.StaticStateManager;
+import com.am.jlfu.staticstate.entities.StaticFileState;
+import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 
 
 
@@ -41,6 +45,9 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 
 	@Autowired
 	StaticStateIdentifierManager staticStateIdentifierManager;
+
+	@Autowired
+	StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
 
 	@Autowired
 	FileUploaderHelper fileUploaderHelper;
@@ -72,6 +79,19 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 				return;
 			}
 
+			// get the model
+			final StaticStatePersistedOnFileSystemEntity entityIfPresent = staticStateManager.getEntityIfPresent();
+			if (entityIfPresent == null) {
+				log.debug(process.getFileId() + " is cancelled, request ignored.");
+				// if not present, its cancelled, but the client can handle this as paused.
+				response.sendError(499);
+				return;
+			}
+			StaticFileState fileState = entityIfPresent.getFileStates().get(process.getFileId());
+			if (fileState == null) {
+				throw new FileNotFoundException("File with id " + process.getFileId() + " not found");
+			}
+
 			// process the request asynchronously
 			final AsyncContext asyncContext = request.startAsync();
 			asyncContext.setTimeout(taskTimeOut);
@@ -92,7 +112,7 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 			});
 
 			// then process
-			uploadServletAsyncProcessor.process(process.getFileId(), process.getCrc(), process.getInputStream(),
+			uploadServletAsyncProcessor.process(fileState, process.getFileId(), process.getCrc(), process.getInputStream(),
 					new WriteChunkCompletionListener() {
 
 						@Override

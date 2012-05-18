@@ -56,16 +56,13 @@ public class UploadServletAsyncProcessor {
 
 
 
-	public void process(String fileId, String crc, InputStream inputStream,
+	public void process(StaticFileState fileState, String fileId, String crc, InputStream inputStream,
 			WriteChunkCompletionListener completionListener)
 			throws FileNotFoundException
 	{
 
 		// get identifier
 		String clientId = staticStateIdentifierManager.getIdentifier();
-
-		// get entity
-		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
 
 		// extract the corresponding request entity from map
 		final RequestUploadProcessingConfiguration requestUploadProcessingConfiguration =
@@ -80,10 +77,6 @@ public class UploadServletAsyncProcessor {
 				uploadProcessingConfigurationManager.getMasterProcessingConfiguration();
 
 		// get static file state
-		StaticFileState fileState = model.getFileStates().get(fileId);
-		if (fileState == null) {
-			throw new FileNotFoundException("File with id " + fileId + " not found");
-		}
 		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
 
 		// if there is no configuration in the map
