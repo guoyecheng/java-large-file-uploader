@@ -131,7 +131,7 @@ public class RateLimiterConfigurationManager {
 
 
 	public Long getUploadState(String requestIdentifier) {
-		return requestConfigMap.getUnchecked(requestIdentifier).instantRateInBytes;
+		return requestConfigMap.getUnchecked(requestIdentifier).getInstantRateInBytes();
 	}
 
 

@@ -81,8 +81,8 @@ public class RateLimiter
 		}
 
 		// calculate statistics
-		requestEntry.getValue().setInstantRateInBytes(
-				requestEntry.getValue().getAndResetBytesWritten() * NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND);
+		final long instantRateInBytes = requestEntry.getValue().getAndResetBytesWritten();
+		requestEntry.getValue().setInstantRateInBytes(instantRateInBytes);
 
 		// calculate what we can write per iteration
 		final long allowedCapacityPerIteration = allowedCapacityPerSecond / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND;
@@ -91,8 +91,7 @@ public class RateLimiter
 		requestEntry.getValue().setDownloadAllowanceForIteration(allowedCapacityPerIteration);
 
 		log.trace("giving an allowance of " + allowedCapacityPerIteration + " bytes to " + requestEntry.getKey() + ". (consumed " +
-				requestEntry.getValue().getInstantRateInBytes() / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND +
-				" bytes during previous iteration)");
+				instantRateInBytes + " bytes during previous iteration)");
 	}
 
 }

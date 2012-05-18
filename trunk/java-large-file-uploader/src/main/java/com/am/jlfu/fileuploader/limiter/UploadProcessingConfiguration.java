@@ -27,7 +27,9 @@ public class UploadProcessingConfiguration {
 	 * 
 	 * @return
 	 */
-	volatile long instantRateInBytes;
+	long instantRateInBytes;
+	int instantRateInBytesCounter;
+	Object instantRateInBytesLock = new Object();
 
 
 
@@ -75,12 +77,26 @@ public class UploadProcessingConfiguration {
 
 
 	void setInstantRateInBytes(long instantRateInBytes) {
-		this.instantRateInBytes = instantRateInBytes;
+		synchronized (instantRateInBytesLock) {
+			this.instantRateInBytesCounter++;
+			this.instantRateInBytes += instantRateInBytes;
+		}
 	}
 
 
 	long getInstantRateInBytes() {
-		return instantRateInBytes;
+		int returnValue = 0;
+		synchronized (instantRateInBytesLock) {
+			if (instantRateInBytesCounter > 0) {
+				returnValue = ((int) instantRateInBytes / instantRateInBytesCounter) * RateLimiter.NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND;
+
+				// reset every second or so
+				if (instantRateInBytesCounter > RateLimiter.NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND) {
+					instantRateInBytes = instantRateInBytesCounter = 0;
+				}
+			}
+		}
+		return returnValue;
 	}
 
 
