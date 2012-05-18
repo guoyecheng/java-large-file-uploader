@@ -25,10 +25,11 @@ public class RateLimiter
 
 	/** Number of times the bucket is filled per second. */
 	public static final int NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND = 10;
+	public static final long BUCKET_FILLED_EVERY_X_MILLISECONDS = DateUtils.MILLIS_PER_SECOND / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND;
 
 
 
-	@Scheduled(fixedRate = DateUtils.MILLIS_PER_SECOND / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND)
+	@Scheduled(fixedRate = BUCKET_FILLED_EVERY_X_MILLISECONDS)
 	public void fillBucket() {
 
 		// first we need to calculate how many uploads are currently being processed
