@@ -28,8 +28,6 @@
   (object) : the file submitted with a file input element
 ====paused====
   (boolean) : specifies whether this upload is paused or not.
-====progressCallback====
-  (function) : function processed
 ====startCallback====
   (function) : function that is called once the upload is pre initialized if the file id is not specified. It contains the following parameters:
     # the PendingFile object
