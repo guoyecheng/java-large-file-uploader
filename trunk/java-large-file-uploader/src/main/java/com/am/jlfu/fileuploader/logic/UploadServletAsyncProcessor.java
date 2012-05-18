@@ -182,9 +182,7 @@ public class UploadServletAsyncProcessor {
 						(masterAllowance = masterUploadProcessingConfiguration.getDownloadAllowanceForIteration()) > 0) {
 
 					// keep first time
-					if (completionTimeTakenReference == 0) {
-						completionTimeTakenReference = new Date().getTime();
-					}
+					completionTimeTakenReference = new Date().getTime();
 
 					// process
 					write(minOf(
@@ -194,12 +192,14 @@ public class UploadServletAsyncProcessor {
 				}
 				// if have exceeded it
 				else {
+					final long delay = RateLimiter.BUCKET_FILLED_EVERY_X_MILLISECONDS -
+							(new Date().getTime() - completionTimeTakenReference);
+					log.trace("waiting for allowance, fillbucket is expected in " + delay);
 					// resubmit it
 					// calculate the delay which is basically the iteration time minus the time it
 					// took to use our allowance in this iteration, so that we go directly to the
 					// next iteration
-					uploadWorkersPool.schedule(this, RateLimiter.BUCKET_FILLED_EVERY_X_MILLISECONDS -
-							(new Date().getTime() - completionTimeTakenReference), TimeUnit.MILLISECONDS);
+					uploadWorkersPool.schedule(this, delay, TimeUnit.MILLISECONDS);
 				}
 			}
 			catch (Exception e) {
