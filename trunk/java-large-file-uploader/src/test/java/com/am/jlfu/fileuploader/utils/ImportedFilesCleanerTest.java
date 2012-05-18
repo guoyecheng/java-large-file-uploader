@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.am.jlfu.fileuploader.utils.ImportedFilesCleaner;
+import com.am.jlfu.staticstate.FileDeleter;
 import com.am.jlfu.staticstate.StaticStateRootFolderProvider;
 
 
@@ -26,6 +26,9 @@ public class ImportedFilesCleanerTest {
 
 	@Autowired
 	ImportedFilesCleaner importedFilesCleaner;
+
+	@Autowired
+	FileDeleter fileDeleter;
 
 
 
@@ -46,6 +49,9 @@ public class ImportedFilesCleanerTest {
 
 		// process
 		importedFilesCleaner.clean();
+
+		// call file deleter
+		fileDeleter.run();
 
 		// assume old is deleted
 		Assert.assertFalse(oldDir.exists());
