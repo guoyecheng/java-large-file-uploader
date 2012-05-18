@@ -289,6 +289,26 @@ public class UploadProcessor {
 	}
 
 
+	public Float getProgress(String clientId, String fileId)
+			throws FileNotFoundException {
+
+
+		// get the file
+		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntityIfPresentWithIdentifier(clientId);
+		StaticFileState fileState = model.getFileStates().get(fileId);
+		if (fileState == null) {
+			throw new FileNotFoundException("File with id " + fileId + " not found");
+		}
+		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
+
+		// compare size o6f the file to the expected size
+		Float progress = getProgress(file.length(), fileState.getStaticFileStateJson().getOriginalFileSizeInBytes()).floatValue();
+
+		log.debug("progress for file " + fileId + ": " + progress);
+		return progress;
+	}
+
+
 	public Float getProgress(String fileId)
 			throws FileNotFoundException {
 
