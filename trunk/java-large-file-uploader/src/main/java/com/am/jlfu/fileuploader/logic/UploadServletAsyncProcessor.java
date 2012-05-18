@@ -6,9 +6,11 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
 
 import org.slf4j.Logger;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
+import com.am.jlfu.fileuploader.limiter.RateLimiter;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.fileuploader.limiter.RequestUploadProcessingConfiguration;
 import com.am.jlfu.fileuploader.limiter.UploadProcessingConfiguration;
@@ -48,8 +51,8 @@ public class UploadServletAsyncProcessor {
 	@Autowired
 	private StaticStateIdentifierManager staticStateIdentifierManager;
 
-	/** The executor that writes the file */
-	private ThreadPoolExecutor uploadWorkersPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(5);
+	/** The executor that process the stream */
+	private ScheduledThreadPoolExecutor uploadWorkersPool = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(10);
 
 
 
@@ -147,6 +150,7 @@ public class UploadServletAsyncProcessor {
 
 		private CRC32 crc32 = new CRC32();
 		private long byteProcessed;
+		private long completionTimeTakenReference = new Date().getTime();
 
 
 
@@ -171,23 +175,25 @@ public class UploadServletAsyncProcessor {
 		public Void call()
 				throws Exception {
 			try {
-				// get allowance
-				int available =
-						minOf(
-								(int) requestUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
-								(int) clientUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
-								(int) masterUploadProcessingConfiguration.getDownloadAllowanceForIteration()
-						);
-
 				// if we have not exceeded our byte to write allowance
-				if (available > 0) {
+				long requestAllowance, clientAllowance, masterAllowance;
+				if ((requestAllowance = requestUploadProcessingConfiguration.getDownloadAllowanceForIteration()) > 0 &&
+						(clientAllowance = clientUploadProcessingConfiguration.getDownloadAllowanceForIteration()) > 0 &&
+						(masterAllowance = masterUploadProcessingConfiguration.getDownloadAllowanceForIteration()) > 0) {
 					// process
-					write(available);
+					write(minOf(
+							(int) requestAllowance,
+							(int) clientAllowance,
+							(int) masterAllowance));
 				}
-				// if we cant
+				// if have exceeded it
 				else {
 					// resubmit it
-					uploadWorkersPool.submit(this);
+					// calculate the delay which is basically the iteration time minus the time it
+					// took to use our allowance in this iteration, so that we go directly to the
+					// next iteration
+					uploadWorkersPool.schedule(this, RateLimiter.BUCKET_FILLED_EVERY_X_MILLISECONDS -
+							(new Date().getTime() - completionTimeTakenReference), TimeUnit.MILLISECONDS);
 				}
 			}
 			catch (Exception e) {
@@ -208,9 +214,8 @@ public class UploadServletAsyncProcessor {
 				return;
 			}
 
-			// define the size of what we read
-			int min = Math.min(available, SIZE_OF_THE_BUFFER_IN_BYTES);
-			byte[] buffer = new byte[min];
+			// init the buffer with the size of what we read
+			byte[] buffer = new byte[Math.min(available, SIZE_OF_THE_BUFFER_IN_BYTES)];
 
 			// read from stream
 			int bytesCount = inputStream.read(buffer);
