@@ -51,7 +51,7 @@ You can retrieve this map using [JavaLargeFileUploader#getErrorMessages] and mod
 
 ====progressPollerRefreshRate====
 
-_default value is *500*_
+_default value is *1000*_
 
 The [Flow#Progress-Poller progress poller] is sending a new request to the server every _x_ amount of milliseconds, _x_ being the value of this variable.
 
