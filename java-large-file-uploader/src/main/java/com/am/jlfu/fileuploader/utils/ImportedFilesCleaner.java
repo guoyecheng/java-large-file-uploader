@@ -3,15 +3,16 @@ package com.am.jlfu.fileuploader.utils;
 
 import java.io.File;
 
-import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jmx.export.annotation.ManagedAttribute;
+import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.staticstate.FileDeleter;
 import com.am.jlfu.staticstate.StaticStateRootFolderProvider;
 
 
@@ -23,6 +24,7 @@ import com.am.jlfu.staticstate.StaticStateRootFolderProvider;
  * @author antoinem
  */
 @Component
+@ManagedResource(objectName = "JavaLargeFileUploader:name=importedFilesCleaner")
 public class ImportedFilesCleaner {
 
 	private static final Logger log = LoggerFactory.getLogger(ImportedFilesCleaner.class);
@@ -30,6 +32,8 @@ public class ImportedFilesCleaner {
 	@Autowired
 	StaticStateRootFolderProvider rootFolderProvider;
 
+	@Autowired
+	FileDeleter fileDeleter;
 
 	@Value("${jlfu.filecleaner.maximumInactivityInHoursBeforeDelete}")
 	Integer maximumInactivityInHoursBeforeDelete;
@@ -44,7 +48,7 @@ public class ImportedFilesCleaner {
 			if (pastTime.isAfter(file.lastModified())) {
 				log.debug("Deleting outdated file: " + file.getName());
 				try {
-					FileUtils.deleteDirectory(file);
+					fileDeleter.deleteFile(file);
 				}
 				catch (Exception e) {
 					log.error(
@@ -69,5 +73,4 @@ public class ImportedFilesCleaner {
 	}
 
 
-	
 }
