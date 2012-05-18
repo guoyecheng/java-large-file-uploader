@@ -7,7 +7,7 @@ function JavaLargeFileUploader() {
 	var pendingFiles = new Object();
 	var bytesPerChunk;
 
-	progressPollerRefreshRate = 500;
+	progressPollerRefreshRate = 1000;
 	maxNumberOfConcurrentUploads = 5; 
 	autoRetry = true; 
 	autoRetryDelay = 1000; 
