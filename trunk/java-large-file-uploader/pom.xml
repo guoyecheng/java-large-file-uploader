@@ -6,7 +6,7 @@
 
 	<groupId>com.am</groupId>
 	<artifactId>java-large-file-uploader</artifactId>
-	<version>1.0-RC1</version>
+	<version>1.0-RC2-SNAPSHOT</version>
 
 
 	<properties>
@@ -185,7 +185,7 @@
 
 
 	<scm>
-		<connection>scm:svn:https://java-large-file-uploader.googlecode.com/svn/tags/java-large-file-uploader-1.0-RC1</connection>
+		<connection>scm:svn:https://java-large-file-uploader.googlecode.com/svn/trunk</connection>
 	</scm>
 
 
