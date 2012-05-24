@@ -57,7 +57,6 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 	 * Note that the pause/resume stuff might not be a good idea as it keeps the stream opened while
 	 * paused.
 	 */
-	// TODO make configurable
 	private long taskTimeOut = DateUtils.MILLIS_PER_HOUR;
 
 

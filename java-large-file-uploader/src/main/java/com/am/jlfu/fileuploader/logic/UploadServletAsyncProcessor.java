@@ -188,22 +188,27 @@ public class UploadServletAsyncProcessor {
 				}
 				// if have exceeded it
 				else {
+
 					// by default, wait for default value
 					long delay = RateLimiter.BUCKET_FILLED_EVERY_X_MILLISECONDS;
+
+
 					// if we have a first write time
 					if (completionTimeTakenReference != 0) {
+
+						// calculate the delay which is basically the iteration time minus the time
+						// it took to use our allowance in this iteration, so that we go directly to
+						// the next iteration
 						final long time = new Date().getTime();
-						final long lastWriteWasAgo = new Date().getTime() - completionTimeTakenReference;
+						final long lastWriteWasAgo = time - completionTimeTakenReference;
 						delay = RateLimiter.BUCKET_FILLED_EVERY_X_MILLISECONDS - lastWriteWasAgo;
 						log.trace("waiting for allowance, fillbucket is expected in " + delay + "(last write was " + lastWriteWasAgo + " ago (" +
 								time +
 								" - " + completionTimeTakenReference + "))");
 						completionTimeTakenReference = 0;
 					}
+
 					// resubmit it
-					// calculate the delay which is basically the iteration time minus the time it
-					// took to use our allowance in this iteration, so that we go directly to the
-					// next iteration
 					uploadWorkersPool.schedule(this, delay, TimeUnit.MILLISECONDS);
 				}
 			}

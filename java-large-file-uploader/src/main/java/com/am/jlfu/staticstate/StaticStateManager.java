@@ -323,7 +323,8 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 		log.debug(validated + " more bytes have been validated appended to the already " + crcredBytes + " bytes validated for file " + fileId +
 				" for client id " + clientId);
 
-		// TODO remove when stable :)
+		// TODO remove when stable or make a proper end of upload verification with crc of last
+		// chunk?
 		if (staticFileState.getStaticFileStateJson().getCrcedBytes() > staticFileState.getStaticFileStateJson().getOriginalFileSizeInBytes()) {
 			log.error("###############################################################################");
 			log.error("###############################################################################");
@@ -337,7 +338,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 			@Override
 			public void run() {
-				// TODO write this later on.
+				// write this later on.
 				writeEntity(clientId, entity);
 			}
 		});
