@@ -11,7 +11,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.io.IOUtils;
@@ -42,8 +41,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Maps.EntryTransformer;
 import com.google.common.collect.Ordering;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 
 
 
@@ -74,12 +71,6 @@ public class UploadProcessor {
 	GeneralUtils generalUtils;
 
 	public static final int SIZE_OF_FIRST_CHUNK_VALIDATION = 8192;
-
-	/** Executor service for closing streams */
-	private ListeningExecutorService streamCloserExecutor = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(5));
-
-	/** Executor checking for completion of processing */
-	private ListeningExecutorService configExecutor = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(5));
 
 	/**
 	 * Size of a slice <br>
