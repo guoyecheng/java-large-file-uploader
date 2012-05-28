@@ -20,6 +20,11 @@ public class CRCResult
 		implements Serializable {
 
 
+	/**
+	 * generated id
+	 */
+	private static final long serialVersionUID = 5435020922997235085L;
+
 	private String value;
 	private int read;
 

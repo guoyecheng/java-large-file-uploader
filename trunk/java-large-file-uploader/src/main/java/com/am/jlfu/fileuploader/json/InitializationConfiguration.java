@@ -15,6 +15,9 @@ import java.util.Map;
 public class InitializationConfiguration
 		implements Serializable {
 
+	/**
+	 * generated id
+	 */
 	private static final long serialVersionUID = -6955613223772661218L;
 
 	/**

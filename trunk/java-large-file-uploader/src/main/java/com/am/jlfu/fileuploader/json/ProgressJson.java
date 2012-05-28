@@ -1,10 +1,17 @@
 package com.am.jlfu.fileuploader.json;
 
+
 import java.io.Serializable;
+
 
 
 public class ProgressJson
 		implements Serializable {
+
+	/**
+	 * generated id
+	 */
+	private static final long serialVersionUID = -8710522591230352636L;
 
 	private Float progress;
 	private Long uploadRate;

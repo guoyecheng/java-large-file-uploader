@@ -9,6 +9,9 @@ import java.util.Date;
 public class FileStateJsonBase
 		implements Serializable {
 
+	/**
+	 * generated id
+	 */
 	private static final long serialVersionUID = 5043865795253104456L;
 
 	/** The original file name. */
