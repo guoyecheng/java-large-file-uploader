@@ -8,6 +8,11 @@ import java.io.Serializable;
 public class PrepareUploadJson
 		implements Serializable {
 
+	/**
+	 * generated id
+	 */
+	private static final long serialVersionUID = -7036071811020864930L;
+
 	private Integer tempId;
 
 	private String fileName;
