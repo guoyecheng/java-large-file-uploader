@@ -14,12 +14,28 @@ import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor;
 
 
 
+/**
+ * Helper providing methods to compute crc hash.
+ * 
+ * @see #getBufferedCrc(InputStream)
+ * @author antoinem
+ * 
+ */
 @Component
 public class CRCHelper {
 
 	private static final Logger log = LoggerFactory.getLogger(CRCHelper.class);
 
 
+
+	/**
+	 * Returns a {@link CRCResult} computed with {@link CRC32} from the stream specified as
+	 * parameter.
+	 * 
+	 * @param inputStream
+	 * @return {@link CRCResult}
+	 * @throws IOException
+	 */
 	public CRCResult getBufferedCrc(InputStream inputStream)
 			throws IOException {
 
