@@ -29,7 +29,6 @@ import com.am.jlfu.fileuploader.limiter.RequestUploadProcessingConfiguration;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
 import com.am.jlfu.fileuploader.utils.ConditionProvider;
 import com.am.jlfu.fileuploader.utils.GeneralUtils;
-import com.am.jlfu.fileuploader.utils.UploadLockMap;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
@@ -63,9 +62,6 @@ public class UploadProcessor {
 
 	@Autowired
 	StaticStateDirectoryManager staticStateDirectoryManager;
-
-	@Autowired
-	UploadLockMap lockMap;
 
 	@Autowired
 	GeneralUtils generalUtils;
