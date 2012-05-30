@@ -55,13 +55,13 @@ public class RateLimiterConfigurationManager {
 	// ///////////////
 
 	// 10mb/s
-	@Value("${jlfu.ratelimiter.maximumRatePerClientInKiloBytes}")
+	@Value("${jlfu.ratelimiter.maximumRatePerClientInKiloBytes:10240}")
 	private volatile long maximumRatePerClientInKiloBytes;
 
 
 	// 10mb/s
-	@Value("${jlfu.ratelimiter.maximumOverAllRateInKiloBytes}")
-	private volatile long maximumOverAllRateInKiloBytes;
+	@Value("${jlfu.ratelimiter.maximumOverAllRateInKiloBytes:10240}")
+	private volatile long maximumOverAllRateInKiloBytes = 10 * 1024;
 
 
 
