@@ -428,7 +428,9 @@ function JavaLargeFileUploader() {
 					$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=verifyCrcOfUncheckedPart&fileId=" + pendingFile.id + "&crc=" + decimalToHexString(digest),	function(data) {
 						//verify stuff!
 						if (data === false) {
-							pendingFile.exceptionCallback(errorMessages[7], pendingFile.referenceToFileElement, pendingFile);
+							if (pendingFile.exceptionCallback) {
+								pendingFile.exceptionCallback(errorMessages[7], pendingFile.referenceToFileElement, pendingFile);
+							}
 							
 							console.log("crc verification failed for unchecked chunk, filecompletion is truncated to "+pendingFile.crcedBytes+" (was "+pendingFile.fileCompletionInBytes+")");
 							//and assign the completion to last verified
@@ -495,7 +497,9 @@ function JavaLargeFileUploader() {
 				pendingFile.queued = true;
 				
 				//specify to user
-				pendingFile.exceptionCallback(errorMessages[9], pendingFile.referenceToFileElement, pendingFile);
+				if (pendingFile.exceptionCallback) {
+					pendingFile.exceptionCallback(errorMessages[9], pendingFile.referenceToFileElement, pendingFile);
+				}
 			}
 			
 		} 
