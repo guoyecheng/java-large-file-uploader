@@ -1,15 +1,33 @@
 #summary List of the properties available to tweak the API
 
 ==Java properties==
-The two following java attributes can be configured with the jlfu.properties file and also modified at runtime as they are exposed as MBeans:
+
+Some Java properties are exposed and can be configured using a properties file.
+
+You can add a _java-large-file-uploader.properties_ file to your classpath which can include:
+
 
 ====maximumRatePerClientInKiloBytes====
+
+key: `jlfu.ratelimiter.maximumRatePerClientInKiloBytes`
 
 The maximum upload rate per client in kilo bytes. (Default is 10240 (10MB/s))
 
 ====maximumOverAllRateInKiloBytes====
 
+key: `jlfu.ratelimiter.maximumOverAllRateInKiloBytes`
+
 The maximum total upload rate in kilo bytes. (Default is 10240 (10MB/s))
+
+====maximumInactivityInHoursBeforeDelete====
+
+key: `jlfu.filecleaner.maximumInactivityInHoursBeforeDelete`
+
+The maximum time files can stay inactive on the server (Default is 48)
+
+
+
+These properties are also exposed as MBeans and can be modified at runtime.
 
 ----
 
