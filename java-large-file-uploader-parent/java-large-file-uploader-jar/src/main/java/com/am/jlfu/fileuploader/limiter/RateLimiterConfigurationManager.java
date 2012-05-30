@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
@@ -54,10 +55,13 @@ public class RateLimiterConfigurationManager {
 	// ///////////////
 
 	// 10mb/s
-	private volatile long maximumRatePerClientInKiloBytes = 10 * 1024;
+	@Value("${jlfu.ratelimiter.maximumRatePerClientInKiloBytes}")
+	private volatile long maximumRatePerClientInKiloBytes;
+
 
 	// 10mb/s
-	private volatile long maximumOverAllRateInKiloBytes = 10 * 1024;
+	@Value("${jlfu.ratelimiter.maximumOverAllRateInKiloBytes}")
+	private volatile long maximumOverAllRateInKiloBytes;
 
 
 
