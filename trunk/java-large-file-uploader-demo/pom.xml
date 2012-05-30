@@ -20,10 +20,16 @@
 		<!-- the war overlay for js resources -->
 		<dependency>
 			<groupId>com.am</groupId>
-			<artifactId>java-large-file-uploader</artifactId>
+			<artifactId>java-large-file-uploader-war</artifactId>
 			<version>1.0-RC2-SNAPSHOT</version>
 			<type>war</type>
-			<scope>runtime</scope>
+		</dependency>
+		
+		<!-- the jar for the server configuration -->
+		<dependency>
+			<groupId>com.am</groupId>
+			<artifactId>java-large-file-uploader-jar</artifactId>
+			<version>1.0-RC2-SNAPSHOT</version>
 		</dependency>
 
 
@@ -39,17 +45,6 @@
 				<configuration>
 					<source>1.6</source>
 					<target>1.6</target>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-war-plugin</artifactId>
-				<version>2.2</version>
-				<configuration>
-					<overlay>
-						<groupId>com.am</groupId>
-						<artifactId>java-large-file-uploader</artifactId>
-					</overlay>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -96,7 +91,7 @@
 	<repositories>
 		<repository>
 			<id>java large file uploader repository</id>
-			<url>svn:https://java-large-file-uploader.googlecode.com/svn/mvnrepo</url>
+			<url>http://java-large-file-uploader.googlecode.com/svn/mvnrepo</url>
 		</repository>
 	</repositories>
 </project>
