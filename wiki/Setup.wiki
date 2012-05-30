@@ -2,17 +2,21 @@
 
 ===java===
 
-This project is really easy to configure as the dependency is a war containing a simple javascript file and a jar which includes all the web configuration (using web fragment from servlet 3.0 specification).
+This project is really easy to configure as the dependencies are a war containing a simple javascript file and a jar which includes all the web configuration (using web fragment from servlet 3.0 specification).
 [ConfigurableProperties Some properties] are exposed as MBeans and can be changed at runtime and others can be set directly in the javascript.
 
-Just define the maven dependency:
+Just define the maven dependencies:
 {{{
 <dependency>
 	<groupId>com.am</groupId>
-	<artifactId>java-large-file-uploader</artifactId>
-	<version>1.0-RC1</version>
+	<artifactId>java-large-file-uploader-war</artifactId>
+	<version>1.0-RC2-SNAPSHOT</version>
 	<type>war</type>
-	<scope>runtime</scope>
+</dependency>
+<dependency>
+	<groupId>com.am</groupId>
+	<artifactId>java-large-file-uploader-jar</artifactId>
+	<version>1.0-RC2-SNAPSHOT</version>
 </dependency>
 }}}
 And the repository:
