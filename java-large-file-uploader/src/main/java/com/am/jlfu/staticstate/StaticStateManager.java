@@ -217,7 +217,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * @throws InterruptedException
 	 */
 	public void clear()
-			throws InterruptedException, ExecutionException, TimeoutException {
+	{
 		log.debug("Clearing everything including cache, session, files.");
 
 		final File uuidFileParent = staticStateDirectoryManager.getUUIDFileParent();
@@ -235,7 +235,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 
 	public void clearFile(final String fileId)
-			throws InterruptedException, ExecutionException, TimeoutException {
+	{
 		log.debug("Clearing pending uploaded file and all attributes linked to it.");
 
 		final File uuidFileParent = staticStateDirectoryManager.getUUIDFileParent();
