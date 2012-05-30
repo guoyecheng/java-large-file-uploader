@@ -143,16 +143,19 @@ function JavaLargeFileUploader() {
 		}
 	};
 	
-	function retryRecursive(pendingFile) {
+	function displayException(pendingFile, errorMessageId) {
+		console.log(errorMessages[errorMessageId]);
 		if(pendingFile.exceptionCallback) {
-			pendingFile.exceptionCallback(errorMessages[10], pendingFile.referenceToFileElement, pendingFile);
+			pendingFile.exceptionCallback(errorMessages[errorMessageId], pendingFile.referenceToFileElement, pendingFile);
 		}
+	}
+	
+	function retryRecursive(pendingFile) {
 		if (pendingFile) {
+			displayException(pendingFile, 10);
 			resumeFileUploadInternal(pendingFile, null, function(ok) {
 				if (ok === false) {
-					if(pendingFile.exceptionCallback) {
-						pendingFile.exceptionCallback(errorMessages[11], pendingFile.referenceToFileElement, pendingFile);
-					}					
+					displayException(pendingFile, 11);
 					setTimeout(retryRecursive, autoRetryDelay, pendingFile);
 				}
 			});
@@ -318,6 +321,7 @@ function JavaLargeFileUploader() {
 		if (!files.length) {
 			if (exceptionCallback) {
 				//no file selected
+				console.log(errorMessages[6]);
 				exceptionCallback(errorMessages[6], referenceToFileElement);
 			}
 		} else {
@@ -428,10 +432,7 @@ function JavaLargeFileUploader() {
 					$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=verifyCrcOfUncheckedPart&fileId=" + pendingFile.id + "&crc=" + decimalToHexString(digest),	function(data) {
 						//verify stuff!
 						if (data === false) {
-							if (pendingFile.exceptionCallback) {
-								pendingFile.exceptionCallback(errorMessages[7], pendingFile.referenceToFileElement, pendingFile);
-							}
-							
+							displayException(pendingFile, 7);
 							console.log("crc verification failed for unchecked chunk, filecompletion is truncated to "+pendingFile.crcedBytes+" (was "+pendingFile.fileCompletionInBytes+")");
 							//and assign the completion to last verified
 							pendingFile.fileCompletionInBytes = pendingFile.crcedBytes;
@@ -497,9 +498,7 @@ function JavaLargeFileUploader() {
 				pendingFile.queued = true;
 				
 				//specify to user
-				if (pendingFile.exceptionCallback) {
-					pendingFile.exceptionCallback(errorMessages[9], pendingFile.referenceToFileElement, pendingFile);
-				}
+				displayException(pendingFile, 9);
 			}
 			
 		} 
@@ -555,9 +554,7 @@ function JavaLargeFileUploader() {
 								uploadEnd(pendingFile, false);
 								pendingFile.paused=true;
 							} else {
-								if (pendingFile.exceptionCallback) {
-									pendingFile.exceptionCallback(errorMessages[8], pendingFile.referenceToFileElement, pendingFile);
-								}
+								displayException(pendingFile, 8);
 								if (autoRetry) {
 									//submit retry
 									retryRecursive(pendingFile);
@@ -570,9 +567,7 @@ function JavaLargeFileUploader() {
 						//if we have an exception in the response text
 						if (xhr.response) {
 							var resp = JSON.parse(xhr.response);
-							if (pendingFile.exceptionCallback) {
-								pendingFile.exceptionCallback(errorMessages[resp.value], pendingFile.referenceToFileElement, pendingFile);
-							}
+							displayException(pendingFile, resp.value);
 							if (autoRetry) {
 								//submit retry
 								retryRecursive(pendingFile);
@@ -608,9 +603,7 @@ function JavaLargeFileUploader() {
 					}
 				} catch (e) {
 					uploadEnd(pendingFile, true);
-					if (pendingFile.exceptionCallback) {
-						pendingFile.exceptionCallback(errorMessages[8], endingFile.referenceToFileElement, pendingFile);
-					}
+					displayException(pendingFile, 8);
 					if (autoRetry) {
 						//submit retry
 						retryRecursive(pendingFile);
