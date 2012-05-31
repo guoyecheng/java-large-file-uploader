@@ -231,9 +231,9 @@ public class UploadServletAsyncProcessorTest {
 			String absoluteFullPathOfUploadedFile =
 					staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
 			File file = new File(absoluteFullPathOfUploadedFile);
-			long destination = UploadProcessor.sliceSizeInBytes * currentSlice + UploadProcessor.sliceSizeInBytes;
+			long destination = uploadProcessor.getSliceSizeInBytes() * currentSlice + uploadProcessor.getSliceSizeInBytes();
 			TestFileSplitResult byteArrayFromFile =
-					UploadProcessorTest.getByteArrayFromInputStream(new ByteArrayInputStream(fileContent), UploadProcessor.sliceSizeInBytes *
+					UploadProcessorTest.getByteArrayFromInputStream(new ByteArrayInputStream(fileContent), uploadProcessor.getSliceSizeInBytes() *
 							currentSlice, destination);
 
 			int sliceToFailAt = -1;
@@ -254,7 +254,8 @@ public class UploadServletAsyncProcessorTest {
 
 				// provides a stream that will fail fast
 				try {
-					byteArrayFromFile.stream = new ByteArrayInputStreamThatFails(IOUtils.toByteArray(byteArrayFromFile.stream));
+					byteArrayFromFile.stream =
+							new ByteArrayInputStreamThatFails(uploadProcessor.getSliceSizeInBytes(), IOUtils.toByteArray(byteArrayFromFile.stream));
 				}
 				catch (IOException e) {
 					throw new RuntimeException(e);
@@ -266,13 +267,14 @@ public class UploadServletAsyncProcessorTest {
 				// assert that the validated crc is of the size of the slices that were successfull
 				Long crcedBytesBeforeVerification =
 						staticStateManager.getEntity().getFileStates().get(fileId).getStaticFileStateJson().getCrcedBytes();
-				Assert.assertThat(crcedBytesBeforeVerification, is(sliceToFailAt * UploadProcessor.sliceSizeInBytes));
+				Assert.assertThat(crcedBytesBeforeVerification, is(sliceToFailAt * uploadProcessor.getSliceSizeInBytes()));
 
 				// assert that we have written the correct amount
 				long size = file.length();
-				long sliceMissingSize = ByteArrayInputStreamThatFails.FAIL_AT * UploadServletAsyncProcessor.SIZE_OF_THE_BUFFER_IN_BYTES;
+				long sliceMissingSize =
+						((ByteArrayInputStreamThatFails) byteArrayFromFile.stream).failAt * UploadServletAsyncProcessor.SIZE_OF_THE_BUFFER_IN_BYTES;
 				long completedPart = sliceMissingSize +
-						(currentSlice * UploadProcessor.sliceSizeInBytes);
+						(currentSlice * uploadProcessor.getSliceSizeInBytes());
 				Assert.assertThat(size, is(completedPart));
 
 				// process the crc of the part that has not been completed
@@ -389,9 +391,9 @@ public class UploadServletAsyncProcessorTest {
 				String absoluteFullPathOfUploadedFile =
 						staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
 				TestFileSplitResult byteArrayFromFile =
-						UploadProcessorTest.getByteArrayFromInputStream(new ByteArrayInputStream(fileContent), UploadProcessor.sliceSizeInBytes *
-								currentSlice, UploadProcessor.sliceSizeInBytes * currentSlice +
-								UploadProcessor.sliceSizeInBytes);
+						UploadProcessorTest.getByteArrayFromInputStream(new ByteArrayInputStream(fileContent), uploadProcessor.getSliceSizeInBytes() *
+								currentSlice, uploadProcessor.getSliceSizeInBytes() * currentSlice +
+								uploadProcessor.getSliceSizeInBytes());
 
 				// process it
 				processWaitForCompletionAndCheck(fileId, byteArrayFromFile);
@@ -415,9 +417,9 @@ public class UploadServletAsyncProcessorTest {
 				String absoluteFullPathOfUploadedFile =
 						staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
 				TestFileSplitResult byteArrayFromFile =
-						UploadProcessorTest.getByteArrayFromInputStream(new ByteArrayInputStream(fileContent), UploadProcessor.sliceSizeInBytes *
-								currentSlice, UploadProcessor.sliceSizeInBytes * currentSlice +
-								UploadProcessor.sliceSizeInBytes);
+						UploadProcessorTest.getByteArrayFromInputStream(new ByteArrayInputStream(fileContent), uploadProcessor.getSliceSizeInBytes() *
+								currentSlice, uploadProcessor.getSliceSizeInBytes() * currentSlice +
+								uploadProcessor.getSliceSizeInBytes());
 
 
 				// at one point, pause it:
@@ -504,7 +506,7 @@ public class UploadServletAsyncProcessorTest {
 		rateLimiterConfigurationManager.setMaximumOverAllRateInKiloBytes(100 * 1024);
 
 		// for all the slices that we need to send
-		long numberOfSlices = size / UploadProcessor.sliceSizeInBytes;
+		long numberOfSlices = size / uploadProcessor.getSliceSizeInBytes();
 		for (int currentSlice = 0; currentSlice < numberOfSlices + 1; currentSlice++) {
 
 			// perform treatment
@@ -552,20 +554,21 @@ public class UploadServletAsyncProcessorTest {
 	private class ByteArrayInputStreamThatFails extends ByteArrayInputStream {
 
 		// fail in the middle of a slice
-		public static final long FAIL_AT = UploadProcessor.sliceSizeInBytes / UploadServletAsyncProcessor.SIZE_OF_THE_BUFFER_IN_BYTES / 2;
+		long failAt;
 		int i;
 
 
 
-		public ByteArrayInputStreamThatFails(byte[] buf) {
+		public ByteArrayInputStreamThatFails(long sliceSizeInBytes, byte[] buf) {
 			super(buf);
+			failAt = sliceSizeInBytes / UploadServletAsyncProcessor.SIZE_OF_THE_BUFFER_IN_BYTES / 2;
 		}
 
 
 		@Override
 		public int read(byte[] b)
 				throws IOException {
-			if (i++ == FAIL_AT) {
+			if (i++ == failAt) {
 				throw new IOException("Stream ended unexpectedly");
 			}
 			return super.read(b);

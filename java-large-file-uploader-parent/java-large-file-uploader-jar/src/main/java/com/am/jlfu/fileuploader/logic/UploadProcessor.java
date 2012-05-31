@@ -17,6 +17,9 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jmx.export.annotation.ManagedAttribute;
+import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
@@ -44,6 +47,7 @@ import com.google.common.collect.Ordering;
 
 
 @Component
+@ManagedResource(objectName = "JavaLargeFileUploader:name=uploadServletProcessor")
 public class UploadProcessor {
 
 	private static final Logger log = LoggerFactory.getLogger(UploadProcessor.class);
@@ -72,7 +76,8 @@ public class UploadProcessor {
 	 * Size of a slice <br>
 	 * Default to 10MB.
 	 */
-	public static final long sliceSizeInBytes = 10485760; // 10mb
+	@Value("${jlfu.sliceSizeInBytes:10485760}")
+	private long sliceSizeInBytes;
 
 
 
@@ -437,6 +442,16 @@ public class UploadProcessor {
 			log.debug("arrays do not have a similar size so i was impossible to compare " + Math.abs(a.length - b.length) + " bytes.");
 		}
 
+	}
+
+	@ManagedAttribute
+	public long getSliceSizeInBytes() {
+		return sliceSizeInBytes;
+	}
+
+	@ManagedAttribute
+	public void setSliceSizeInBytes(long sliceSizeInBytes) {
+		this.sliceSizeInBytes = sliceSizeInBytes;
 	}
 
 
