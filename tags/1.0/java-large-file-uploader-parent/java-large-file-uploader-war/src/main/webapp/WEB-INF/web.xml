@@ -1,1 +1,0 @@
-emtpy web.xml because this project shall be used as an overlay for another war project which is defining the real web.xml.
