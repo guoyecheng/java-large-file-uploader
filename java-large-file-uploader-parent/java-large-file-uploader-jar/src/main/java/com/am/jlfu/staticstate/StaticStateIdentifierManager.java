@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
+import com.am.jlfu.notifier.JLFUListenerPropagator;
 
 
 
@@ -20,6 +21,9 @@ public class StaticStateIdentifierManager {
 
 	@Autowired
 	RequestComponentContainer requestComponentProvider;
+
+	@Autowired
+	JLFUListenerPropagator jlfuListenerPropagator;
 
 
 
@@ -46,7 +50,9 @@ public class StaticStateIdentifierManager {
 
 
 	String getUuid() {
-		return UUID.randomUUID().toString();
+		final String uuid = UUID.randomUUID().toString();
+		jlfuListenerPropagator.getPropagator().onNewClient(uuid);
+		return uuid;
 	}
 
 
@@ -59,13 +65,16 @@ public class StaticStateIdentifierManager {
 
 		// get from session
 		String uuid = (String) requestComponentProvider.getSession().getAttribute(cookieIdentifier);
+
+		// if nothing in session
 		if (uuid == null) {
 
-			// if nothing in session, check in cookie
+			// check in cookie
 			Cookie cookie = getCookie(requestComponentProvider.getRequest().getCookies(), cookieIdentifier);
 			if (cookie != null && cookie.getValue() != null) {
 				// set in session
 				requestComponentProvider.getSession().setAttribute(cookieIdentifier, cookie.getValue());
+				jlfuListenerPropagator.getPropagator().onClientBack(uuid);
 				return cookie.getValue();
 			}
 

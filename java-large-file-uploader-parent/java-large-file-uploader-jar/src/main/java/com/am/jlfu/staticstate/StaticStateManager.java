@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.cache.CacheBuilder;
@@ -45,10 +46,14 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	FileDeleter fileDeleter;
 
 	@Autowired
+	JLFUListenerPropagator jlfuListenerPropagator;
+
+	@Autowired
 	StaticStateIdentifierManager staticStateIdentifierManager;
 
 	@Autowired
 	StaticStateDirectoryManager staticStateDirectoryManager;
+
 
 	/**
 	 * Used to bypass generic type erasure.<br>
@@ -323,6 +328,11 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 		log.debug(validated + " more bytes have been validated appended to the already " + crcredBytes + " bytes validated for file " + fileId +
 				" for client id " + clientId);
 
+		// manage the end of file
+		if (staticFileState.getStaticFileStateJson().getCrcedBytes() == staticFileState.getStaticFileStateJson().getOriginalFileSizeInBytes()) {
+			jlfuListenerPropagator.getPropagator().onFileUploadEnd(clientId, fileId);
+		}
+
 		// TODO remove when stable or make a proper end of upload verification with crc of last
 		// chunk?
 		if (staticFileState.getStaticFileStateJson().getCrcedBytes() > staticFileState.getStaticFileStateJson().getOriginalFileSizeInBytes()) {
@@ -343,6 +353,5 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 			}
 		});
 	}
-
 
 }

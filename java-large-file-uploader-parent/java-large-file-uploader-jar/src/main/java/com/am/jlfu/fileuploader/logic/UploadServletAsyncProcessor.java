@@ -43,7 +43,7 @@ public class UploadServletAsyncProcessor {
 	private static final Logger log = LoggerFactory.getLogger(UploadServletAsyncProcessor.class);
 
 	@Autowired
-	RateLimiterConfigurationManager uploadProcessingConfigurationManager;
+	private RateLimiterConfigurationManager uploadProcessingConfigurationManager;
 
 	@Autowired
 	private StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
