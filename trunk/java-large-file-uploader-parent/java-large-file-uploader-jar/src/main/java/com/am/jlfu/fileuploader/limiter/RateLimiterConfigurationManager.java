@@ -7,14 +7,18 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 
 
 
@@ -24,8 +28,21 @@ public class RateLimiterConfigurationManager {
 
 	private static final Logger log = LoggerFactory.getLogger(RateLimiterConfigurationManager.class);
 
+	/** Client is evicted from the map when not accessed for that duration */
+	public static final int CLIENT_EVICTION_TIME_IN_MINUTES = 2;
 
-	final LoadingCache<String, UploadProcessingConfiguration> clientConfigMap = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES)
+	@Autowired
+	private JLFUListenerPropagator jlfuListenerPropagator;
+
+	final LoadingCache<String, UploadProcessingConfiguration> clientConfigMap = CacheBuilder.newBuilder()
+			.removalListener(new RemovalListener<String, UploadProcessingConfiguration>() {
+
+				@Override
+				public void onRemoval(RemovalNotification<String, UploadProcessingConfiguration> notification) {
+					jlfuListenerPropagator.getPropagator().onClientInactivity(notification.getKey(), CLIENT_EVICTION_TIME_IN_MINUTES);
+				}
+			})
+			.expireAfterAccess(CLIENT_EVICTION_TIME_IN_MINUTES, TimeUnit.MINUTES)
 			.build(new CacheLoader<String, UploadProcessingConfiguration>() {
 
 				@Override

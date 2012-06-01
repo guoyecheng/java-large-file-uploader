@@ -32,6 +32,7 @@ import com.am.jlfu.fileuploader.limiter.RequestUploadProcessingConfiguration;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
 import com.am.jlfu.fileuploader.utils.ConditionProvider;
 import com.am.jlfu.fileuploader.utils.GeneralUtils;
+import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
@@ -69,6 +70,9 @@ public class UploadProcessor {
 
 	@Autowired
 	GeneralUtils generalUtils;
+
+	@Autowired
+	private JLFUListenerPropagator jlfuListenerPropagator;
 
 	public static final int SIZE_OF_FIRST_CHUNK_VALIDATION = 8192;
 
@@ -196,6 +200,9 @@ public class UploadProcessor {
 		// write the state
 		staticStateManager.processEntityTreatment(model);
 
+		// call listener
+		jlfuListenerPropagator.getPropagator().onFileUploadPrepared(staticStateIdentifierManager.getIdentifier(), fileId);
+
 		// and returns the file identifier
 		log.debug("File prepared for client " + staticStateIdentifierManager.getIdentifier() + " at path " + file.getAbsolutePath());
 		return fileId;
@@ -266,6 +273,9 @@ public class UploadProcessor {
 
 		// then delete
 		staticStateManager.clearFile(fileId);
+
+		// then call listener
+		jlfuListenerPropagator.getPropagator().onFileUploadCancelled(staticStateIdentifierManager.getIdentifier(), fileId);
 	}
 
 
@@ -357,6 +367,9 @@ public class UploadProcessor {
 		// close stream
 		closeStreamForFiles(fileId);
 
+		// then call listener
+		jlfuListenerPropagator.getPropagator().onFileUploadPaused(staticStateIdentifierManager.getIdentifier(), fileId);
+
 	}
 
 
@@ -364,6 +377,9 @@ public class UploadProcessor {
 
 		// set as resumed
 		uploadProcessingConfigurationManager.resume(fileId);
+
+		// then call listener
+		jlfuListenerPropagator.getPropagator().onFileUploadResumed(staticStateIdentifierManager.getIdentifier(), fileId);
 
 		// and return some information about it
 		return getFileStateJson(fileId, staticStateManager.getEntity().getFileStates().get(fileId));
@@ -444,10 +460,12 @@ public class UploadProcessor {
 
 	}
 
+
 	@ManagedAttribute
 	public long getSliceSizeInBytes() {
 		return sliceSizeInBytes;
 	}
+
 
 	@ManagedAttribute
 	public void setSliceSizeInBytes(long sliceSizeInBytes) {
