@@ -53,7 +53,7 @@
 	</build>
 
 	<scm>
-		<connection>scm:svn:https://java-large-file-uploader.googlecode.com/svn/branches/stable-1.0</connection>
+		<connection>scm:svn:https://java-large-file-uploader.googlecode.com/svn/branches/1.0</connection>
 	</scm>
 
 
