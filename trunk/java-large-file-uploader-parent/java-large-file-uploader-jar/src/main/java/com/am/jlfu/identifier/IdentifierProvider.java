@@ -11,7 +11,12 @@ import com.am.jlfu.identifier.impl.DefaultIdentifierProvider;
 
 
 /**
- * Provides identification for JLFU API.
+ * Provides identification for JLFU API.<br>
+ * The default implementation ({@link DefaultIdentifierProvider}) is using a cookie to store a UUID
+ * generated for every client.<br>
+ * You can provide your own implementation to be able to manage this identification using a more
+ * complex system (if you want users to resume files from another browser or provide ids linked to a
+ * job instead of a client if you are providing upload in a more sequential way).
  * 
  * @author antoinem
  * @see DefaultIdentifierProvider
