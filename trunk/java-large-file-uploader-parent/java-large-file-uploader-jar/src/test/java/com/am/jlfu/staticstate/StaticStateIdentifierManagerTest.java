@@ -1,6 +1,8 @@
 package com.am.jlfu.staticstate;
 
 
+import java.util.UUID;
+
 import javax.servlet.http.Cookie;
 
 import org.junit.Assert;
@@ -14,6 +16,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
+import com.am.jlfu.identifier.impl.DefaultIdentifierProvider;
 
 
 
@@ -49,13 +52,13 @@ public class StaticStateIdentifierManagerTest {
 	public void testNoIdInCookieOrSession() {
 
 		// assert session is empty
-		Assert.assertNull(mockHttpServletRequest.getSession().getAttribute(StaticStateIdentifierManager.cookieIdentifier));
+		Assert.assertNull(mockHttpServletRequest.getSession().getAttribute(DefaultIdentifierProvider.cookieIdentifier));
 
 		// assert cookie is empty
-		Assert.assertNull(StaticStateIdentifierManager.getCookie(mockHttpServletRequest.getCookies(), StaticStateIdentifierManager.cookieIdentifier));
+		Assert.assertNull(DefaultIdentifierProvider.getCookie(mockHttpServletRequest.getCookies(), DefaultIdentifierProvider.cookieIdentifier));
 
 		// get id
-		String identifier = staticStateIdentifierManager.getIdentifier();
+		UUID identifier = UUID.fromString(staticStateIdentifierManager.getIdentifier());
 
 		// copy cookies from response to request
 		mockHttpServletRequest.setCookies(mockHttpServletResponse.getCookies());
@@ -64,10 +67,11 @@ public class StaticStateIdentifierManagerTest {
 
 		// assert cookie filled
 		Assert.assertEquals(identifier,
-				StaticStateIdentifierManager.getCookie(mockHttpServletRequest.getCookies(), StaticStateIdentifierManager.cookieIdentifier).getValue());
+				UUID.fromString(DefaultIdentifierProvider.getCookie(mockHttpServletRequest.getCookies(), DefaultIdentifierProvider.cookieIdentifier)
+						.getValue()));
 
 		// assert session filled
-		Assert.assertEquals(identifier, mockHttpServletRequest.getSession().getAttribute(StaticStateIdentifierManager.cookieIdentifier));
+		Assert.assertEquals(identifier, mockHttpServletRequest.getSession().getAttribute(DefaultIdentifierProvider.cookieIdentifier));
 
 		// then clear identifier
 		staticStateIdentifierManager.clearIdentifier();
@@ -76,10 +80,10 @@ public class StaticStateIdentifierManagerTest {
 		mockHttpServletRequest.setCookies(mockHttpServletResponse.getCookies());
 
 		// assert session is empty
-		Assert.assertNull(mockHttpServletRequest.getSession().getAttribute(staticStateIdentifierManager.cookieIdentifier));
+		Assert.assertNull(mockHttpServletRequest.getSession().getAttribute(DefaultIdentifierProvider.cookieIdentifier));
 
 		// assert cookie is either empty or maxage below 0
-		Assert.assertNull(StaticStateIdentifierManager.getCookie(mockHttpServletRequest.getCookies(), StaticStateIdentifierManager.cookieIdentifier));
+		Assert.assertNull(DefaultIdentifierProvider.getCookie(mockHttpServletRequest.getCookies(), DefaultIdentifierProvider.cookieIdentifier));
 	}
 
 
@@ -87,28 +91,29 @@ public class StaticStateIdentifierManagerTest {
 	public void testNoIdInSession() {
 
 		// assert session is empty
-		Assert.assertNull(mockHttpServletRequest.getSession().getAttribute(staticStateIdentifierManager.cookieIdentifier));
+		Assert.assertNull(mockHttpServletRequest.getSession().getAttribute(DefaultIdentifierProvider.cookieIdentifier));
 
 		// assert cookie is empty
-		Assert.assertNull(StaticStateIdentifierManager.getCookie(mockHttpServletRequest.getCookies(), StaticStateIdentifierManager.cookieIdentifier));
+		Assert.assertNull(DefaultIdentifierProvider.getCookie(mockHttpServletRequest.getCookies(), DefaultIdentifierProvider.cookieIdentifier));
 
 		// set cookie
-		String identifierOriginal = staticStateIdentifierManager.getUuid();
-		staticStateIdentifierManager.setCookie(identifierOriginal);
+		UUID identifierOriginal = UUID.fromString(staticStateIdentifierManager.getIdentifier());
+		DefaultIdentifierProvider.setCookie(mockHttpServletResponse, identifierOriginal);
 
 		// copy cookies from response to request
 		mockHttpServletRequest.setCookies(mockHttpServletResponse.getCookies());
 
 		// assert cookie filled
 		Assert.assertEquals(identifierOriginal,
-				StaticStateIdentifierManager.getCookie(mockHttpServletRequest.getCookies(), StaticStateIdentifierManager.cookieIdentifier).getValue());
+				UUID.fromString(DefaultIdentifierProvider.getCookie(mockHttpServletRequest.getCookies(), DefaultIdentifierProvider.cookieIdentifier)
+						.getValue()));
 
 		// get id
-		String identifier = staticStateIdentifierManager.getIdentifier();
+		UUID identifier = UUID.fromString(staticStateIdentifierManager.getIdentifier());
 		Assert.assertEquals(identifierOriginal, identifier);
 
 		// assert session is filled with id
-		Assert.assertEquals(identifier, mockHttpServletRequest.getSession().getAttribute(StaticStateIdentifierManager.cookieIdentifier));
+		Assert.assertEquals(identifier, mockHttpServletRequest.getSession().getAttribute(DefaultIdentifierProvider.cookieIdentifier));
 
 	}
 
