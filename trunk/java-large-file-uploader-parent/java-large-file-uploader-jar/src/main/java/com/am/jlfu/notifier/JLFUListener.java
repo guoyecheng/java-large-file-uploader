@@ -2,11 +2,13 @@ package com.am.jlfu.notifier;
 
 
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
+import com.am.jlfu.identifier.impl.DefaultIdentifierProvider;
 
 
 
 /**
  * Listener to be able to monitor the JLFU API on the java side.
+ * Use {@link JLFUListenerPropagator} to register a listener.
  * 
  * @author antoinem
  * 
@@ -14,7 +16,8 @@ import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 public interface JLFUListener {
 
 	/**
-	 * Fired when a new client has been attributed a new id.
+	 * Fired when a new client has been attributed a new id.<br>
+	 * <i>Note that this event is sent by the {@link DefaultIdentifierProvider}.</i>
 	 * 
 	 * @param clientId
 	 */
@@ -23,6 +26,7 @@ public interface JLFUListener {
 
 	/**
 	 * Fired when a client is identified with its cookie and the corresponding state is restored.
+	 * <i>Note that this event is sent by the {@link DefaultIdentifierProvider}.</i>
 	 * 
 	 * @param clientId
 	 */
