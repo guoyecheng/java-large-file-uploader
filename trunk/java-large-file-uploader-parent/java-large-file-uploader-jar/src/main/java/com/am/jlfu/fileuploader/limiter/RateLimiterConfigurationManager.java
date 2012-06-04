@@ -138,10 +138,12 @@ public class RateLimiterConfigurationManager
 				for (Entry<UUID, StaticFileState> lavds : entityIfPresentWithIdentifier.getFileStates().entrySet()) {
 					if (lavds.getValue().getStaticFileStateJson().getCrcedBytes() != lavds.getValue().getStaticFileStateJson()
 							.getOriginalFileSizeInBytes()) {
+						log.debug("inactivity detected for client " + key);
 						jlfuListenerPropagator.getPropagator().onClientInactivity(key, clientEvictionTimeInSeconds);
 						return;
 					}
 				}
+				log.debug("natural removal for client " + key);
 
 			}
 		}
