@@ -47,14 +47,7 @@ public class ImportedFilesCleaner {
 		for (File file : listFiles) {
 			if (pastTime.isAfter(file.lastModified())) {
 				log.debug("Deleting outdated file: " + file.getName());
-				try {
-					fileDeleter.deleteFile(file);
-				}
-				catch (Exception e) {
-					log.error(
-							"Cannot delete file located at " + file.getAbsolutePath() + ". Manual intervention required to free space. Cause: " +
-									e.getMessage(), e);
-				}
+				fileDeleter.deleteFile(file);
 			}
 		}
 		log.debug("Finished file cleaner job.");
