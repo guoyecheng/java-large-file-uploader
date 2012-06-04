@@ -58,7 +58,7 @@ public class DefaultIdentifierProvider
 
 	UUID getUuid() {
 		final UUID uuid = UUID.randomUUID();
-		jlfuListenerPropagator.getPropagator().onNewClient(uuid.toString());
+		jlfuListenerPropagator.getPropagator().onNewClient(uuid);
 		return uuid;
 	}
 
@@ -78,7 +78,7 @@ public class DefaultIdentifierProvider
 				// set in session
 				uuid = UUID.fromString(cookie.getValue());
 				req.getSession().setAttribute(cookieIdentifier, uuid);
-				jlfuListenerPropagator.getPropagator().onClientBack(uuid.toString());
+				jlfuListenerPropagator.getPropagator().onClientBack(uuid);
 				return uuid;
 			}
 

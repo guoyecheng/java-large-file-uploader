@@ -1,6 +1,8 @@
 package com.am.jlfu.authorizer.impl;
 
 
+import java.util.UUID;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.stereotype.Component;
@@ -21,7 +23,7 @@ public class DefaultAuthorizer
 		implements Authorizer {
 
 	@Override
-	public void getAuthorization(HttpServletRequest request, UploadServletAction action, String clientId, String optionalFileId) {
+	public void getAuthorization(HttpServletRequest request, UploadServletAction action, UUID clientId, UUID optionalFileId) {
 		// by default, all calls are authorized
 	}
 

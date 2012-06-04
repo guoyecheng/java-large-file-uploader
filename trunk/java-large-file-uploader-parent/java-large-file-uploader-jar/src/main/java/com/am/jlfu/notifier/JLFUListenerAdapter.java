@@ -1,6 +1,10 @@
 package com.am.jlfu.notifier;
 
 
+import java.util.UUID;
+
+
+
 /**
  * Listener adapter of {@link JLFUListener}.
  * 
@@ -11,49 +15,49 @@ public class JLFUListenerAdapter
 		implements JLFUListener {
 
 	@Override
-	public void onNewClient(String clientId) {
+	public void onNewClient(UUID clientId) {
 
 	}
 
 
 	@Override
-	public void onClientBack(String clientId) {
+	public void onClientBack(UUID clientId) {
 
 	}
 
 
 	@Override
-	public void onClientInactivity(String clientId, int inactivityDuration) {
+	public void onClientInactivity(UUID clientId, int inactivityDuration) {
 
 	}
 
 
 	@Override
-	public void onFileUploadEnd(String clientId, String fileId) {
+	public void onFileUploadEnd(UUID clientId, UUID fileId) {
 
 	}
 
 
 	@Override
-	public void onFileUploadPrepared(String clientId, String fileId) {
+	public void onFileUploadPrepared(UUID clientId, UUID fileId) {
 
 	}
 
 
 	@Override
-	public void onFileUploadCancelled(String clientId, String fileId) {
+	public void onFileUploadCancelled(UUID clientId, UUID fileId) {
 
 	}
 
 
 	@Override
-	public void onFileUploadPaused(String clientId, String fileId) {
+	public void onFileUploadPaused(UUID clientId, UUID fileId) {
 
 	}
 
 
 	@Override
-	public void onFileUploadResumed(String clientId, String fileId) {
+	public void onFileUploadResumed(UUID clientId, UUID fileId) {
 
 	}
 

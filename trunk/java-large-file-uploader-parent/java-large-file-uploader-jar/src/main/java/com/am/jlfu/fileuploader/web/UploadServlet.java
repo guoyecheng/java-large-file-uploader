@@ -4,7 +4,10 @@ package com.am.jlfu.fileuploader.web;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.UUID;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -26,6 +29,8 @@ import com.am.jlfu.fileuploader.logic.UploadProcessor;
 import com.am.jlfu.fileuploader.web.utils.ExceptionCodeMappingHelper;
 import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 
@@ -72,9 +77,13 @@ public class UploadServlet extends HttpRequestHandlerServlet
 			UploadServletAction actionByParameterName =
 					UploadServletAction.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.action));
 
-			// check authorization
-			authorizer.getAuthorization(request, actionByParameterName, staticStateIdentifierManager.getIdentifier(),
-					fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId, false));
+			// check authorization if its not get progress (because we do not really care about
+			// authorization for get progress and it uses an array of file ids)
+			if (!actionByParameterName.equals(UploadServletAction.getProgress)) {
+				final String uuid = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId, false);
+				authorizer.getAuthorization(request, actionByParameterName, staticStateIdentifierManager.getIdentifier(),
+						uuid != null ? UUID.fromString(uuid) : null);
+			}
 
 			// then process the asked action
 			jsonObject = processAction(actionByParameterName, request);
@@ -110,19 +119,20 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				returnObject = prepareUpload(request);
 				break;
 			case clearFile:
-				uploadProcessor.clearFile(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
+				uploadProcessor.clearFile(UUID.fromString(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId)));
 				break;
 			case clearAll:
 				uploadProcessor.clearAll();
 				break;
 			case pauseFile:
-				uploadProcessor.pauseFile(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
+				uploadProcessor.pauseFile(UUID.fromString(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId)));
 				break;
 			case resumeFile:
-				returnObject = uploadProcessor.resumeFile(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
+				returnObject =
+						uploadProcessor.resumeFile(UUID.fromString(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId)));
 				break;
 			case setRate:
-				uploadProcessor.setUploadRate(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId),
+				uploadProcessor.setUploadRate(UUID.fromString(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId)),
 						Long.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.rate)));
 				break;
 			case getProgress:
@@ -139,8 +149,16 @@ public class UploadServlet extends HttpRequestHandlerServlet
 		String[] ids =
 				new Gson()
 						.fromJson(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId), String[].class);
+		Collection<UUID> uuids = Collections2.transform(Arrays.asList(ids), new Function<String, UUID>() {
+
+			@Override
+			public UUID apply(String input) {
+				return UUID.fromString(input);
+			}
+
+		});
 		returnObject = Maps.newHashMap();
-		for (String fileId : ids) {
+		for (UUID fileId : uuids) {
 			try {
 				Float progress = uploadProcessor.getProgress(fileId);
 				Long uploadStat = uploadProcessor.getUploadStat(fileId);
@@ -149,7 +167,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				if (uploadStat != null) {
 					progressJson.setUploadRate(uploadStat);
 				}
-				((HashMap<String, ProgressJson>) returnObject).put(fileId, progressJson);
+				((HashMap<String, ProgressJson>) returnObject).put(fileId.toString(), progressJson);
 			}
 			catch (FileNotFoundException e) {
 				log.debug("No progress will be retrieved for " + fileId + " because " + e.getMessage());
@@ -168,7 +186,8 @@ public class UploadServlet extends HttpRequestHandlerServlet
 		returnObject = Maps.newHashMap();
 		for (PrepareUploadJson prepareUploadJson : fromJson) {
 			String idOfTheFile =
-					uploadProcessor.prepareUpload(prepareUploadJson.getSize(), prepareUploadJson.getFileName(), prepareUploadJson.getCrc());
+					uploadProcessor.prepareUpload(prepareUploadJson.getSize(), prepareUploadJson.getFileName(), prepareUploadJson.getCrc())
+							.toString();
 			((HashMap<String, String>) returnObject).put(prepareUploadJson.getTempId().toString(), idOfTheFile);
 		}
 		return returnObject;
@@ -177,7 +196,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 
 	private Boolean verifyCrcOfUncheckedPart(HttpServletRequest request)
 			throws IOException, MissingParameterException {
-		String fileId = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId);
+		UUID fileId = UUID.fromString(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
 		try {
 			uploadProcessor.verifyCrcOfUncheckedPart(fileId,
 					fileUploaderHelper.getParameterValue(request, UploadServletParameter.crc));

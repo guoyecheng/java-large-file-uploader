@@ -1,6 +1,8 @@
 package com.am.jlfu.authorizer;
 
 
+import java.util.UUID;
+
 import javax.servlet.http.HttpServletRequest;
 
 import com.am.jlfu.fileuploader.exception.AuthorizationException;
@@ -28,7 +30,7 @@ public interface Authorizer {
 	 * @throws AuthorizationException
 	 *             if the client cannot perform the action on this file
 	 */
-	void getAuthorization(HttpServletRequest request, UploadServletAction action, String clientId, String optionalFileId)
+	void getAuthorization(HttpServletRequest request, UploadServletAction action, UUID clientId, UUID optionalFileId)
 			throws AuthorizationException;
 
 }

@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.lessThan;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -42,8 +43,8 @@ public class RateLimiterTest {
 
 	private void emulateUpload(Long requestRate, Long clientRate, Long masterRate, int uploadSizeInKB, int expectedDuration)
 			throws InterruptedException {
-		String fileId = "fileId";
-		String clientId = "clientId";
+		UUID fileId = UUID.randomUUID();
+		UUID clientId = UUID.randomUUID();
 
 		// extract config
 		final RequestUploadProcessingConfiguration uploadProcessingConfiguration =
@@ -77,7 +78,7 @@ public class RateLimiterTest {
 	}
 
 
-	private void assignRateToRequest(Long requestRate, String id, final RequestUploadProcessingConfiguration uploadProcessingConfiguration) {
+	private void assignRateToRequest(Long requestRate, UUID id, final RequestUploadProcessingConfiguration uploadProcessingConfiguration) {
 
 		uploadProcessingConfiguration.setProcessing(true);
 		final long originalDownloadAllowanceForIteration = uploadProcessingConfiguration.getDownloadAllowanceForIteration();
@@ -89,7 +90,7 @@ public class RateLimiterTest {
 	}
 
 
-	private long upload(String clientId, String fileId, int uploadSizeInKB,
+	private long upload(UUID clientId, UUID fileId, int uploadSizeInKB,
 			RequestUploadProcessingConfiguration requestUploadProcessingConfiguration,
 			UploadProcessingConfiguration clientUploadProcessingConfiguration, UploadProcessingConfiguration masterUploadProcessingConfiguration) {
 
@@ -161,11 +162,13 @@ public class RateLimiterTest {
 		// set master rate limitation
 		uploadProcessingConfigurationManager.setMaximumOverAllRateInKiloBytes(master);
 
+		final UUID clientId = UUID.randomUUID();
+
 		// and 10 requests are gonna upload a 10MB file
 		int numberOfRequests = 10;
 		List<Callable<Long>> runnables = Lists.newArrayList();
 		for (int i = 0; i < numberOfRequests; i++) {
-			runnables.add(new TestRunnable("clientId", "fileId" + i, 10000));
+			runnables.add(new TestRunnable(clientId, UUID.randomUUID(), 10000));
 		}
 
 		// invoke
@@ -181,8 +184,8 @@ public class RateLimiterTest {
 	class TestRunnable
 			implements Callable<Long> {
 
-		private String clientId;
-		private String fileId;
+		private UUID clientId;
+		private UUID fileId;
 		private int fileSize;
 		private RequestUploadProcessingConfiguration requestUploadProcessingConfiguration;
 		private UploadProcessingConfiguration clientUploadProcessingConfiguration;
@@ -190,7 +193,7 @@ public class RateLimiterTest {
 
 
 
-		public TestRunnable(String clientId, String fileId, int fileSize) {
+		public TestRunnable(UUID clientId, UUID fileId, int fileSize) {
 			this.clientId = clientId;
 			this.fileId = fileId;
 			this.fileSize = fileSize;

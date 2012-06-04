@@ -1,6 +1,8 @@
 package com.am.jlfu.notifier;
 
 
+import java.util.UUID;
+
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -31,7 +33,7 @@ public class JLFUListenerPropagatorTest {
 		listener = new JLFUListenerAdapter() {
 
 			@Override
-			public void onNewClient(String clientId) {
+			public void onNewClient(UUID clientId) {
 				testCounter++;
 			}
 		};
@@ -47,7 +49,7 @@ public class JLFUListenerPropagatorTest {
 		jlfuListenerPropagator.registerListener(listener);
 
 		// trigger event
-		jlfuListenerPropagator.getPropagator().onNewClient("client");
+		jlfuListenerPropagator.getPropagator().onNewClient(UUID.randomUUID());
 
 		// assert
 		Assert.assertThat(testCounter, CoreMatchers.is(2));
@@ -56,7 +58,7 @@ public class JLFUListenerPropagatorTest {
 		jlfuListenerPropagator.unregisterListener(listener);
 
 		// trigger event
-		jlfuListenerPropagator.getPropagator().onNewClient("client");
+		jlfuListenerPropagator.getPropagator().onNewClient(UUID.randomUUID());
 
 		// assert
 		Assert.assertThat(testCounter, CoreMatchers.is(3));

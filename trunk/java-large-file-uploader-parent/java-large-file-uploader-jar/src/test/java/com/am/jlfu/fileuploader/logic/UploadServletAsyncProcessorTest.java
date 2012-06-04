@@ -11,6 +11,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -144,7 +145,7 @@ public class UploadServletAsyncProcessorTest {
 			throws IOException, MissingParameterException, FileUploadException, InvalidCrcException, InterruptedException {
 
 		// begin a file upload process
-		String fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName, "lala");
+		UUID fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName, "lala");
 
 		// upload with bad crc
 		TestFileSplitResult splitResult = UploadProcessorTest.getByteArrayFromFile(tinyFile, 0, 3);
@@ -169,7 +170,7 @@ public class UploadServletAsyncProcessorTest {
 		TestFileSplitResult splitResult;
 
 		// begin a file upload process
-		String fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName, "lala");
+		UUID fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName, "lala");
 		CRCResult bufferedCrc = crcHelper.getBufferedCrc(new ByteArrayInputStream(tinyFileContent.clone()));
 
 		// get progress
@@ -460,7 +461,7 @@ public class UploadServletAsyncProcessorTest {
 
 		protected int currentSlice;
 		protected long numberOfSlices;
-		protected String fileId;
+		protected UUID fileId;
 		protected byte[] fileContent;
 
 
@@ -469,7 +470,7 @@ public class UploadServletAsyncProcessorTest {
 				throws Exception;
 
 
-		public void start(Semaphore referenceToWakeUp, int currentSlice, long numberOfSlices, String fileId, byte[] fileContent)
+		public void start(Semaphore referenceToWakeUp, int currentSlice, long numberOfSlices, UUID fileId, byte[] fileContent)
 				throws Exception {
 			this.currentSlice = currentSlice;
 			this.numberOfSlices = numberOfSlices;
@@ -498,7 +499,7 @@ public class UploadServletAsyncProcessorTest {
 		new Random().nextBytes(fileContent);
 
 		// prepare upload
-		String fileId = uploadProcessor.prepareUpload(size, fileName, "lala");
+		UUID fileId = uploadProcessor.prepareUpload(size, fileName, "lala");
 		String absoluteFullPathOfUploadedFile = staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
 
 		// set a 100mb rate
@@ -529,13 +530,13 @@ public class UploadServletAsyncProcessorTest {
 	}
 
 
-	private void processWaitForCompletionAndCheck(String fileId, TestFileSplitResult byteArrayFromFile)
+	private void processWaitForCompletionAndCheck(UUID fileId, TestFileSplitResult byteArrayFromFile)
 			throws FileNotFoundException, InterruptedException {
 		processWaitForCompletionAndCheck(fileId, byteArrayFromFile, null);
 	}
 
 
-	private void processWaitForCompletionAndCheck(String fileId, TestFileSplitResult byteArrayFromFile, Class<? extends Exception> expectedException)
+	private void processWaitForCompletionAndCheck(UUID fileId, TestFileSplitResult byteArrayFromFile, Class<? extends Exception> expectedException)
 			throws FileNotFoundException, InterruptedException {
 		Listener completionListener = new Listener(expectedException == null);
 		uploadServletAsyncProcessor.process(staticStateManager.getEntity().getFileStates().get(fileId), fileId, byteArrayFromFile.crc,
