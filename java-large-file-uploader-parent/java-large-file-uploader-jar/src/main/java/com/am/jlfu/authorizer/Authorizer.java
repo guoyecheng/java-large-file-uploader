@@ -1,0 +1,34 @@
+package com.am.jlfu.authorizer;
+
+
+import javax.servlet.http.HttpServletRequest;
+
+import com.am.jlfu.fileuploader.exception.AuthorizationException;
+import com.am.jlfu.fileuploader.web.UploadServletAction;
+
+
+
+/**
+ * Allows or not a user to perform an operation on the JLFU api.
+ * 
+ * @author antoinem
+ * 
+ */
+public interface Authorizer {
+
+	/**
+	 * @param request
+	 *            the initial servlet request
+	 * @param action
+	 *            the action that the client wishes to perform
+	 * @param clientId
+	 *            the identifier of the client
+	 * @param optionalFileId
+	 *            if available, the file id
+	 * @throws AuthorizationException
+	 *             if the client cannot perform the action on this file
+	 */
+	void getAuthorization(HttpServletRequest request, UploadServletAction action, String clientId, String optionalFileId)
+			throws AuthorizationException;
+
+}

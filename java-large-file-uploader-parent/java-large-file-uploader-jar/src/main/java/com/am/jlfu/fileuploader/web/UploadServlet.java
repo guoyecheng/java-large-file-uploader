@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
+import com.am.jlfu.authorizer.Authorizer;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
 import com.am.jlfu.fileuploader.json.PrepareUploadJson;
@@ -24,6 +25,7 @@ import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.logic.UploadProcessor;
 import com.am.jlfu.fileuploader.web.utils.ExceptionCodeMappingHelper;
 import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper;
+import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 
@@ -51,6 +53,12 @@ public class UploadServlet extends HttpRequestHandlerServlet
 	@Autowired
 	ExceptionCodeMappingHelper exceptionCodeMappingHelper;
 
+	@Autowired
+	Authorizer authorizer;
+
+	@Autowired
+	StaticStateIdentifierManager staticStateIdentifierManager;
+
 
 
 	@Override
@@ -63,6 +71,10 @@ public class UploadServlet extends HttpRequestHandlerServlet
 			// extract the action from the request
 			UploadServletAction actionByParameterName =
 					UploadServletAction.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.action));
+
+			// check authorization
+			authorizer.getAuthorization(request, actionByParameterName, staticStateIdentifierManager.getIdentifier(),
+					fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId, false));
 
 			// then process the asked action
 			jsonObject = processAction(actionByParameterName, request);

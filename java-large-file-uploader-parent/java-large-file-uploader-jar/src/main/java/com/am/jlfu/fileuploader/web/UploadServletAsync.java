@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
+import com.am.jlfu.authorizer.Authorizer;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor.WriteChunkCompletionListener;
 import com.am.jlfu.fileuploader.web.utils.ExceptionCodeMappingHelper;
@@ -52,6 +53,9 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 	@Autowired
 	FileUploaderHelper fileUploaderHelper;
 
+	@Autowired
+	Authorizer authorizer;
+
 	/**
 	 * Maximum time that a streaming request can take.<br>
 	 * Note that the pause/resume stuff might not be a good idea as it keeps the stream opened while
@@ -77,6 +81,9 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 				response.sendError(499);
 				return;
 			}
+
+			// verify authorization
+			authorizer.getAuthorization(request, UploadServletAction.upload, staticStateIdentifierManager.getIdentifier(), process.getFileId());
 
 			// get the model
 			final StaticStatePersistedOnFileSystemEntity entityIfPresent = staticStateManager.getEntityIfPresent();

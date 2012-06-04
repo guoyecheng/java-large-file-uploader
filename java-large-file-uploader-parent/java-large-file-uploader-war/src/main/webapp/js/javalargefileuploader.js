@@ -25,6 +25,7 @@ function JavaLargeFileUploader() {
 	errorMessages[9] = "Maximum number of concurrent uploads reached, the upload is queued and waiting for one to finish.";
 	errorMessages[10] = "An exception occurred. Retrying ...";
 	errorMessages[11] = "Connection lost. Automatically retrying in a moment.";
+	errorMessages[12] = "You do not have the permission to perform this action.";
 	
 	this.setJavaLargeFileUploaderHost = function (javaLargeFileUploaderHostI) {
 		javaLargeFileUploaderHost = javaLargeFileUploaderHostI;
