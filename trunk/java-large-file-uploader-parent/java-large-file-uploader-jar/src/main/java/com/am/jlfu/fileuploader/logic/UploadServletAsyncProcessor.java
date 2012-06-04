@@ -26,7 +26,8 @@ import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.limiter.RateLimiter;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.fileuploader.limiter.RequestUploadProcessingConfiguration;
-import com.am.jlfu.fileuploader.limiter.UploadProcessingConfiguration;
+import com.am.jlfu.fileuploader.limiter.UploadProcessingOperation;
+import com.am.jlfu.fileuploader.limiter.UploadProcessingOperationManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
@@ -44,10 +45,16 @@ public class UploadServletAsyncProcessor {
 	private static final Logger log = LoggerFactory.getLogger(UploadServletAsyncProcessor.class);
 
 	@Autowired
+	private RateLimiter rateLimiter;
+
+	@Autowired
 	private RateLimiterConfigurationManager uploadProcessingConfigurationManager;
 
 	@Autowired
 	private StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
+
+	@Autowired
+	private UploadProcessingOperationManager uploadProcessingOperationManager;
 
 	@Autowired
 	private StaticStateIdentifierManager staticStateIdentifierManager;
@@ -69,21 +76,13 @@ public class UploadServletAsyncProcessor {
 		final RequestUploadProcessingConfiguration requestUploadProcessingConfiguration =
 				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId);
 
-		// extract the corresponding client entity from map
-		final UploadProcessingConfiguration clientUploadProcessingConfiguration =
-				uploadProcessingConfigurationManager.getClientUploadProcessingConfiguration(clientId);
-
-		// get the master processing configuration
-		final UploadProcessingConfiguration masterUploadProcessingConfiguration =
-				uploadProcessingConfigurationManager.getMasterProcessingConfiguration();
-
 		// get static file state
 		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
 
 		// if there is no configuration in the map
 		if (requestUploadProcessingConfiguration.getRateInKiloBytes() == null) {
 
-			// and if there is a specific configuration in th file
+			// and if there is a specific configuration in the file
 			FileStateJsonBase staticFileStateJson = fileState.getStaticFileStateJson();
 			if (staticFileStateJson != null && staticFileStateJson.getRateInKiloBytes() != null) {
 
@@ -102,10 +101,17 @@ public class UploadServletAsyncProcessor {
 		// initialize the streams
 		FileOutputStream outputStream = new FileOutputStream(file, true);
 
+		// get all the processing operation
+		uploadProcessingOperationManager.startOperation(clientId, fileId);
+		final UploadProcessingOperation masterProcessingOperation = uploadProcessingOperationManager.getMasterProcessingOperation();
+		final UploadProcessingOperation clientProcessingOperation = uploadProcessingOperationManager.getClientProcessingOperation(clientId);
+		final UploadProcessingOperation requestProcessingOperation = uploadProcessingOperationManager.getFileProcessingOperation(fileId);
+
+
 		// init the task
 		final WriteChunkToFileTask task =
-				new WriteChunkToFileTask(fileId, requestUploadProcessingConfiguration, clientUploadProcessingConfiguration,
-						masterUploadProcessingConfiguration, crc, inputStream,
+				new WriteChunkToFileTask(fileId, requestProcessingOperation, clientProcessingOperation,
+						masterProcessingOperation, crc, inputStream,
 						outputStream, completionListener, clientId);
 
 		// mark the file as processing
@@ -138,9 +144,9 @@ public class UploadServletAsyncProcessor {
 
 		private final WriteChunkCompletionListener completionListener;
 
-		private RequestUploadProcessingConfiguration requestUploadProcessingConfiguration;
-		private UploadProcessingConfiguration clientUploadProcessingConfiguration;
-		private UploadProcessingConfiguration masterUploadProcessingConfiguration;
+		private UploadProcessingOperation requestUploadProcessingConfiguration;
+		private UploadProcessingOperation clientUploadProcessingConfiguration;
+		private UploadProcessingOperation masterUploadProcessingConfiguration;
 
 		private CRC32 crc32 = new CRC32();
 		private long byteProcessed;
@@ -148,15 +154,15 @@ public class UploadServletAsyncProcessor {
 
 
 
-		public WriteChunkToFileTask(UUID fileId, RequestUploadProcessingConfiguration requestUploadProcessingConfiguration,
-				UploadProcessingConfiguration clientUploadProcessingConfiguration, UploadProcessingConfiguration masterUploadProcessingConfiguration,
+		public WriteChunkToFileTask(UUID fileId, UploadProcessingOperation requestOperation,
+				UploadProcessingOperation clientOperation, UploadProcessingOperation masterProcessingOperation,
 				String crc,
 				InputStream inputStream,
 				FileOutputStream outputStream, WriteChunkCompletionListener completionListener, UUID clientId) {
 			this.fileId = fileId;
-			this.requestUploadProcessingConfiguration = requestUploadProcessingConfiguration;
-			this.clientUploadProcessingConfiguration = clientUploadProcessingConfiguration;
-			this.masterUploadProcessingConfiguration = masterUploadProcessingConfiguration;
+			this.requestUploadProcessingConfiguration = requestOperation;
+			this.clientUploadProcessingConfiguration = clientOperation;
+			this.masterUploadProcessingConfiguration = masterProcessingOperation;
 			this.crc = crc;
 			this.inputStream = inputStream;
 			this.outputStream = outputStream;
@@ -286,7 +292,7 @@ public class UploadServletAsyncProcessor {
 		public void completeWithError(Exception e) {
 			log.debug("error for " + fileId + ". closing file stream");
 			closeFileStream();
-			clean(fileId);
+			clean(clientId, fileId);
 			completionListener.error(e);
 		}
 
@@ -294,7 +300,7 @@ public class UploadServletAsyncProcessor {
 		public void success() {
 			log.debug("completion for " + fileId + ". closing file stream");
 			closeFileStream();
-			clean(fileId);
+			clean(clientId, fileId);
 			completionListener.success();
 		}
 
@@ -320,9 +326,14 @@ public class UploadServletAsyncProcessor {
 	}
 
 
-	public void clean(UUID identifier) {
-		log.debug("resetting token bucket for " + identifier);
-		uploadProcessingConfigurationManager.reset(identifier);
+	public void clean(UUID clientId, UUID fileId) {
+		log.debug("resetting token bucket for " + fileId);
+
+		// deleting operation
+		uploadProcessingOperationManager.stopOperation(clientId, fileId);
+
+		// resetting configuration
+		uploadProcessingConfigurationManager.reset(fileId);
 	}
 
 

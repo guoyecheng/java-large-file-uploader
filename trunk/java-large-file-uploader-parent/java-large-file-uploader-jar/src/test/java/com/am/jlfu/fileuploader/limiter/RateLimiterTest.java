@@ -36,6 +36,9 @@ public class RateLimiterTest {
 	@Autowired
 	RateLimiterConfigurationManager uploadProcessingConfigurationManager;
 
+	@Autowired
+	UploadProcessingOperationManager uploadProcessingOperationManager;
+
 
 	ExecutorService executorService = Executors.newFixedThreadPool(10);
 
@@ -54,14 +57,21 @@ public class RateLimiterTest {
 		final UploadProcessingConfiguration masterProcessingConfiguration =
 				uploadProcessingConfigurationManager.getMasterProcessingConfiguration();
 
+		// extract operation
+		uploadProcessingOperationManager.startOperation(clientId, fileId);
+		final UploadProcessingOperation clientProcessingOperation = uploadProcessingOperationManager.getClientProcessingOperation(clientId);
+		final UploadProcessingOperation fileProcessingOperation = uploadProcessingOperationManager.getFileProcessingOperation(fileId);
+		final UploadProcessingOperation masterProcessingOperation = uploadProcessingOperationManager.getMasterProcessingOperation();
+
 		// init request rate
 		if (requestRate != null) {
-			assignRateToRequest(requestRate, fileId, uploadProcessingConfiguration);
+			assignRateToRequest(requestRate, fileId, uploadProcessingConfiguration, fileProcessingOperation);
 		}
 
 		// perform upload
 		long itTookThatLong =
-				upload(clientId, fileId, uploadSizeInKB, uploadProcessingConfiguration, clientProcessingConfiguration, masterProcessingConfiguration);
+				upload(clientId, fileId, uploadSizeInKB, uploadProcessingConfiguration, clientProcessingConfiguration, masterProcessingConfiguration,
+						fileProcessingOperation, clientProcessingOperation, masterProcessingOperation);
 
 		// specify completion
 		uploadProcessingConfigurationManager.reset(fileId);
@@ -78,21 +88,24 @@ public class RateLimiterTest {
 	}
 
 
-	private void assignRateToRequest(Long requestRate, UUID id, final RequestUploadProcessingConfiguration uploadProcessingConfiguration) {
+	private void assignRateToRequest(Long requestRate, UUID id, final RequestUploadProcessingConfiguration uploadProcessingConfiguration,
+			UploadProcessingOperation fileProcessingOperation) {
 
 		uploadProcessingConfiguration.setProcessing(true);
-		final long originalDownloadAllowanceForIteration = uploadProcessingConfiguration.getDownloadAllowanceForIteration();
+		final long originalDownloadAllowanceForIteration = fileProcessingOperation.getDownloadAllowanceForIteration();
 		uploadProcessingConfigurationManager.assignRateToRequest(id, requestRate);
 
 		// wait for the rate modification to occur
-		while (uploadProcessingConfiguration.getDownloadAllowanceForIteration() == originalDownloadAllowanceForIteration) {
+		while (fileProcessingOperation.getDownloadAllowanceForIteration() == originalDownloadAllowanceForIteration) {
 		}
 	}
 
 
 	private long upload(UUID clientId, UUID fileId, int uploadSizeInKB,
 			RequestUploadProcessingConfiguration requestUploadProcessingConfiguration,
-			UploadProcessingConfiguration clientUploadProcessingConfiguration, UploadProcessingConfiguration masterUploadProcessingConfiguration) {
+			UploadProcessingConfiguration clientUploadProcessingConfiguration, UploadProcessingConfiguration masterUploadProcessingConfiguration,
+			UploadProcessingOperation fileProcessingOperation, UploadProcessingOperation clientProcessingOperation,
+			UploadProcessingOperation masterProcessingOperation) {
 
 		// set the request as processing
 		requestUploadProcessingConfiguration.setProcessing(true);
@@ -105,15 +118,15 @@ public class RateLimiterTest {
 
 			// calculate allowance
 			allowance = UploadServletAsyncProcessor.minOf(
-					(int) requestUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
-					(int) clientUploadProcessingConfiguration.getDownloadAllowanceForIteration(),
-					(int) masterUploadProcessingConfiguration.getDownloadAllowanceForIteration()
+					(int) fileProcessingOperation.getDownloadAllowanceForIteration(),
+					(int) clientProcessingOperation.getDownloadAllowanceForIteration(),
+					(int) masterProcessingOperation.getDownloadAllowanceForIteration()
 					);
 
 			// consumption
-			requestUploadProcessingConfiguration.bytesConsumedFromAllowance(allowance);
-			clientUploadProcessingConfiguration.bytesConsumedFromAllowance(allowance);
-			masterUploadProcessingConfiguration.bytesConsumedFromAllowance(allowance);
+			fileProcessingOperation.bytesConsumedFromAllowance(allowance);
+			clientProcessingOperation.bytesConsumedFromAllowance(allowance);
+			masterProcessingOperation.bytesConsumedFromAllowance(allowance);
 
 			totalUpload -= allowance;
 			log.debug(clientId + " " + fileId + " uploaded " + totalUpload);
@@ -190,6 +203,9 @@ public class RateLimiterTest {
 		private RequestUploadProcessingConfiguration requestUploadProcessingConfiguration;
 		private UploadProcessingConfiguration clientUploadProcessingConfiguration;
 		private UploadProcessingConfiguration masterUploadProcessingConfiguration;
+		private UploadProcessingOperation fileProcessingOperation;
+		private UploadProcessingOperation masterProcessingOperation;
+		private UploadProcessingOperation clientProcessingOperation;
 
 
 
@@ -203,13 +219,17 @@ public class RateLimiterTest {
 					uploadProcessingConfigurationManager.getClientUploadProcessingConfiguration(clientId);
 			masterUploadProcessingConfiguration =
 					uploadProcessingConfigurationManager.getMasterProcessingConfiguration();
+			uploadProcessingOperationManager.startOperation(clientId, fileId);
+			fileProcessingOperation = uploadProcessingOperationManager.getFileProcessingOperation(clientId);
+			clientProcessingOperation = uploadProcessingOperationManager.getClientProcessingOperation(fileId);
+			masterProcessingOperation = uploadProcessingOperationManager.getMasterProcessingOperation();
 		}
 
 
 		@Override
 		public Long call() {
 			return upload(clientId, fileId, fileSize, requestUploadProcessingConfiguration, clientUploadProcessingConfiguration,
-					masterUploadProcessingConfiguration);
+					masterUploadProcessingConfiguration, fileProcessingOperation, clientProcessingOperation, masterProcessingOperation);
 		}
 	}
 

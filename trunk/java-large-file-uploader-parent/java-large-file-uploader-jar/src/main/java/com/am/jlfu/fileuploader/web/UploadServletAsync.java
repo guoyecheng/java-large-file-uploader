@@ -3,6 +3,7 @@ package com.am.jlfu.fileuploader.web;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.UUID;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletException;
@@ -83,7 +84,8 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 			}
 
 			// verify authorization
-			authorizer.getAuthorization(request, UploadServletAction.upload, staticStateIdentifierManager.getIdentifier(), process.getFileId());
+			final UUID clientId = staticStateIdentifierManager.getIdentifier();
+			authorizer.getAuthorization(request, UploadServletAction.upload, clientId, process.getFileId());
 
 			// get the model
 			final StaticStatePersistedOnFileSystemEntity entityIfPresent = staticStateManager.getEntityIfPresent();
@@ -113,7 +115,7 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 					log.debug("request " + request + " completed.");
 					// we do not need to clear the inputstream here.
 					// and tell processor to clean its shit!
-					uploadServletAsyncProcessor.clean(process.getFileId());
+					uploadServletAsyncProcessor.clean(clientId, process.getFileId());
 				}
 			});
 
