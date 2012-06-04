@@ -23,6 +23,8 @@ public class RateLimiter
 	@Autowired
 	RateLimiterConfigurationManager uploadProcessingConfigurationManager;
 
+	@Autowired
+	UploadProcessingOperationManager uploadProcessingOperationManager;
 
 	/** Number of times the bucket is filled per second. */
 	public static final int NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND = 10;
@@ -45,54 +47,50 @@ public class RateLimiter
 
 			// calculate maximum limitation
 			// and assign it
-			uploadProcessingConfigurationManager.getMasterProcessingConfiguration().setDownloadAllowanceForIteration(
+			uploadProcessingOperationManager.getMasterProcessingOperation().setDownloadAllowanceForIteration(
 					uploadProcessingConfigurationManager.getMaximumOverAllRateInKiloBytes() * 1024 / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND);
 
-			// for all the clients that we have
-			for (Entry<UUID, UploadProcessingConfiguration> clientEntry : uploadProcessingConfigurationManager.getClientEntries()) {
+			// for all pending operation
+			for (Entry<UUID, UploadProcessingOperation> entry : uploadProcessingOperationManager.getClientsAndRequestsProcessingOperation()
+					.entrySet()) {
 
-				// process the client entry
-				processEntry(clientEntry);
+				// process
+				processEntry(entry);
 
-			}
-
-			// for all the requests we have
-			for (Entry<UUID, RequestUploadProcessingConfiguration> requestEntry : uploadProcessingConfigurationManager.getRequestEntries()) {
-
-				// if it is paused, we do not refill the bucket
-				if (requestEntry.getValue().isProcessing()) {
-
-					// process the request entry
-					processEntry(requestEntry);
-				}
 			}
 
 		}
 	}
 
 
-	private void processEntry(Entry<UUID, ? extends UploadProcessingConfiguration> requestEntry) {
+	private void processEntry(Entry<UUID, UploadProcessingOperation> entry) {
+
 		// default per request is set to the maximum, so basically maximum by client
 		long allowedCapacityPerSecond = uploadProcessingConfigurationManager.getMaximumRatePerClientInKiloBytes() * 1024;
 
-		// calculate from the rate in the config
-		Long rateInKiloBytes = requestEntry.getValue().getRateInKiloBytes();
+		// extract the configuration element
+		final RequestUploadProcessingConfiguration requestUploadProcessingConfiguration =
+				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(entry.getKey());
+
+		// calculate from the rate in the configuration
+		Long rateInKiloBytes = requestUploadProcessingConfiguration.getRateInKiloBytes();
 		if (rateInKiloBytes != null) {
 			allowedCapacityPerSecond = (int) (rateInKiloBytes * 1024);
 		}
 
 		// calculate statistics
-		final long instantRateInBytes = requestEntry.getValue().getAndResetBytesWritten();
-		requestEntry.getValue().setInstantRateInBytes(instantRateInBytes);
+		final long instantRateInBytes = entry.getValue().getAndResetBytesWritten();
+		requestUploadProcessingConfiguration.setInstantRateInBytes(instantRateInBytes);
 
 		// calculate what we can write per iteration
 		final long allowedCapacityPerIteration = allowedCapacityPerSecond / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND;
 
 		// set it to the rate conf element
-		requestEntry.getValue().setDownloadAllowanceForIteration(allowedCapacityPerIteration);
+		entry.getValue().setDownloadAllowanceForIteration(allowedCapacityPerIteration);
 
-		log.trace("giving an allowance of " + allowedCapacityPerIteration + " bytes to " + requestEntry.getKey() + ". (consumed " +
+		log.trace("giving an allowance of " + allowedCapacityPerIteration + " bytes to " + entry.getKey() + ". (consumed " +
 				instantRateInBytes + " bytes during previous iteration)");
+
 	}
 
 }

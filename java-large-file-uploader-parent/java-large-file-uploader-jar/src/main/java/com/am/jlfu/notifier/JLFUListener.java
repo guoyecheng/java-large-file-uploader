@@ -38,7 +38,7 @@ public interface JLFUListener {
 
 	/**
 	 * Fired when the uploads of a client have been inactive for duration specified.<br>
-	 * Default to {@link RateLimiterConfigurationManager#CLIENT_EVICTION_TIME_IN_MINUTES}
+	 * Default to {@link RateLimiterConfigurationManager#CLIENT_EVICTION_TIME_IN_SECONDS}
 	 * 
 	 * @param clientId
 	 * @param inactivityDuration

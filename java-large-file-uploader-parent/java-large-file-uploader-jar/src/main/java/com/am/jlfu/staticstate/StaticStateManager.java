@@ -314,6 +314,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * 
 	 * @param clientId
 	 * @param fileId
+	 * @return true if the file is complete
 	 */
 	public void setCrcBytesValidated(final UUID clientId, UUID fileId, final long validated) {
 
@@ -353,6 +354,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 				writeEntity(clientId, entity);
 			}
 		});
+
 	}
 
 }

@@ -6,6 +6,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +17,13 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
 import com.am.jlfu.notifier.JLFUListenerPropagator;
+import com.am.jlfu.staticstate.StaticStateManager;
+import com.am.jlfu.staticstate.entities.StaticFileState;
+import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalCause;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
@@ -25,46 +31,51 @@ import com.google.common.cache.RemovalNotification;
 
 @Component
 @ManagedResource(objectName = "JavaLargeFileUploader:name=rateLimiterConfiguration")
-public class RateLimiterConfigurationManager {
+public class RateLimiterConfigurationManager
+{
 
 	private static final Logger log = LoggerFactory.getLogger(RateLimiterConfigurationManager.class);
 
 	/** Client is evicted from the map when not accessed for that duration */
-	public static final int CLIENT_EVICTION_TIME_IN_MINUTES = 2;
+	@Value("${jlfu.rateLimiterConfiguration.evictionTimeInSeconds:120}")
+	public int clientEvictionTimeInSeconds;
 
 	@Autowired
 	private JLFUListenerPropagator jlfuListenerPropagator;
 
-	final LoadingCache<UUID, UploadProcessingConfiguration> clientConfigMap = CacheBuilder.newBuilder()
-			.removalListener(new RemovalListener<UUID, UploadProcessingConfiguration>() {
+	@Autowired
+	private StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
 
-				@Override
-				public void onRemoval(RemovalNotification<UUID, UploadProcessingConfiguration> notification) {
-					jlfuListenerPropagator.getPropagator().onClientInactivity(notification.getKey(), CLIENT_EVICTION_TIME_IN_MINUTES);
-				}
-			})
-			.expireAfterAccess(CLIENT_EVICTION_TIME_IN_MINUTES, TimeUnit.MINUTES)
-			.build(new CacheLoader<UUID, UploadProcessingConfiguration>() {
+	/** the cache */
+	LoadingCache<UUID, RequestUploadProcessingConfiguration> requestConfigMap;
 
-				@Override
-				public UploadProcessingConfiguration load(UUID arg0)
-						throws Exception {
-					log.trace("Created new bucket for client with id #{}", arg0);
-					return new UploadProcessingConfiguration();
-				}
-			});
 
-	final LoadingCache<UUID, RequestUploadProcessingConfiguration> requestConfigMap = CacheBuilder.newBuilder()
-			.expireAfterAccess(10, TimeUnit.MINUTES)
-			.build(new CacheLoader<UUID, RequestUploadProcessingConfiguration>() {
 
-				@Override
-				public RequestUploadProcessingConfiguration load(UUID arg0)
-						throws Exception {
-					log.trace("Created new bucket for request with id #{}", arg0);
-					return new RequestUploadProcessingConfiguration();
-				}
-			});
+	@PostConstruct
+	private void initMap() {
+		requestConfigMap = CacheBuilder.newBuilder()
+				.removalListener(new RemovalListener<UUID, RequestUploadProcessingConfiguration>() {
+
+					@Override
+					public void onRemoval(RemovalNotification<UUID, RequestUploadProcessingConfiguration> notification) {
+						remove(notification.getCause(), notification.getKey());
+					}
+
+
+				})
+				.expireAfterAccess(clientEvictionTimeInSeconds, TimeUnit.SECONDS)
+				.build(new CacheLoader<UUID, RequestUploadProcessingConfiguration>() {
+
+					@Override
+					public RequestUploadProcessingConfiguration load(UUID arg0)
+							throws Exception {
+						log.trace("Created new bucket for client with id #{}", arg0);
+						return new RequestUploadProcessingConfiguration();
+					}
+				});
+	}
+
+
 
 	private UploadProcessingConfiguration masterProcessingConfiguration = new UploadProcessingConfiguration();
 
@@ -113,6 +124,30 @@ public class RateLimiterConfigurationManager {
 	}
 
 
+	void remove(RemovalCause cause, UUID key) {
+		// if expired
+		if (cause.equals(RemovalCause.EXPIRED)) {
+			// check if client id is in state
+			final StaticStatePersistedOnFileSystemEntity entityIfPresentWithIdentifier =
+					staticStateManager.getEntityIfPresentWithIdentifier(key);
+			if (entityIfPresentWithIdentifier != null) {
+
+				// if one of the file is not complete, it is not a natural removal
+				// but a
+				// timeout!! we propagate the event
+				for (Entry<UUID, StaticFileState> lavds : entityIfPresentWithIdentifier.getFileStates().entrySet()) {
+					if (lavds.getValue().getStaticFileStateJson().getCrcedBytes() != lavds.getValue().getStaticFileStateJson()
+							.getOriginalFileSizeInBytes()) {
+						jlfuListenerPropagator.getPropagator().onClientInactivity(key, clientEvictionTimeInSeconds);
+						return;
+					}
+				}
+
+			}
+		}
+	}
+
+
 	public boolean requestIsReset(UUID fileId) {
 		RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
 		return unchecked.cancelRequest && !unchecked.isProcessing();
@@ -125,11 +160,6 @@ public class RateLimiterConfigurationManager {
 	}
 
 
-	public Set<Entry<UUID, UploadProcessingConfiguration>> getClientEntries() {
-		return clientConfigMap.asMap().entrySet();
-	}
-
-
 	public Set<Entry<UUID, RequestUploadProcessingConfiguration>> getRequestEntries() {
 		return requestConfigMap.asMap().entrySet();
 	}
@@ -139,11 +169,6 @@ public class RateLimiterConfigurationManager {
 		final RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
 		unchecked.cancelRequest = false;
 		unchecked.setProcessing(false);
-	}
-
-
-	public long getAllowance(UUID fileId) {
-		return requestConfigMap.getUnchecked(fileId).getDownloadAllowanceForIteration();
 	}
 
 
@@ -163,7 +188,7 @@ public class RateLimiterConfigurationManager {
 
 
 	public UploadProcessingConfiguration getClientUploadProcessingConfiguration(UUID clientId) {
-		return clientConfigMap.getUnchecked(clientId);
+		return requestConfigMap.getUnchecked(clientId);
 	}
 
 
@@ -203,5 +228,10 @@ public class RateLimiterConfigurationManager {
 
 	public UploadProcessingConfiguration getMasterProcessingConfiguration() {
 		return masterProcessingConfiguration;
+	}
+
+
+	public void setClientEvictionTimeInSeconds(int clientEvictionTimeInSeconds) {
+		this.clientEvictionTimeInSeconds = clientEvictionTimeInSeconds;
 	}
 }
