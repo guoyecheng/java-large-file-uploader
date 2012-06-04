@@ -179,18 +179,22 @@ public class UploadServlet extends HttpRequestHandlerServlet
 
 	private Serializable prepareUpload(HttpServletRequest request)
 			throws MissingParameterException, IOException {
-		Serializable returnObject;
+
+		// extract file information
 		PrepareUploadJson[] fromJson =
 				new Gson()
 						.fromJson(fileUploaderHelper.getParameterValue(request, UploadServletParameter.newFiles), PrepareUploadJson[].class);
-		returnObject = Maps.newHashMap();
-		for (PrepareUploadJson prepareUploadJson : fromJson) {
-			String idOfTheFile =
-					uploadProcessor.prepareUpload(prepareUploadJson.getSize(), prepareUploadJson.getFileName(), prepareUploadJson.getCrc())
-							.toString();
-			((HashMap<String, String>) returnObject).put(prepareUploadJson.getTempId().toString(), idOfTheFile);
-		}
-		return returnObject;
+
+		// prepare them
+		final HashMap<String, UUID> prepareUpload = uploadProcessor.prepareUpload(fromJson);
+
+		// return them
+		return Maps.newHashMap(Maps.transformValues(prepareUpload, new Function<UUID, String>() {
+
+			public String apply(UUID input) {
+				return input.toString();
+			};
+		}));
 	}
 
 

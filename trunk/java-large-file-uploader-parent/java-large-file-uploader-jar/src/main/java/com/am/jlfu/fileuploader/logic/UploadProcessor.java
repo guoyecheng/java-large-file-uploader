@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,6 +31,7 @@ import com.am.jlfu.fileuploader.json.CRCResult;
 import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
+import com.am.jlfu.fileuploader.json.PrepareUploadJson;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.fileuploader.limiter.RequestUploadProcessingConfiguration;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
@@ -220,6 +222,32 @@ public class UploadProcessor {
 		log.debug("File prepared for client " + staticStateIdentifierManager.getIdentifier() + " at path " + file.getAbsolutePath());
 		return fileId;
 
+	}
+
+
+	public HashMap<String, UUID> prepareUpload(PrepareUploadJson[] fromJson)
+			throws IOException {
+		HashMap<String, UUID> returnMap = Maps.newHashMap();
+
+		// for all of them
+		for (PrepareUploadJson prepareUploadJson : fromJson) {
+
+			// prepare it
+			UUID idOfTheFile =
+					prepareUpload(prepareUploadJson.getSize(), prepareUploadJson.getFileName(), prepareUploadJson.getCrc());
+
+			// put in map
+			returnMap.put(prepareUploadJson.getTempId().toString(), idOfTheFile);
+
+			// notify listener
+			jlfuListenerPropagator.getPropagator().onFileUploadPrepared(staticStateIdentifierManager.getIdentifier(), idOfTheFile);
+
+		}
+
+		// notify that all are processed
+		jlfuListenerPropagator.getPropagator().onAllFileUploadsPrepared(staticStateIdentifierManager.getIdentifier(), returnMap.values());
+
+		return returnMap;
 	}
 
 

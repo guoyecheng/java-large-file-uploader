@@ -1,6 +1,7 @@
 package com.am.jlfu.notifier;
 
 
+import java.util.Collection;
 import java.util.UUID;
 
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
@@ -63,6 +64,17 @@ public interface JLFUListener {
 	 * @param fileId
 	 */
 	void onFileUploadPrepared(UUID clientId, UUID fileId);
+
+
+	/**
+	 * Fired when all the uploads of the files specified by the fileIds have been prepared for the
+	 * client
+	 * specified by the clientId.
+	 * 
+	 * @param clientId
+	 * @param fileIds
+	 */
+	void onAllFileUploadsPrepared(UUID identifier, Collection<UUID> fileIds);
 
 
 	/**
