@@ -59,9 +59,20 @@ public class RateLimiterConfigurationManagerTest {
 
 
 	@Test
-	public void testEvictionNotification()
+	public void testEvictionNotificationTrue()
 			throws InterruptedException {
+		testAssert(true);
+	}
 
+
+	@Test
+	public void testEvictionNotificationFalse()
+			throws InterruptedException {
+		testAssert(false);
+	}
+
+
+	private void testAssert(boolean lala) {
 		jlfuListenerPropagator.registerListener(new JLFUListenerAdapter() {
 
 			@Override
@@ -81,9 +92,21 @@ public class RateLimiterConfigurationManagerTest {
 		final FileStateJsonBase staticFileStateJson = new FileStateJsonBase();
 		value.setStaticFileStateJson(staticFileStateJson);
 		staticFileStateJson.setCrcedBytes(100l);
-		staticFileStateJson.setOriginalFileSizeInBytes(10000l);
+
+		if (lala) {
+			staticFileStateJson.setOriginalFileSizeInBytes(10000l);
+		}
+		else {
+			staticFileStateJson.setOriginalFileSizeInBytes(100l);
+		}
 
 		rateLimiterConfigurationManager.remove(RemovalCause.EXPIRED, identifier);
-		Assert.assertThat(assertt, CoreMatchers.is(true));
+
+		if (lala) {
+			Assert.assertThat(assertt, CoreMatchers.is(true));
+		}
+		else {
+			Assert.assertThat(assertt, CoreMatchers.is(false));
+		}
 	}
 }
