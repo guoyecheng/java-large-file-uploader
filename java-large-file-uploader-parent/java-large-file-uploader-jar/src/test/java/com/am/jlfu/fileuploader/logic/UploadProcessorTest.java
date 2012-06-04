@@ -7,6 +7,7 @@ import static org.hamcrest.CoreMatchers.not;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.zip.CRC32;
@@ -160,14 +161,14 @@ public class UploadProcessorTest {
 			throws ServletException, IOException, InterruptedException, ExecutionException, TimeoutException {
 
 		// begin a file upload process
-		String fileId = uploadProcessor.prepareUpload(fileSize, fileName, "lala");
+		UUID fileId = uploadProcessor.prepareUpload(fileSize, fileName, "lala");
 
 		// assert that the state has what we want
 		StaticFileState value = staticStateManager.getEntity().getFileStates().get(fileId);
 		assertState(value, true, false, fileName, fileSize, 0l);
 
 		// assert that we have it in the pending files
-		Assert.assertThat(uploadProcessor.getConfig().getPendingFiles().keySet().toArray()[0].toString(), is(fileId));
+		Assert.assertThat(uploadProcessor.getConfig().getPendingFiles().keySet().toArray()[0].toString(), is(fileId.toString()));
 
 		// cancel
 		uploadProcessor.clearFile(fileId);

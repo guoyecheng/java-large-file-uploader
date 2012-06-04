@@ -1,6 +1,8 @@
 package com.am.jlfu.notifier;
 
 
+import java.util.UUID;
+
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.identifier.impl.DefaultIdentifierProvider;
 
@@ -21,7 +23,7 @@ public interface JLFUListener {
 	 * 
 	 * @param clientId
 	 */
-	void onNewClient(String clientId);
+	void onNewClient(UUID clientId);
 
 
 	/**
@@ -30,7 +32,7 @@ public interface JLFUListener {
 	 * 
 	 * @param clientId
 	 */
-	void onClientBack(String clientId);
+	void onClientBack(UUID clientId);
 
 
 	/**
@@ -40,7 +42,7 @@ public interface JLFUListener {
 	 * @param clientId
 	 * @param inactivityDuration
 	 */
-	void onClientInactivity(String clientId, int inactivityDuration);
+	void onClientInactivity(UUID clientId, int inactivityDuration);
 
 
 	/**
@@ -50,7 +52,7 @@ public interface JLFUListener {
 	 * @param clientId
 	 * @param fileId
 	 */
-	void onFileUploadEnd(String clientId, String fileId);
+	void onFileUploadEnd(UUID clientId, UUID fileId);
 
 
 	/**
@@ -60,7 +62,7 @@ public interface JLFUListener {
 	 * @param clientId
 	 * @param fileId
 	 */
-	void onFileUploadPrepared(String clientId, String fileId);
+	void onFileUploadPrepared(UUID clientId, UUID fileId);
 
 
 	/**
@@ -70,7 +72,7 @@ public interface JLFUListener {
 	 * @param clientId
 	 * @param fileId
 	 */
-	void onFileUploadCancelled(String clientId, String fileId);
+	void onFileUploadCancelled(UUID clientId, UUID fileId);
 
 
 	/**
@@ -80,7 +82,7 @@ public interface JLFUListener {
 	 * @param clientId
 	 * @param fileId
 	 */
-	void onFileUploadPaused(String clientId, String fileId);
+	void onFileUploadPaused(UUID clientId, UUID fileId);
 
 
 	/**
@@ -90,7 +92,7 @@ public interface JLFUListener {
 	 * @param clientId
 	 * @param fileId
 	 */
-	void onFileUploadResumed(String clientId, String fileId);
+	void onFileUploadResumed(UUID clientId, UUID fileId);
 
 
 }

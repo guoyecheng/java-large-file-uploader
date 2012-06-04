@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -56,13 +57,13 @@ public class UploadServletAsyncProcessor {
 
 
 
-	public void process(StaticFileState fileState, String fileId, String crc, InputStream inputStream,
+	public void process(StaticFileState fileState, UUID fileId, String crc, InputStream inputStream,
 			WriteChunkCompletionListener completionListener)
 			throws FileNotFoundException
 	{
 
 		// get identifier
-		String clientId = staticStateIdentifierManager.getIdentifier();
+		UUID clientId = staticStateIdentifierManager.getIdentifier();
 
 		// extract the corresponding request entity from map
 		final RequestUploadProcessingConfiguration requestUploadProcessingConfiguration =
@@ -131,8 +132,8 @@ public class UploadServletAsyncProcessor {
 
 		private final InputStream inputStream;
 		private final FileOutputStream outputStream;
-		private final String fileId;
-		private final String clientId;
+		private final UUID fileId;
+		private final UUID clientId;
 		private final String crc;
 
 		private final WriteChunkCompletionListener completionListener;
@@ -147,11 +148,11 @@ public class UploadServletAsyncProcessor {
 
 
 
-		public WriteChunkToFileTask(String fileId, RequestUploadProcessingConfiguration requestUploadProcessingConfiguration,
+		public WriteChunkToFileTask(UUID fileId, RequestUploadProcessingConfiguration requestUploadProcessingConfiguration,
 				UploadProcessingConfiguration clientUploadProcessingConfiguration, UploadProcessingConfiguration masterUploadProcessingConfiguration,
 				String crc,
 				InputStream inputStream,
-				FileOutputStream outputStream, WriteChunkCompletionListener completionListener, String clientId) {
+				FileOutputStream outputStream, WriteChunkCompletionListener completionListener, UUID clientId) {
 			this.fileId = fileId;
 			this.requestUploadProcessingConfiguration = requestUploadProcessingConfiguration;
 			this.clientUploadProcessingConfiguration = clientUploadProcessingConfiguration;
@@ -319,7 +320,7 @@ public class UploadServletAsyncProcessor {
 	}
 
 
-	public void clean(String identifier) {
+	public void clean(UUID identifier) {
 		log.debug("resetting token bucket for " + identifier);
 		uploadProcessingConfigurationManager.reset(identifier);
 	}
@@ -331,7 +332,7 @@ public class UploadServletAsyncProcessor {
 	 * @param fileId
 	 * @return
 	 */
-	public boolean isPausedOrCancelled(String fileId) {
+	public boolean isPausedOrCancelled(UUID fileId) {
 		StaticStatePersistedOnFileSystemEntity entityIfPresent = staticStateManager.getEntityIfPresent();
 		return entityIfPresent != null && (entityIfPresent.getFileStates().get(fileId) == null ||
 				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId).isPaused());

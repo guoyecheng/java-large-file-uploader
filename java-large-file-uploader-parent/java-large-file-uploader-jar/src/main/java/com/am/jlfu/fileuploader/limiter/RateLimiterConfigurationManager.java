@@ -3,6 +3,7 @@ package com.am.jlfu.fileuploader.limiter;
 
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -34,31 +35,31 @@ public class RateLimiterConfigurationManager {
 	@Autowired
 	private JLFUListenerPropagator jlfuListenerPropagator;
 
-	final LoadingCache<String, UploadProcessingConfiguration> clientConfigMap = CacheBuilder.newBuilder()
-			.removalListener(new RemovalListener<String, UploadProcessingConfiguration>() {
+	final LoadingCache<UUID, UploadProcessingConfiguration> clientConfigMap = CacheBuilder.newBuilder()
+			.removalListener(new RemovalListener<UUID, UploadProcessingConfiguration>() {
 
 				@Override
-				public void onRemoval(RemovalNotification<String, UploadProcessingConfiguration> notification) {
+				public void onRemoval(RemovalNotification<UUID, UploadProcessingConfiguration> notification) {
 					jlfuListenerPropagator.getPropagator().onClientInactivity(notification.getKey(), CLIENT_EVICTION_TIME_IN_MINUTES);
 				}
 			})
 			.expireAfterAccess(CLIENT_EVICTION_TIME_IN_MINUTES, TimeUnit.MINUTES)
-			.build(new CacheLoader<String, UploadProcessingConfiguration>() {
+			.build(new CacheLoader<UUID, UploadProcessingConfiguration>() {
 
 				@Override
-				public UploadProcessingConfiguration load(String arg0)
+				public UploadProcessingConfiguration load(UUID arg0)
 						throws Exception {
 					log.trace("Created new bucket for client with id #{}", arg0);
 					return new UploadProcessingConfiguration();
 				}
 			});
 
-	final LoadingCache<String, RequestUploadProcessingConfiguration> requestConfigMap = CacheBuilder.newBuilder()
+	final LoadingCache<UUID, RequestUploadProcessingConfiguration> requestConfigMap = CacheBuilder.newBuilder()
 			.expireAfterAccess(10, TimeUnit.MINUTES)
-			.build(new CacheLoader<String, RequestUploadProcessingConfiguration>() {
+			.build(new CacheLoader<UUID, RequestUploadProcessingConfiguration>() {
 
 				@Override
-				public RequestUploadProcessingConfiguration load(String arg0)
+				public RequestUploadProcessingConfiguration load(UUID arg0)
 						throws Exception {
 					log.trace("Created new bucket for request with id #{}", arg0);
 					return new RequestUploadProcessingConfiguration();
@@ -91,7 +92,7 @@ public class RateLimiterConfigurationManager {
 	 * @param fileId
 	 * @return true if there was a pending upload for this file.
 	 */
-	public boolean markRequestHasShallBeCancelled(String fileId) {
+	public boolean markRequestHasShallBeCancelled(UUID fileId) {
 		RequestUploadProcessingConfiguration ifPresent = requestConfigMap.getIfPresent(fileId);
 		// if we have a value in the map
 		if (ifPresent != null) {
@@ -112,66 +113,66 @@ public class RateLimiterConfigurationManager {
 	}
 
 
-	public boolean requestIsReset(String fileId) {
+	public boolean requestIsReset(UUID fileId) {
 		RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
 		return unchecked.cancelRequest && !unchecked.isProcessing();
 	}
 
 
-	public boolean requestHasToBeCancelled(String fileId) {
+	public boolean requestHasToBeCancelled(UUID fileId) {
 		RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
 		return unchecked.cancelRequest;
 	}
 
 
-	public Set<Entry<String, UploadProcessingConfiguration>> getClientEntries() {
+	public Set<Entry<UUID, UploadProcessingConfiguration>> getClientEntries() {
 		return clientConfigMap.asMap().entrySet();
 	}
 
 
-	public Set<Entry<String, RequestUploadProcessingConfiguration>> getRequestEntries() {
+	public Set<Entry<UUID, RequestUploadProcessingConfiguration>> getRequestEntries() {
 		return requestConfigMap.asMap().entrySet();
 	}
 
 
-	public void reset(String fileId) {
+	public void reset(UUID fileId) {
 		final RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
 		unchecked.cancelRequest = false;
 		unchecked.setProcessing(false);
 	}
 
 
-	public long getAllowance(String fileId) {
+	public long getAllowance(UUID fileId) {
 		return requestConfigMap.getUnchecked(fileId).getDownloadAllowanceForIteration();
 	}
 
 
-	public void assignRateToRequest(String fileId, Long rateInKiloBytes) {
+	public void assignRateToRequest(UUID fileId, Long rateInKiloBytes) {
 		requestConfigMap.getUnchecked(fileId).rateInKiloBytes = rateInKiloBytes;
 	}
 
 
-	public Long getUploadState(String requestIdentifier) {
+	public Long getUploadState(UUID requestIdentifier) {
 		return requestConfigMap.getUnchecked(requestIdentifier).getInstantRateInBytes();
 	}
 
 
-	public RequestUploadProcessingConfiguration getRequestUploadProcessingConfiguration(String fileId) {
+	public RequestUploadProcessingConfiguration getRequestUploadProcessingConfiguration(UUID fileId) {
 		return requestConfigMap.getUnchecked(fileId);
 	}
 
 
-	public UploadProcessingConfiguration getClientUploadProcessingConfiguration(String clientId) {
+	public UploadProcessingConfiguration getClientUploadProcessingConfiguration(UUID clientId) {
 		return clientConfigMap.getUnchecked(clientId);
 	}
 
 
-	public void pause(String fileId) {
+	public void pause(UUID fileId) {
 		requestConfigMap.getUnchecked(fileId).setPaused(true);
 	}
 
 
-	public void resume(String fileId) {
+	public void resume(UUID fileId) {
 		requestConfigMap.getUnchecked(fileId).setPaused(false);
 	}
 

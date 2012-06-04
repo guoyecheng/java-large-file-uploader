@@ -58,7 +58,7 @@ public class StaticStateIdentifierManagerTest {
 		Assert.assertNull(DefaultIdentifierProvider.getCookie(mockHttpServletRequest.getCookies(), DefaultIdentifierProvider.cookieIdentifier));
 
 		// get id
-		UUID identifier = UUID.fromString(staticStateIdentifierManager.getIdentifier());
+		UUID identifier = staticStateIdentifierManager.getIdentifier();
 
 		// copy cookies from response to request
 		mockHttpServletRequest.setCookies(mockHttpServletResponse.getCookies());
@@ -97,7 +97,7 @@ public class StaticStateIdentifierManagerTest {
 		Assert.assertNull(DefaultIdentifierProvider.getCookie(mockHttpServletRequest.getCookies(), DefaultIdentifierProvider.cookieIdentifier));
 
 		// set cookie
-		UUID identifierOriginal = UUID.fromString(staticStateIdentifierManager.getIdentifier());
+		UUID identifierOriginal = staticStateIdentifierManager.getIdentifier();
 		DefaultIdentifierProvider.setCookie(mockHttpServletResponse, identifierOriginal);
 
 		// copy cookies from response to request
@@ -109,7 +109,7 @@ public class StaticStateIdentifierManagerTest {
 						.getValue()));
 
 		// get id
-		UUID identifier = UUID.fromString(staticStateIdentifierManager.getIdentifier());
+		UUID identifier = staticStateIdentifierManager.getIdentifier();
 		Assert.assertEquals(identifierOriginal, identifier);
 
 		// assert session is filled with id

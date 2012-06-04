@@ -1,6 +1,8 @@
 package com.am.jlfu.staticstate;
 
 
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -20,8 +22,8 @@ public class StaticStateIdentifierManager {
 
 
 
-	public String getIdentifier() {
-		return identifierProvider.getIdentifier(requestComponentContainer.getRequest(), requestComponentContainer.getResponse()).toString();
+	public UUID getIdentifier() {
+		return identifierProvider.getIdentifier(requestComponentContainer.getRequest(), requestComponentContainer.getResponse());
 	}
 
 

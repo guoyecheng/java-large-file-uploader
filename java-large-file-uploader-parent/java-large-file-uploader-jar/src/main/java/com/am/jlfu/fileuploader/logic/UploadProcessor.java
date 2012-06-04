@@ -9,6 +9,9 @@ import java.io.RandomAccessFile;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -92,7 +95,7 @@ public class UploadProcessor {
 		if (entity != null) {
 
 			// order files by age
-			Ordering<String> ordering = Ordering.from(new Comparator<StaticFileState>() {
+			Ordering<UUID> ordering = Ordering.from(new Comparator<StaticFileState>() {
 
 				@Override
 				public int compare(StaticFileState o1, StaticFileState o2) {
@@ -103,19 +106,29 @@ public class UploadProcessor {
 			}).onResultOf(Functions.forMap(entity.getFileStates()));
 
 			// apply comparator
-			ImmutableSortedMap<String, StaticFileState> sortedMap = ImmutableSortedMap.copyOf(entity.getFileStates(), ordering);
+			ImmutableSortedMap<UUID, StaticFileState> sortedMap = ImmutableSortedMap.copyOf(entity.getFileStates(), ordering);
 
 			// fill pending files from static state
-			config.setPendingFiles(Maps.transformEntries(sortedMap, new EntryTransformer<String, StaticFileState, FileStateJson>() {
+			final SortedMap<UUID, FileStateJson> transformEntries =
+					Maps.transformEntries(sortedMap, new EntryTransformer<UUID, StaticFileState, FileStateJson>() {
 
-				@Override
-				public FileStateJson transformEntry(String fileId, StaticFileState value) {
-					return getFileStateJson(fileId, value);
-				}
-			}));
+						@Override
+						public FileStateJson transformEntry(UUID fileId, StaticFileState value) {
+							return getFileStateJson(fileId, value);
+						}
+					});
+
+			// change keys
+			Map<String, FileStateJson> newMap = Maps.newHashMap();
+			for (Entry<UUID, FileStateJson> entry : transformEntries.entrySet()) {
+				newMap.put(entry.getKey().toString(), entry.getValue());
+			}
+
+			// apply transformed map
+			config.setPendingFiles(newMap);
 
 			// reset paused attribute
-			for (String fileId : sortedMap.keySet()) {
+			for (UUID fileId : sortedMap.keySet()) {
 				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId).setPaused(false);
 			}
 		}
@@ -127,7 +140,7 @@ public class UploadProcessor {
 	}
 
 
-	private void waitUntilProcessingAreFinished(String fileId) {
+	private void waitUntilProcessingAreFinished(UUID fileId) {
 		final RequestUploadProcessingConfiguration uploadProcessingConfiguration =
 				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId);
 		generalUtils.waitForConditionToCompleteRunnable(1000, new ConditionProvider() {
@@ -145,7 +158,7 @@ public class UploadProcessor {
 	}
 
 
-	private FileStateJson getFileStateJson(String fileId, StaticFileState value) {
+	private FileStateJson getFileStateJson(UUID fileId, StaticFileState value) {
 
 		// wait until pending processing is performed
 		waitUntilProcessingAreFinished(fileId);
@@ -172,7 +185,7 @@ public class UploadProcessor {
 	}
 
 
-	public String prepareUpload(Long size, String fileName, String crc)
+	public UUID prepareUpload(Long size, String fileName, String crc)
 			throws IOException {
 
 		// retrieve model
@@ -182,7 +195,7 @@ public class UploadProcessor {
 		String fileExtension = extractExtensionOfFileName(fileName);
 
 		// create a new file for it
-		String fileId = UUID.randomUUID().toString();
+		UUID fileId = UUID.randomUUID();
 		File file = new File(staticStateDirectoryManager.getUUIDFileParent(), fileId + fileExtension);
 		file.createNewFile();
 		StaticFileState fileState = new StaticFileState();
@@ -222,11 +235,11 @@ public class UploadProcessor {
 	}
 
 
-	private void closeStreamForFiles(String... fileIds) {
+	private void closeStreamForFiles(UUID... fileIds) {
 
 		// submit them
 		List<ConditionProvider> conditionProviders = Lists.newArrayList();
-		for (final String fileId : fileIds) {
+		for (final UUID fileId : fileIds) {
 
 			log.debug("asking for stream close for file with id " + fileId);
 
@@ -265,7 +278,7 @@ public class UploadProcessor {
 	}
 
 
-	public void clearFile(String fileId)
+	public void clearFile(UUID fileId)
 			throws InterruptedException, ExecutionException, TimeoutException {
 
 		// ask for the stream to be closed
@@ -283,7 +296,7 @@ public class UploadProcessor {
 			throws InterruptedException, ExecutionException, TimeoutException {
 
 		// close any pending stream before clearing the file
-		closeStreamForFiles(staticStateManager.getEntity().getFileStates().keySet().toArray(new String[] {}));
+		closeStreamForFiles(staticStateManager.getEntity().getFileStates().keySet().toArray(new UUID[] {}));
 
 
 		// then clear everything
@@ -291,7 +304,7 @@ public class UploadProcessor {
 	}
 
 
-	public Float getProgress(String clientId, String fileId)
+	public Float getProgress(UUID clientId, UUID fileId)
 			throws FileNotFoundException {
 
 
@@ -311,7 +324,7 @@ public class UploadProcessor {
 	}
 
 
-	public Float getProgress(String fileId)
+	public Float getProgress(UUID fileId)
 			throws FileNotFoundException {
 
 
@@ -340,12 +353,12 @@ public class UploadProcessor {
 	}
 
 
-	public Long getUploadStat(String fileId) {
+	public Long getUploadStat(UUID fileId) {
 		return uploadProcessingConfigurationManager.getUploadState(fileId);
 	}
 
 
-	public void setUploadRate(String fileId, Long rate) {
+	public void setUploadRate(UUID fileId, Long rate) {
 
 		// set the rate
 		uploadProcessingConfigurationManager.assignRateToRequest(fileId, rate);
@@ -359,7 +372,7 @@ public class UploadProcessor {
 	}
 
 
-	public void pauseFile(String fileId) {
+	public void pauseFile(UUID fileId) {
 
 		// specify as paused
 		uploadProcessingConfigurationManager.pause(fileId);
@@ -373,7 +386,7 @@ public class UploadProcessor {
 	}
 
 
-	public FileStateJson resumeFile(String fileId) {
+	public FileStateJson resumeFile(UUID fileId) {
 
 		// set as resumed
 		uploadProcessingConfigurationManager.resume(fileId);
@@ -386,7 +399,7 @@ public class UploadProcessor {
 	}
 
 
-	public void verifyCrcOfUncheckedPart(String fileId, String inputCrc)
+	public void verifyCrcOfUncheckedPart(UUID fileId, String inputCrc)
 			throws IOException, InvalidCrcException {
 		log.debug("validating the bytes that have not been validated from the previous interrupted upload for file " +
 				fileId);

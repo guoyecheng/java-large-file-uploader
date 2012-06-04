@@ -2,6 +2,7 @@ package com.am.jlfu.fileuploader.limiter;
 
 
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
@@ -34,7 +35,7 @@ public class RateLimiter
 
 		// first we need to calculate how many uploads are currently being processed
 		int requestsBeingProcessed = 0;
-		for (Entry<String, RequestUploadProcessingConfiguration> entry : uploadProcessingConfigurationManager.getRequestEntries()) {
+		for (Entry<UUID, RequestUploadProcessingConfiguration> entry : uploadProcessingConfigurationManager.getRequestEntries()) {
 			requestsBeingProcessed += entry.getValue().isProcessing() ? 1 : 0;
 		}
 		log.trace("refilling the upload allowance of the " + requestsBeingProcessed + " uploads being processed");
@@ -48,7 +49,7 @@ public class RateLimiter
 					uploadProcessingConfigurationManager.getMaximumOverAllRateInKiloBytes() * 1024 / NUMBER_OF_TIMES_THE_BUCKET_IS_FILLED_PER_SECOND);
 
 			// for all the clients that we have
-			for (Entry<String, UploadProcessingConfiguration> clientEntry : uploadProcessingConfigurationManager.getClientEntries()) {
+			for (Entry<UUID, UploadProcessingConfiguration> clientEntry : uploadProcessingConfigurationManager.getClientEntries()) {
 
 				// process the client entry
 				processEntry(clientEntry);
@@ -56,7 +57,7 @@ public class RateLimiter
 			}
 
 			// for all the requests we have
-			for (Entry<String, RequestUploadProcessingConfiguration> requestEntry : uploadProcessingConfigurationManager.getRequestEntries()) {
+			for (Entry<UUID, RequestUploadProcessingConfiguration> requestEntry : uploadProcessingConfigurationManager.getRequestEntries()) {
 
 				// if it is paused, we do not refill the bucket
 				if (requestEntry.getValue().isProcessing()) {
@@ -70,7 +71,7 @@ public class RateLimiter
 	}
 
 
-	private void processEntry(Entry<String, ? extends UploadProcessingConfiguration> requestEntry) {
+	private void processEntry(Entry<UUID, ? extends UploadProcessingConfiguration> requestEntry) {
 		// default per request is set to the maximum, so basically maximum by client
 		long allowedCapacityPerSecond = uploadProcessingConfigurationManager.getMaximumRatePerClientInKiloBytes() * 1024;
 

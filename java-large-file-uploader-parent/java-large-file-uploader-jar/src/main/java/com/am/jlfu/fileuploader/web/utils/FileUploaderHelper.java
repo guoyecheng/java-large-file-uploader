@@ -3,6 +3,7 @@ package com.am.jlfu.fileuploader.web.utils;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.UUID;
 
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
@@ -42,7 +43,7 @@ public class FileUploaderHelper {
 		}
 
 		// extract the fields
-		fileUploadConfiguration.setFileId(getParameterValue(request, UploadServletParameter.fileId));
+		fileUploadConfiguration.setFileId(UUID.fromString(getParameterValue(request, UploadServletParameter.fileId)));
 		fileUploadConfiguration.setCrc(getParameterValue(request, UploadServletParameter.crc, false));
 
 		// Create a new file upload handler

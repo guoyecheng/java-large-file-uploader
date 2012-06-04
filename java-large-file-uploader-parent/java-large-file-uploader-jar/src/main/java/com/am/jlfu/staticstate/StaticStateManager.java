@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -77,9 +78,9 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 
 
 
-	LoadingCache<String, T> cache = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.DAYS).build(new CacheLoader<String, T>() {
+	LoadingCache<UUID, T> cache = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.DAYS).build(new CacheLoader<UUID, T>() {
 
-		public T load(String uuid)
+		public T load(UUID uuid)
 				throws Exception {
 
 			return createOrRestore(uuid);
@@ -96,7 +97,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * @return
 	 * @throws IOException
 	 */
-	private T createOrRestore(String uuid)
+	private T createOrRestore(UUID uuid)
 			throws IOException {
 
 		// restore cache from file:
@@ -118,7 +119,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 		if (uuidFile.exists()) {
 			log.debug("No value in the cache for uuid " + uuid + ". Filling cache from file.");
 			try {
-				entity = read(uuid, uuidFile);
+				entity = read(uuidFile);
 			}
 			catch (Exception e) {
 				log.error("Cache cannot be restored from " + uuidFile.getAbsolutePath() + "." +
@@ -162,7 +163,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * @param clientIdentifier
 	 * @return
 	 */
-	public T getEntityIfPresentWithIdentifier(String clientIdentifier) {
+	public T getEntityIfPresentWithIdentifier(UUID clientIdentifier) {
 		return cache.getIfPresent(clientIdentifier);
 	}
 
@@ -196,7 +197,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * @throws ExecutionException
 	 */
 	public void processEntityTreatment(T entity) {
-		String uuid = staticStateIdentifierManager.getIdentifier();
+		UUID uuid = staticStateIdentifierManager.getIdentifier();
 		log.debug("writing state for " + uuid);
 		cache.put(uuid, entity);
 		write(entity, new File(staticStateDirectoryManager.getUUIDFileParent(), FILENAME));
@@ -208,7 +209,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * 
 	 * @param entity
 	 */
-	public void writeEntity(String uuid, T entity) {
+	public void writeEntity(UUID uuid, T entity) {
 		write(entity, new File(staticStateDirectoryManager.getUUIDFileParent(uuid), FILENAME));
 
 	}
@@ -239,7 +240,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	}
 
 
-	public void clearFile(final String fileId)
+	public void clearFile(final UUID fileId)
 	{
 		log.debug("Clearing pending uploaded file and all attributes linked to it.");
 
@@ -250,7 +251,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 		fileDeleter.deleteFile(uuidFileParent.listFiles(new FilenameFilter() {
 
 			public boolean accept(File dir, String name) {
-				return name.startsWith(fileId);
+				return name.startsWith(fileId.toString());
 			}
 		}));
 
@@ -279,7 +280,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	}
 
 
-	T read(String uuid, File f) {
+	T read(File f) {
 		XStream xStream = new XStream();
 		FileInputStream fs = null;
 		T fromXML = null;
@@ -311,10 +312,10 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	/**
 	 * Writes in the file that the last slice has been successfully uploaded.
 	 * 
+	 * @param clientId
 	 * @param fileId
-	 * @param fileId2
 	 */
-	public void setCrcBytesValidated(final String clientId, String fileId, final long validated) {
+	public void setCrcBytesValidated(final UUID clientId, UUID fileId, final long validated) {
 
 		final T entity = cache.getIfPresent(clientId);
 		if (entity == null) {

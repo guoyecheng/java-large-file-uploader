@@ -1,10 +1,14 @@
 package com.am.jlfu.fileuploader.web.utils;
 
+
 import java.io.InputStream;
+import java.util.UUID;
+
+
 
 public class FileUploadConfiguration {
 
-	private String fileId;
+	private UUID fileId;
 	private String crc;
 	private InputStream inputStream;
 
@@ -14,12 +18,12 @@ public class FileUploadConfiguration {
 	}
 
 
-	public String getFileId() {
+	public UUID getFileId() {
 		return fileId;
 	}
 
 
-	public void setFileId(String fileId) {
+	public void setFileId(UUID fileId) {
 		this.fileId = fileId;
 	}
 

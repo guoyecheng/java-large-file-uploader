@@ -102,9 +102,8 @@ public class UploadServletTest {
 		// handle request
 		uploadServlet.handleRequest(request, response);
 
-		HashMap<String, ProgressJson> fromJson = new Gson().fromJson(response.getContentAsString(), new TypeToken<Map<String, ProgressJson>>() {
-		}.getType());
-		Assert.assertThat(fromJson.size(), is(Integer.valueOf(0)));
+		SimpleJsonObject fromJson = new Gson().fromJson(response.getContentAsString(), SimpleJsonObject.class);
+		Assert.assertThat(fromJson.getValue(), is("0"));
 
 	}
 

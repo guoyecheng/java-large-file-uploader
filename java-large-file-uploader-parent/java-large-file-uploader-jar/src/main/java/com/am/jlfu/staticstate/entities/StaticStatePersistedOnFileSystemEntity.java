@@ -3,6 +3,7 @@ package com.am.jlfu.staticstate.entities;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.UUID;
 
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.google.common.collect.Maps;
@@ -26,7 +27,7 @@ public class StaticStatePersistedOnFileSystemEntity
 	private static final long serialVersionUID = 6033009138577295466L;
 
 	/** The states of the files being uploaded, the string being its identifier. */
-	private Map<String, StaticFileState> fileStates = Maps.newHashMap();
+	private Map<UUID, StaticFileState> fileStates = Maps.newHashMap();
 
 
 
@@ -38,12 +39,12 @@ public class StaticStatePersistedOnFileSystemEntity
 	}
 
 
-	public Map<String, StaticFileState> getFileStates() {
+	public Map<UUID, StaticFileState> getFileStates() {
 		return fileStates;
 	}
 
 
-	public void setFileStates(Map<String, StaticFileState> fileStates) {
+	public void setFileStates(Map<UUID, StaticFileState> fileStates) {
 		this.fileStates = fileStates;
 	}
 

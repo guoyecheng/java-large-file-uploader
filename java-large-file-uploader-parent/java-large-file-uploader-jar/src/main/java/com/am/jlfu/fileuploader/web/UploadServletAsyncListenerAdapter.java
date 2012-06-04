@@ -2,6 +2,7 @@ package com.am.jlfu.fileuploader.web;
 
 
 import java.io.IOException;
+import java.util.UUID;
 
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
@@ -16,11 +17,11 @@ public abstract class UploadServletAsyncListenerAdapter
 
 	private static final Logger log = LoggerFactory.getLogger(UploadServletAsyncListenerAdapter.class);
 
-	private String id;
+	private UUID id;
 
 
 
-	public UploadServletAsyncListenerAdapter(String identifier) {
+	public UploadServletAsyncListenerAdapter(UUID identifier) {
 		this.id = identifier;
 	}
 

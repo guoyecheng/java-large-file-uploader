@@ -3,6 +3,7 @@ package com.am.jlfu.staticstate;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -81,7 +82,7 @@ public class StaticStateManagerTest {
 	public void testClearFile()
 			throws IOException, InterruptedException, ExecutionException, TimeoutException {
 		String randomValue = "a";
-		String fileId = "lalala";
+		UUID fileId = UUID.randomUUID();
 
 		// get entity
 		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
@@ -96,7 +97,7 @@ public class StaticStateManagerTest {
 		staticFileStateJson.setOriginalFileSizeInBytes(123000l);
 
 		// create a file
-		File file = new File(staticStatedDirectoryManager.getUUIDFileParent(), fileId);
+		File file = new File(staticStatedDirectoryManager.getUUIDFileParent(), fileId.toString());
 		file.createNewFile();
 		Assert.assertTrue(file.exists());
 
@@ -118,7 +119,7 @@ public class StaticStateManagerTest {
 	@Test
 	public void testGetEntityFromFile() {
 		String absoluteFullPathOfUploadedFile = "value";
-		String fileId = "fileId";
+		UUID fileId = UUID.randomUUID();
 
 		// get entity
 		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
