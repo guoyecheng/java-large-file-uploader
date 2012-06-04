@@ -1,6 +1,7 @@
 package com.am.jlfu.notifier;
 
 
+import java.util.Collection;
 import java.util.UUID;
 
 
@@ -58,6 +59,12 @@ public class JLFUListenerAdapter
 
 	@Override
 	public void onFileUploadResumed(UUID clientId, UUID fileId) {
+
+	}
+
+
+	@Override
+	public void onAllFileUploadsPrepared(UUID identifier, Collection<UUID> fileIds) {
 
 	}
 
