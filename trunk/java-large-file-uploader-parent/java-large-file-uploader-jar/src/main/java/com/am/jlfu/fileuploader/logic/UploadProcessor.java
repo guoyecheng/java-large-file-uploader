@@ -90,7 +90,14 @@ public class UploadProcessor {
 
 
 
-	public InitializationConfiguration getConfig() {
+	public InitializationConfiguration getConfig(UUID clientId) {
+
+		// specify the client id
+		if (clientId != null) {
+			staticStateIdentifierManager.setIdentifier(clientId);
+		}
+
+		// prepare
 		InitializationConfiguration config = new InitializationConfiguration();
 		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
 

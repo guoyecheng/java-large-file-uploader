@@ -48,10 +48,16 @@ function JavaLargeFileUploader() {
 		autoRetryDelay = autoRetryDelayI;
 	};
 	
-	this.initialize = function (initializationCallback, exceptionCallback) {
+	this.initialize = function (initializationCallback, exceptionCallback, optionalClientOrJobIdentifier) {
+		
+		//if an id is specified
+		var appended = "";
+		if (optionalClientOrJobIdentifier) {
+			appended = "&clientId="+optionalClientOrJobIdentifier;
+		}
 		
 		// get the configuration
-		$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=getConfig", function(data) {
+		$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=getConfig" + appended, function(data) {
 			if (data) {
 				bytesPerChunk = data.inByte;
 	

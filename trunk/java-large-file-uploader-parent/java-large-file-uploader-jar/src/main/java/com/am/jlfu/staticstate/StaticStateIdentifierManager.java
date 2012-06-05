@@ -32,4 +32,8 @@ public class StaticStateIdentifierManager {
 	}
 
 
+	public void setIdentifier(UUID id) {
+		identifierProvider.setIdentifier(requestComponentContainer.getRequest(), requestComponentContainer.getResponse(), id);
+	}
+
 }

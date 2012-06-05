@@ -34,6 +34,21 @@ public class DefaultIdentifierProvider
 
 
 
+	@Override
+	public void setIdentifier(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, UUID id) {
+
+		// clear any first
+		clearIdentifier(httpServletRequest, httpServletResponse);
+
+		// then set in session
+		httpServletRequest.getSession().setAttribute(cookieIdentifier, id);
+
+		// and cookie
+		setCookie(httpServletResponse, id);
+
+	}
+
+
 	public static Cookie getCookie(Cookie[] cookies, String id) {
 		if (cookies != null) {
 			for (Cookie cookie : cookies) {
@@ -86,11 +101,8 @@ public class DefaultIdentifierProvider
 			// create uuid
 			uuid = getUuid();
 
-			// then set in session
-			req.getSession().setAttribute(cookieIdentifier, uuid);
-
-			// and cookie
-			setCookie(resp, uuid);
+			// and set it
+			setIdentifier(req, resp, uuid);
 
 		}
 		return uuid;

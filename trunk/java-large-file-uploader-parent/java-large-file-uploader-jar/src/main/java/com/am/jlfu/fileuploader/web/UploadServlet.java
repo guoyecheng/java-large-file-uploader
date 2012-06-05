@@ -21,6 +21,7 @@ import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
 import com.am.jlfu.authorizer.Authorizer;
+import com.am.jlfu.fileuploader.exception.AuthorizationException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
 import com.am.jlfu.fileuploader.json.PrepareUploadJson;
@@ -77,13 +78,8 @@ public class UploadServlet extends HttpRequestHandlerServlet
 			UploadServletAction actionByParameterName =
 					UploadServletAction.valueOf(fileUploaderHelper.getParameterValue(request, UploadServletParameter.action));
 
-			// check authorization if its not get progress (because we do not really care about
-			// authorization for get progress and it uses an array of file ids)
-			if (!actionByParameterName.equals(UploadServletAction.getProgress)) {
-				final String uuid = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId, false);
-				authorizer.getAuthorization(request, actionByParameterName, staticStateIdentifierManager.getIdentifier(),
-						uuid != null ? UUID.fromString(uuid) : null);
-			}
+			// check authorization
+			checkAuthorization(request, actionByParameterName);
 
 			// then process the asked action
 			jsonObject = processAction(actionByParameterName, request);
@@ -103,6 +99,40 @@ public class UploadServlet extends HttpRequestHandlerServlet
 	}
 
 
+	private void checkAuthorization(HttpServletRequest request, UploadServletAction actionByParameterName)
+			throws MissingParameterException, AuthorizationException {
+
+		// check authorization
+		// if its not get progress (because we do not really care about authorization for get
+		// progress and it uses an array of file ids)
+		if (!actionByParameterName.equals(UploadServletAction.getProgress)) {
+
+			// extract uuid
+			final String uuid = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId, false);
+
+			// if this is init, the identifier is the one in parameter
+			UUID clientOrJobId;
+			String parameter = fileUploaderHelper.getParameterValue(request, UploadServletParameter.clientId, false);
+			if (actionByParameterName.equals(UploadServletAction.getConfig) && parameter != null) {
+				clientOrJobId = UUID.fromString(parameter);
+			}
+			// if not, get it from manager
+			else {
+				clientOrJobId = staticStateIdentifierManager.getIdentifier();
+			}
+
+
+			// call authorizer
+			authorizer.getAuthorization(
+					request,
+					actionByParameterName,
+					clientOrJobId,
+					uuid != null ? UUID.fromString(uuid) : null);
+
+		}
+	}
+
+
 	private Serializable processAction(UploadServletAction actionByParameterName, HttpServletRequest request)
 			throws Exception {
 		log.debug("Processing action " + actionByParameterName.name());
@@ -110,7 +140,10 @@ public class UploadServlet extends HttpRequestHandlerServlet
 		Serializable returnObject = null;
 		switch (actionByParameterName) {
 			case getConfig:
-				returnObject = uploadProcessor.getConfig();
+				String parameterValue = fileUploaderHelper.getParameterValue(request, UploadServletParameter.clientId, false);
+				returnObject =
+						uploadProcessor.getConfig(
+								parameterValue != null ? UUID.fromString(parameterValue) : null);
 				break;
 			case verifyCrcOfUncheckedPart:
 				returnObject = verifyCrcOfUncheckedPart(request);
