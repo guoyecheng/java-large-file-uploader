@@ -123,6 +123,10 @@ public class UploadProcessor {
 
 						@Override
 						public FileStateJson transformEntry(UUID fileId, StaticFileState value) {
+
+							// wait until pending processing is performed
+							waitUntilProcessingAreFinished(fileId);
+
 							return getFileStateJson(fileId, value);
 						}
 					});
@@ -152,7 +156,7 @@ public class UploadProcessor {
 	private void waitUntilProcessingAreFinished(UUID fileId) {
 		final RequestUploadProcessingConfiguration uploadProcessingConfiguration =
 				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId);
-		generalUtils.waitForConditionToCompleteRunnable(1000, new ConditionProvider() {
+		generalUtils.waitForConditionToCompleteRunnable(5000, new ConditionProvider() {
 
 			@Override
 			public boolean condition() {
@@ -168,9 +172,6 @@ public class UploadProcessor {
 
 
 	private FileStateJson getFileStateJson(UUID fileId, StaticFileState value) {
-
-		// wait until pending processing is performed
-		waitUntilProcessingAreFinished(fileId);
 
 		// process
 		File file = new File(value.getAbsoluteFullPathOfUploadedFile());
