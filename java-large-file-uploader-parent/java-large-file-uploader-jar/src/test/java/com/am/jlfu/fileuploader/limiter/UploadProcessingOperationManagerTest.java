@@ -25,7 +25,8 @@ public class UploadProcessingOperationManagerTest {
 
 	@Before
 	public void before() {
-
+		uploadProcessingOperationManager.clientsAndRequestsProcessingOperation.clear();
+		uploadProcessingOperationManager.clientToRequestsMapping.clear();
 	}
 
 
