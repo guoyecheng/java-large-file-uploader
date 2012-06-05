@@ -63,7 +63,7 @@ public class UploadProcessingOperationManager {
 	}
 
 
-	public boolean stopOperation(UUID clientId, UUID fileId) {
+	public void stopOperation(UUID clientId, UUID fileId) {
 
 		// remove from map
 		clientsAndRequestsProcessingOperation.remove(fileId);
@@ -77,8 +77,6 @@ public class UploadProcessingOperationManager {
 			clientToRequestsMapping.remove(clientId);
 			clientsAndRequestsProcessingOperation.remove(clientId);
 		}
-
-		return noreMoreUploadsForThisClient;
 	}
 
 

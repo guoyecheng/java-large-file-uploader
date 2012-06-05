@@ -58,6 +58,7 @@ public class RateLimiterConfigurationManager
 
 					@Override
 					public void onRemoval(RemovalNotification<UUID, RequestUploadProcessingConfiguration> notification) {
+						log.debug("removal from requestconfig of " + notification.getKey() + " because of " + notification.getCause());
 						remove(notification.getCause(), notification.getKey());
 					}
 
