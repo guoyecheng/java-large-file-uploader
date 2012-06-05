@@ -70,7 +70,7 @@ public class RateLimiter
 
 		// extract the configuration element
 		final RequestUploadProcessingConfiguration requestUploadProcessingConfiguration =
-				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(entry.getKey());
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(entry.getKey());
 
 		// calculate from the rate in the configuration
 		Long rateInKiloBytes = requestUploadProcessingConfiguration.getRateInKiloBytes();

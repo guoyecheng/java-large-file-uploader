@@ -46,14 +46,14 @@ public class RateLimiterConfigurationManager
 	@Autowired
 	private StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
 
-	/** the cache */
-	LoadingCache<UUID, RequestUploadProcessingConfiguration> requestConfigMap;
+	/** the cache containing all configuration for requests and clients */
+	LoadingCache<UUID, RequestUploadProcessingConfiguration> configurationMap;
 
 
 
 	@PostConstruct
 	private void initMap() {
-		requestConfigMap = CacheBuilder.newBuilder()
+		configurationMap = CacheBuilder.newBuilder()
 				.removalListener(new RemovalListener<UUID, RequestUploadProcessingConfiguration>() {
 
 					@Override
@@ -104,20 +104,26 @@ public class RateLimiterConfigurationManager
 	 * @return true if there was a pending upload for this file.
 	 */
 	public boolean markRequestHasShallBeCancelled(UUID fileId) {
-		RequestUploadProcessingConfiguration ifPresent = requestConfigMap.getIfPresent(fileId);
+		RequestUploadProcessingConfiguration ifPresent = configurationMap.getIfPresent(fileId);
+
 		// if we have a value in the map
 		if (ifPresent != null) {
-			RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
+			RequestUploadProcessingConfiguration unchecked = configurationMap.getUnchecked(fileId);
+
 			// and if this file is currently being processed
 			if (unchecked.isProcessing()) {
+
 				// we ask for cancellation
 				unchecked.cancelRequest = true;
 			}
+
 			// we return true if the file was processing, false otherwise
 			return unchecked.isProcessing();
 		}
+
 		// if we dont have a value in the map, there is no pending upload
 		else {
+
 			// we can return false
 			return false;
 		}
@@ -125,11 +131,14 @@ public class RateLimiterConfigurationManager
 
 
 	void remove(RemovalCause cause, UUID key) {
+
 		// if expired
 		if (cause.equals(RemovalCause.EXPIRED)) {
+
 			// check if client id is in state
 			final StaticStatePersistedOnFileSystemEntity entityIfPresentWithIdentifier =
 					staticStateManager.getEntityIfPresentWithIdentifier(key);
+
 			if (entityIfPresentWithIdentifier != null) {
 
 				// if one of the file is not complete, it is not a natural removal
@@ -151,56 +160,51 @@ public class RateLimiterConfigurationManager
 
 
 	public boolean requestIsReset(UUID fileId) {
-		RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
+		RequestUploadProcessingConfiguration unchecked = configurationMap.getUnchecked(fileId);
 		return unchecked.cancelRequest && !unchecked.isProcessing();
 	}
 
 
 	public boolean requestHasToBeCancelled(UUID fileId) {
-		RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
+		RequestUploadProcessingConfiguration unchecked = configurationMap.getUnchecked(fileId);
 		return unchecked.cancelRequest;
 	}
 
 
 	public Set<Entry<UUID, RequestUploadProcessingConfiguration>> getRequestEntries() {
-		return requestConfigMap.asMap().entrySet();
+		return configurationMap.asMap().entrySet();
 	}
 
 
 	public void reset(UUID fileId) {
-		final RequestUploadProcessingConfiguration unchecked = requestConfigMap.getUnchecked(fileId);
+		final RequestUploadProcessingConfiguration unchecked = configurationMap.getUnchecked(fileId);
 		unchecked.cancelRequest = false;
 		unchecked.setProcessing(false);
 	}
 
 
 	public void assignRateToRequest(UUID fileId, Long rateInKiloBytes) {
-		requestConfigMap.getUnchecked(fileId).rateInKiloBytes = rateInKiloBytes;
+		configurationMap.getUnchecked(fileId).rateInKiloBytes = rateInKiloBytes;
 	}
 
 
 	public Long getUploadState(UUID requestIdentifier) {
-		return requestConfigMap.getUnchecked(requestIdentifier).getInstantRateInBytes();
+		return configurationMap.getUnchecked(requestIdentifier).getInstantRateInBytes();
 	}
 
 
-	public RequestUploadProcessingConfiguration getRequestUploadProcessingConfiguration(UUID fileId) {
-		return requestConfigMap.getUnchecked(fileId);
-	}
-
-
-	public UploadProcessingConfiguration getClientUploadProcessingConfiguration(UUID clientId) {
-		return requestConfigMap.getUnchecked(clientId);
+	public RequestUploadProcessingConfiguration getUploadProcessingConfiguration(UUID uuid) {
+		return configurationMap.getUnchecked(uuid);
 	}
 
 
 	public void pause(UUID fileId) {
-		requestConfigMap.getUnchecked(fileId).setPaused(true);
+		configurationMap.getUnchecked(fileId).setPaused(true);
 	}
 
 
 	public void resume(UUID fileId) {
-		requestConfigMap.getUnchecked(fileId).setPaused(false);
+		configurationMap.getUnchecked(fileId).setPaused(false);
 	}
 
 

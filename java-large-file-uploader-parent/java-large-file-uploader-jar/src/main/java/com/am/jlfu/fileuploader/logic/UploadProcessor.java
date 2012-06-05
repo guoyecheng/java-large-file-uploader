@@ -142,7 +142,7 @@ public class UploadProcessor {
 
 			// reset paused attribute
 			for (UUID fileId : sortedMap.keySet()) {
-				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId).setPaused(false);
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).setPaused(false);
 			}
 		}
 
@@ -155,7 +155,7 @@ public class UploadProcessor {
 
 	private void waitUntilProcessingAreFinished(UUID fileId) {
 		final RequestUploadProcessingConfiguration uploadProcessingConfiguration =
-				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId);
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
 		generalUtils.waitForConditionToCompleteRunnable(5000, new ConditionProvider() {
 
 			@Override

@@ -51,9 +51,9 @@ public class RateLimiterTest {
 
 		// extract config
 		final RequestUploadProcessingConfiguration uploadProcessingConfiguration =
-				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId);
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
 		final UploadProcessingConfiguration clientProcessingConfiguration =
-				uploadProcessingConfigurationManager.getClientUploadProcessingConfiguration(clientId);
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(clientId);
 		final UploadProcessingConfiguration masterProcessingConfiguration =
 				uploadProcessingConfigurationManager.getMasterProcessingConfiguration();
 
@@ -214,9 +214,9 @@ public class RateLimiterTest {
 			this.fileId = fileId;
 			this.fileSize = fileSize;
 			requestUploadProcessingConfiguration =
-					uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId);
+					uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
 			clientUploadProcessingConfiguration =
-					uploadProcessingConfigurationManager.getClientUploadProcessingConfiguration(clientId);
+					uploadProcessingConfigurationManager.getUploadProcessingConfiguration(clientId);
 			masterUploadProcessingConfiguration =
 					uploadProcessingConfigurationManager.getMasterProcessingConfiguration();
 			uploadProcessingOperationManager.startOperation(clientId, fileId);
