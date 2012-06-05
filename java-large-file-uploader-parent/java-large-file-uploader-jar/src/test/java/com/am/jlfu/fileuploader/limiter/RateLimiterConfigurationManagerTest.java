@@ -109,4 +109,5 @@ public class RateLimiterConfigurationManagerTest {
 			Assert.assertThat(assertt, CoreMatchers.is(false));
 		}
 	}
+
 }

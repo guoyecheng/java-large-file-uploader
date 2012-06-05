@@ -42,6 +42,7 @@ import com.am.jlfu.fileuploader.logic.UploadProcessorTest.TestFileSplitResult;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor.WriteChunkCompletionListener;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
+import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 
@@ -71,6 +72,9 @@ public class UploadServletAsyncProcessorTest {
 
 	@Autowired
 	StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
+
+	@Autowired
+	StaticStateIdentifierManager staticStateIdentifierManager;
 
 	MockMultipartFile tinyFile;
 	Long tinyFileSize;
@@ -103,16 +107,21 @@ public class UploadServletAsyncProcessorTest {
 
 		private boolean releaseOnSuccess;
 		private Exception e;
+		private UUID clientId;
+		private UUID fileId;
 
 
 
-		public Listener(boolean shallSucceed) {
+		public Listener(UUID clientId, UUID fileId, boolean shallSucceed) {
 			this.releaseOnSuccess = shallSucceed;
+			this.clientId = clientId;
+			this.fileId = fileId;
 		}
 
 
 		@Override
 		public void error(Exception exception) {
+			uploadServletAsyncProcessor.clean(clientId, fileId);
 			e = exception;
 			if (releaseOnSuccess) {
 				Assert.fail();
@@ -123,6 +132,7 @@ public class UploadServletAsyncProcessorTest {
 
 		@Override
 		public void success() {
+			uploadServletAsyncProcessor.clean(clientId, fileId);
 			if (!releaseOnSuccess) {
 				Assert.fail();
 			}
@@ -538,7 +548,7 @@ public class UploadServletAsyncProcessorTest {
 
 	private void processWaitForCompletionAndCheck(UUID fileId, TestFileSplitResult byteArrayFromFile, Class<? extends Exception> expectedException)
 			throws FileNotFoundException, InterruptedException {
-		Listener completionListener = new Listener(expectedException == null);
+		Listener completionListener = new Listener(staticStateIdentifierManager.getIdentifier(), fileId, expectedException == null);
 		uploadServletAsyncProcessor.process(staticStateManager.getEntity().getFileStates().get(fileId), fileId, byteArrayFromFile.crc,
 				byteArrayFromFile.stream, completionListener);
 		waitForListener(completionListener);

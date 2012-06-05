@@ -292,7 +292,6 @@ public class UploadServletAsyncProcessor {
 		public void completeWithError(Exception e) {
 			log.debug("error for " + fileId + ". closing file stream");
 			closeFileStream();
-			clean(clientId, fileId);
 			completionListener.error(e);
 		}
 
@@ -300,7 +299,6 @@ public class UploadServletAsyncProcessor {
 		public void success() {
 			log.debug("completion for " + fileId + ". closing file stream");
 			closeFileStream();
-			clean(clientId, fileId);
 			completionListener.success();
 		}
 
@@ -334,6 +332,7 @@ public class UploadServletAsyncProcessor {
 
 		// resetting configuration
 		uploadProcessingConfigurationManager.reset(fileId);
+
 	}
 
 
