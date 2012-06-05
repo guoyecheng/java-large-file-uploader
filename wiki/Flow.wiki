@@ -1,6 +1,6 @@
 #summary Description of how the uploads are processed
 
-The [JavaLargeFileUploader#initialize] step retrieves information from the server using a cookie stored in the browser.
+The [JavaLargeFileUploader#initialize] step retrieves information from the server.
 The information retrieved is:
   * The size of the slices that will be streamed
 For all the files:
