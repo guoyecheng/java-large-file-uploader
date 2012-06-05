@@ -84,9 +84,9 @@ public class RateLimiterConfigurationManagerTest {
 		// emulate a pending upload
 		final StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
 		final UUID identifier = staticStateIdentifierManager.getIdentifier();
-		rateLimiterConfigurationManager.requestConfigMap
+		rateLimiterConfigurationManager.configurationMap
 				.put(identifier, new RequestUploadProcessingConfiguration());
-		rateLimiterConfigurationManager.requestConfigMap.getUnchecked(identifier);
+		rateLimiterConfigurationManager.configurationMap.getUnchecked(identifier);
 		final StaticFileState value = new StaticFileState();
 		entity.getFileStates().put(identifier, value);
 		final FileStateJsonBase staticFileStateJson = new FileStateJsonBase();

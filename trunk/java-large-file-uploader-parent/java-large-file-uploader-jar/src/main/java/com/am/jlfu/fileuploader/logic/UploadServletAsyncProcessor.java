@@ -74,7 +74,7 @@ public class UploadServletAsyncProcessor {
 
 		// extract the corresponding request entity from map
 		final RequestUploadProcessingConfiguration requestUploadProcessingConfiguration =
-				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId);
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
 
 		// get static file state
 		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
@@ -345,7 +345,7 @@ public class UploadServletAsyncProcessor {
 	public boolean isPausedOrCancelled(UUID fileId) {
 		StaticStatePersistedOnFileSystemEntity entityIfPresent = staticStateManager.getEntityIfPresent();
 		return entityIfPresent != null && (entityIfPresent.getFileStates().get(fileId) == null ||
-				uploadProcessingConfigurationManager.getRequestUploadProcessingConfiguration(fileId).isPaused());
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).isPaused());
 	}
 
 
