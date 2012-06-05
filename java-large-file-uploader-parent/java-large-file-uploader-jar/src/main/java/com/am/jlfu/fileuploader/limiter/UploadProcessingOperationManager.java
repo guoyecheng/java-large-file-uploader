@@ -21,15 +21,15 @@ public class UploadProcessingOperationManager {
 	// ////////////
 
 	/** Operation for clients and requests. */
-	private final ConcurrentMap<UUID, UploadProcessingOperation> clientsAndRequestsProcessingOperation = Maps.newConcurrentMap();
+	final ConcurrentMap<UUID, UploadProcessingOperation> clientsAndRequestsProcessingOperation = Maps.newConcurrentMap();
 
 	/** Operation for master. */
-	private final UploadProcessingOperation masterProcessingOperation = new UploadProcessingOperation();
+	final UploadProcessingOperation masterProcessingOperation = new UploadProcessingOperation();
 
 	// ////////////
 
 	/** Maps a client to its current requests */
-	private final ConcurrentMap<UUID, Set<UUID>> clientToRequestsMapping = Maps.newConcurrentMap();
+	final ConcurrentMap<UUID, Set<UUID>> clientToRequestsMapping = Maps.newConcurrentMap();
 
 
 
