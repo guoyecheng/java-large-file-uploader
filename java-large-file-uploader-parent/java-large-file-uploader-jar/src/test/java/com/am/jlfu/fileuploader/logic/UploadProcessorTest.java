@@ -202,6 +202,15 @@ public class UploadProcessorTest {
 
 
 	@Test
+	public void testIdReSpecification() {
+		testIdSpecification();
+		UUID randomUUID = UUID.randomUUID();
+		uploadProcessor.getConfig(randomUUID);
+		Assert.assertThat(staticStateIdentifierManager.getIdentifier(), is(randomUUID));
+	}
+
+
+	@Test
 	public void testCrcBuffered()
 			throws IOException {
 
