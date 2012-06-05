@@ -13,7 +13,8 @@ public enum UploadServletParameter {
 	fileId,
 	crc,
 	rate,
-	newFiles;
+	newFiles,
+	clientId;
 
 
 }

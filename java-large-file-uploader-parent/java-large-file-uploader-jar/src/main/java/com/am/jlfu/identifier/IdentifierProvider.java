@@ -36,6 +36,18 @@ public interface IdentifierProvider {
 
 
 	/**
+	 * Define this method if your application supports IDs specified by the client (on
+	 * initialization).
+	 * 
+	 * @param httpServletRequest
+	 * @param httpServletResponse
+	 * @param id
+	 * 
+	 */
+	void setIdentifier(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, UUID id);
+
+
+	/**
 	 * Removes the identifier.
 	 * 
 	 * @param request

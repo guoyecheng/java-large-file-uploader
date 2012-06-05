@@ -34,6 +34,7 @@ import com.am.jlfu.fileuploader.json.InitializationConfiguration;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
 import com.am.jlfu.fileuploader.web.UploadServletAsync;
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
+import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
@@ -57,6 +58,9 @@ public class UploadProcessorTest {
 
 	@Autowired
 	StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
+
+	@Autowired
+	StaticStateIdentifierManager staticStateIdentifierManager;
 
 	@Autowired
 	RequestComponentContainer requestComponentContainer;
@@ -168,7 +172,7 @@ public class UploadProcessorTest {
 		assertState(value, true, false, fileName, fileSize, 0l);
 
 		// assert that we have it in the pending files
-		Assert.assertThat(uploadProcessor.getConfig().getPendingFiles().keySet().toArray()[0].toString(), is(fileId.toString()));
+		Assert.assertThat(uploadProcessor.getConfig(null).getPendingFiles().keySet().toArray()[0].toString(), is(fileId.toString()));
 
 		// cancel
 		uploadProcessor.clearFile(fileId);
@@ -177,15 +181,23 @@ public class UploadProcessorTest {
 		Assert.assertThat(staticStateManager.getEntity().getFileStates().containsKey(fileId), is(false));
 
 		// assert that we dont have it in the pending files anymore
-		Assert.assertThat(uploadProcessor.getConfig().getPendingFiles().containsKey(fileId), is(false));
+		Assert.assertThat(uploadProcessor.getConfig(null).getPendingFiles().containsKey(fileId), is(false));
 	}
 
 
 	@Test
 	public void testConfig()
 			throws IOException {
-		InitializationConfiguration config = uploadProcessor.getConfig();
+		InitializationConfiguration config = uploadProcessor.getConfig(null);
 		Assert.assertNotNull(config.getInByte());
+	}
+
+
+	@Test
+	public void testIdSpecification() {
+		UUID randomUUID = UUID.randomUUID();
+		uploadProcessor.getConfig(randomUUID);
+		Assert.assertThat(staticStateIdentifierManager.getIdentifier(), is(randomUUID));
 	}
 
 
