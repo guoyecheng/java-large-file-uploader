@@ -70,7 +70,6 @@ public class RateLimiterConfigurationManager
 					@Override
 					public RequestUploadProcessingConfiguration load(UUID arg0)
 							throws Exception {
-						log.trace("Created new bucket for client with id #{}", arg0);
 						return new RequestUploadProcessingConfiguration();
 					}
 				});
