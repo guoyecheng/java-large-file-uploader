@@ -26,6 +26,7 @@ function JavaLargeFileUploader() {
 	errorMessages[10] = "An exception occurred. Retrying ...";
 	errorMessages[11] = "Connection lost. Automatically retrying in a moment.";
 	errorMessages[12] = "You do not have the permission to perform this action.";
+	errorMessages[13] = "FireBug is enabled, you may experience issues if you do not disable it while uploading.";
 	
 	this.setJavaLargeFileUploaderHost = function (javaLargeFileUploaderHostI) {
 		javaLargeFileUploaderHost = javaLargeFileUploaderHostI;
@@ -54,6 +55,15 @@ function JavaLargeFileUploader() {
 		var appended = "";
 		if (optionalClientOrJobIdentifier) {
 			appended = "&clientId="+optionalClientOrJobIdentifier;
+		}
+		
+		//if firebug is enabled, show exception
+		if (window.console && (window.console.firebug || window.console.exception)) {
+			if (exceptionCallback) {
+				exceptionCallback(errorMessages[13]);
+			} else {
+				alert(errorMessages[13]);
+			}
 		}
 		
 		// get the configuration
