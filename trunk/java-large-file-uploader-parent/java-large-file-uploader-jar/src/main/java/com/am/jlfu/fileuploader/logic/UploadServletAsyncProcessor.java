@@ -144,9 +144,9 @@ public class UploadServletAsyncProcessor {
 
 		private final WriteChunkCompletionListener completionListener;
 
-		private UploadProcessingOperation requestUploadProcessingConfiguration;
-		private UploadProcessingOperation clientUploadProcessingConfiguration;
-		private UploadProcessingOperation masterUploadProcessingConfiguration;
+		private UploadProcessingOperation requestUploadProcessingOperation;
+		private UploadProcessingOperation clientUploadProcessingOperation;
+		private UploadProcessingOperation masterUploadProcessingOperation;
 
 		private CRC32 crc32 = new CRC32();
 		private long byteProcessed;
@@ -160,9 +160,9 @@ public class UploadServletAsyncProcessor {
 				InputStream inputStream,
 				FileOutputStream outputStream, WriteChunkCompletionListener completionListener, UUID clientId) {
 			this.fileId = fileId;
-			this.requestUploadProcessingConfiguration = requestOperation;
-			this.clientUploadProcessingConfiguration = clientOperation;
-			this.masterUploadProcessingConfiguration = masterProcessingOperation;
+			this.requestUploadProcessingOperation = requestOperation;
+			this.clientUploadProcessingOperation = clientOperation;
+			this.masterUploadProcessingOperation = masterProcessingOperation;
 			this.crc = crc;
 			this.inputStream = inputStream;
 			this.outputStream = outputStream;
@@ -177,9 +177,9 @@ public class UploadServletAsyncProcessor {
 			try {
 				// if we have not exceeded our byte to write allowance
 				long requestAllowance, clientAllowance, masterAllowance;
-				if ((requestAllowance = requestUploadProcessingConfiguration.getDownloadAllowanceForIteration()) > 0 &&
-						(clientAllowance = clientUploadProcessingConfiguration.getDownloadAllowanceForIteration()) > 0 &&
-						(masterAllowance = masterUploadProcessingConfiguration.getDownloadAllowanceForIteration()) > 0) {
+				if ((requestAllowance = requestUploadProcessingOperation.getDownloadAllowanceForIteration()) > 0 &&
+						(clientAllowance = clientUploadProcessingOperation.getDownloadAllowanceForIteration()) > 0 &&
+						(masterAllowance = masterUploadProcessingOperation.getDownloadAllowanceForIteration()) > 0) {
 
 					// keep first time
 					if (completionTimeTakenReference == 0) {
@@ -256,13 +256,13 @@ public class UploadServletAsyncProcessor {
 				crc32.update(buffer, 0, bytesCount);
 
 				// and update request allowance
-				requestUploadProcessingConfiguration.bytesConsumedFromAllowance(bytesCount);
+				requestUploadProcessingOperation.bytesConsumedFromAllowance(bytesCount);
 
 				// and update client allowance
-				clientUploadProcessingConfiguration.bytesConsumedFromAllowance(bytesCount);
+				clientUploadProcessingOperation.bytesConsumedFromAllowance(bytesCount);
 
 				// also update master allowance
-				masterUploadProcessingConfiguration.bytesConsumedFromAllowance(bytesCount);
+				masterUploadProcessingOperation.bytesConsumedFromAllowance(bytesCount);
 
 				// submit again
 				uploadWorkersPool.submit(this);
