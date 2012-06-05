@@ -145,8 +145,8 @@ public class RateLimiterConfigurationManager
 				// but a
 				// timeout!! we propagate the event
 				for (Entry<UUID, StaticFileState> lavds : entityIfPresentWithIdentifier.getFileStates().entrySet()) {
-					if (lavds.getValue().getStaticFileStateJson().getCrcedBytes() != lavds.getValue().getStaticFileStateJson()
-							.getOriginalFileSizeInBytes()) {
+					if (!lavds.getValue().getStaticFileStateJson().getCrcedBytes().equals(lavds.getValue().getStaticFileStateJson()
+							.getOriginalFileSizeInBytes())) {
 						log.debug("inactivity detected for client " + key);
 						jlfuListenerPropagator.getPropagator().onClientInactivity(key, clientEvictionTimeInSeconds);
 						return;
