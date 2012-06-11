@@ -329,7 +329,24 @@ function JavaLargeFileUploader() {
 		});
 	}
 	
-	function extractFilesInformation(referenceToFileElement, startCallback, progressCallback,
+	
+	
+    function extractFilesInformation(referenceToFileElements, startCallback, progressCallback, finishCallback, exceptionCallback){
+    	var retArray = [];
+
+    	if($.isArray(referenceToFileElements)) {
+    		for (var i = 0 ; i < referenceToFileElements.length; i++){
+    			retArray = retArray.concat(extractSingleElementFilesInformationProcess(referenceToFileElements[i], startCallback, progressCallback, finishCallback, exceptionCallback));
+    		}
+    	} else {
+    		retArray = extractSingleElementFilesInformationProcess(referenceToFileElements, startCallback, progressCallback, finishCallback, exceptionCallback);
+    	}
+        return retArray;
+    }
+	
+	
+	
+	function extractSingleElementFilesInformationProcess(referenceToFileElement, startCallback, progressCallback,
 			finishCallback, exceptionCallback) {
 		var newFiles = [];
 		
