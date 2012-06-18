@@ -48,7 +48,7 @@ public abstract class UploadServletAsyncListenerAdapter
 	@Override
 	public void onError(AsyncEvent asyncEvent)
 			throws IOException {
-		log.warn("Asynchronous request error (" + id + ")", asyncEvent.getThrowable());
+		log.error("Asynchronous request error (" + id + ")", asyncEvent.getThrowable());
 		clean();
 	}
 
