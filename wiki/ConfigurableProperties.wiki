@@ -13,11 +13,15 @@ key: `jlfu.ratelimiter.maximumRatePerClientInKiloBytes`
 
 The maximum upload rate per client in kilo bytes. (Default is 10240 (10MB/s))
 
+Exposed as MBean.
+
 ====maximumOverAllRateInKiloBytes====
 
 key: `jlfu.ratelimiter.maximumOverAllRateInKiloBytes`
 
 The maximum total upload rate in kilo bytes. (Default is 10240 (10MB/s))
+
+Exposed as MBean.
 
 ====maximumInactivityInHoursBeforeDelete====
 
@@ -25,9 +29,16 @@ key: `jlfu.filecleaner.maximumInactivityInHoursBeforeDelete`
 
 The maximum time files can stay inactive on the server (Default is 48)
 
+Exposed as MBean.
 
 
-These properties are also exposed as MBeans and can be modified at runtime.
+====uploadFolder====
+
+key: `jlfu.defaultUploadFolder`
+
+The folder where the files and state are stored on the server (Default is /JavaLargeFileUploader)
+
+
 
 ----
 
