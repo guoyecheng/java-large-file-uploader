@@ -14,7 +14,7 @@ import com.am.jlfu.staticstate.StaticStateRootFolderProvider;
 @Component
 @Primary
 public class RootFolderProvider
-		implements StaticStateRootFolderProvider {
+		extends StaticStateRootFolderProvider {
 
 	private File file;
 
