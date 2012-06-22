@@ -36,8 +36,14 @@ Exposed as MBean.
 
 key: `jlfu.defaultUploadFolder`
 
-The folder where the files and state are stored on the server (Default is /JavaLargeFileUploader)
+The folder where the files and state are stored on the server (Default is "/JavaLargeFileUploader")
 
+
+====uploadFolderRelativePath====
+
+key: `jlfu.uploadFolderRelativePath`
+
+Boolean specifying whether the defaultUploaderFolder described previously is a relative path (true) or an absolute path (false) (Default is `true`)
 
 
 ----
