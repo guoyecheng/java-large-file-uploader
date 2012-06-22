@@ -22,11 +22,17 @@ public class StaticStateRootFolderProvider {
 	@Value("${jlfu.defaultUploadFolder:/JavaLargeFileUploader}")
 	private String defaultUploadFolder;
 	
+	@Value("${jlfu.uploadFolderRelativePath:true}")
+	private Boolean uploadFolderRelativePath;
+	
 	@Autowired(required = false)
 	WebApplicationContext webApplicationContext;
 	
 	public File getRootFolder() {
-		String realPath = webApplicationContext.getServletContext().getRealPath(defaultUploadFolder);
+		String realPath = defaultUploadFolder;
+		if (uploadFolderRelativePath) {
+			 realPath = webApplicationContext.getServletContext().getRealPath(defaultUploadFolder);
+		} 
 		File file = new File(realPath);
 		// create if non existent
 		if (!file.exists()) {
