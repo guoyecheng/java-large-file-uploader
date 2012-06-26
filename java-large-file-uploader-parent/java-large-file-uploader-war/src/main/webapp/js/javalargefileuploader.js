@@ -130,10 +130,32 @@ function JavaLargeFileUploader() {
 	};
 	
 	this.pauseFileUpload = function (fileIdI, callback) {
-		var fileId = fileIdI;
-		if(fileId && pendingFiles[fileId] && isFilePaused(pendingFiles[fileId]) === false  && pendingFiles[fileIdI].resuming === false) {
-			pendingFiles[fileId].pausing = true;
-			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=pauseFile&fileId=" + fileId,	function(e) {
+		this.pauseFileUploads([fileIdI], callback);
+	};
+	
+	this.pauseAllFileUploads = function (callback) {
+		var fileIds = [];
+		for (var fileId in pendingFiles) {
+			fileIds.push(fileId);
+		}
+		this.pauseFileUploads (fileIds, callback);  
+	};
+	
+	this.pauseFileUploads = function (fileIds, callback) {
+		var filesToSend = []; 
+		for (var i in fileIds) {
+	        var fileId = fileIds[i];
+			if(fileId && pendingFiles[fileId] && isFilePaused(pendingFiles[fileId]) === false  && pendingFiles[fileId].resuming === false) {
+				if (pendingFiles[fileId].queued === true) {
+					pendingFiles[fileId].paused = true;
+				} else {
+					pendingFiles[fileId].pausing = true;
+					filesToSend.push(fileId);
+				}
+			}
+		}
+		if (filesToSend.length > 0) {
+			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=pauseFile&fileId=" + filesToSend,	function(e) {
 				if (callback) {
 					callback(pendingFiles[fileId]);
 				}
@@ -146,10 +168,25 @@ function JavaLargeFileUploader() {
 	}
 	
 	this.resumeFileUpload = function (fileIdI, callback) {
-		if (fileIdI && pendingFiles[fileIdI]) {
-			if (pendingFiles[fileIdI].paused === true && pendingFiles[fileIdI].resuming === false) {
-				pendingFiles[fileIdI].resuming = true;
-				resumeFileUploadInternal(pendingFiles[fileIdI], callback);
+		this.resumeFileUploads([fileIdI], callback);
+	};
+	
+	this.resumeAllFileUploads = function(callback) {
+		var fileIds = [];
+		for (var fileId in pendingFiles) {
+			fileIds.push(fileId);
+		}
+		this.resumeFileUploads (fileIds, callback);  
+	}
+	
+	this.resumeFileUploads = function (fileIds, callback) {
+		for (var i in fileIds) {
+			var fileIdI = fileIds[i];
+			if (fileIdI && pendingFiles[fileIdI]) {
+				if (pendingFiles[fileIdI].paused === true && pendingFiles[fileIdI].resuming === false) {
+					pendingFiles[fileIdI].resuming = true;
+					resumeFileUploadInternal(pendingFiles[fileIdI], callback);
+				}
 			}
 		}
 	};
@@ -376,6 +413,7 @@ function JavaLargeFileUploader() {
 					pendingFile.exceptionCallback= exceptionCallback;
 					pendingFile.paused=false;
 					pendingFile.pausing=false;
+					pendingFile.resuming = false;
 					
 					//put it into the temporary new file array as every file is potentially a new file until it is proven it is not a new file
 					newFiles.push(pendingFile);
@@ -510,6 +548,11 @@ function JavaLargeFileUploader() {
 		//if the file is not complete
 		if (pendingFile.fileCompletionInBytes < pendingFile.originalFileSizeInBytes) {
 
+			//reset some tags
+			pendingFile.paused = false;
+			pendingFile.pausing = false;
+			pendingFile.resuming = false;
+			
 			//check if we can process the upload
 			if (canUploadBeProcessed() === true) {
 				
@@ -518,9 +561,6 @@ function JavaLargeFileUploader() {
 				pendingFile.end = pendingFile.fileCompletionInBytes + bytesPerChunk;
 				pendingFile.started = true;
 				pendingFile.queued = false;
-				pendingFile.paused = false;
-				pendingFile.pausing = false;
-				pendingFile.resuming = false;
 				
 				console.log("processing "+pendingFile.id+" for slice "+pendingFile.fileCompletionInBytes + " - "+pendingFile.end);
 
@@ -667,7 +707,7 @@ function JavaLargeFileUploader() {
 	
 	function processNextInQueue() {
 		for(fileId in pendingFiles) {
-			if (pendingFiles[fileId].queued) {
+			if (pendingFiles[fileId].queued && !pendingFiles[fileId].paused) {
 				fileUploadProcessStarter(pendingFiles[fileId]);
 				return;
 			}

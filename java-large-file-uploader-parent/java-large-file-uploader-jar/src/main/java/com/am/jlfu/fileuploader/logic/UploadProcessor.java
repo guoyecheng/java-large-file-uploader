@@ -408,16 +408,20 @@ public class UploadProcessor {
 	}
 
 
-	public void pauseFile(UUID fileId) {
+	public void pauseFile(List<UUID> uuids) {
 
-		// specify as paused
-		uploadProcessingConfigurationManager.pause(fileId);
-
-		// close stream
-		closeStreamForFiles(fileId);
-
-		// then call listener
-		jlfuListenerPropagator.getPropagator().onFileUploadPaused(staticStateIdentifierManager.getIdentifier(), fileId);
+		//for all these files
+		for (UUID uuid : uuids) {
+			
+			// specify as paused
+			uploadProcessingConfigurationManager.pause(uuid);
+	
+			// close stream
+			closeStreamForFiles(uuid);
+	
+			// then call listener
+			jlfuListenerPropagator.getPropagator().onFileUploadPaused(staticStateIdentifierManager.getIdentifier(), uuid);
+		}
 
 	}
 

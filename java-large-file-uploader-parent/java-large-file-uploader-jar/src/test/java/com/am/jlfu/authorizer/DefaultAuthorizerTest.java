@@ -38,7 +38,7 @@ public class DefaultAuthorizerTest {
 		new Authorizer() {
 
 			@Override
-			public void getAuthorization(HttpServletRequest request, UploadServletAction action, UUID clientId, UUID optionalFileId)
+			public void getAuthorization(HttpServletRequest request, UploadServletAction action, UUID clientId, UUID... optionalFileId)
 					throws AuthorizationException {
 				throw new AuthorizationException(action, clientId, optionalFileId);
 			}

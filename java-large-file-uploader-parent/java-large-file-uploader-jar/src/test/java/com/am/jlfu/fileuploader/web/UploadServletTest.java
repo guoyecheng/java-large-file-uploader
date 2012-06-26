@@ -5,10 +5,13 @@ import static org.hamcrest.CoreMatchers.is;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -218,47 +221,23 @@ public class UploadServletTest {
 	}
 
 
-	// @Test
-	// public void completeTest()
-	// throws IOException, ServletException {
-	//
-	//
-	// // prepare upload
-	// String fileId = prepareUpload();
-	//
-	//
-	// // populate request component container with multipart request
-	// MockMultipartHttpServletRequest multipartRequest = new MockMultipartHttpServletRequest();
-	// requestComponentContainer.populate(multipartRequest, response);
-	//
-	// // populate multipart request session with the previous call to keep the identifier
-	// multipartRequest.setSession(request.getSession());
-	//
-	// // set the file to request
-	// FilePart[] parts = new FilePart[] {
-	// new FilePart("name", new ByteArrayPartSource("i am a file", content)) };
-	// MultipartRequestEntity multipartRequestEntity =
-	// new MultipartRequestEntity(parts, new PostMethod().getParams());
-	// ByteArrayOutputStream requestContent = new ByteArrayOutputStream();
-	// multipartRequestEntity.writeRequest(requestContent);
-	// multipartRequest.setContent(requestContent.toByteArray());
-	// multipartRequest.setContentType(multipartRequestEntity.getContentType());
-	//
-	// // get crc
-	// CRC32 crc32 = new CRC32();
-	// crc32.update(content);
-	//
-	// // set action parameters
-	// multipartRequest.setParameter(UploadServletParameter.fileId.name(), fileId);
-	// multipartRequest.setParameter(UploadServletParameter.sliceFrom.name(), 0 + "");
-	// multipartRequest.setParameter(UploadServletParameter.crc.name(),
-	// Long.toHexString(crc32.getValue()));
-	//
-	// // handle request
-	// response = new MockHttpServletResponse();
-	// uploadServletAsync.handleRequest(multipartRequest, response);
-	// Assert.assertThat(response.getStatus(), is(200));
-	//
-	// }
+	@Test
+	public void testGetMultiFileIdsFromString() {
+		UUID uuid1 = UUID.randomUUID();
+		UUID uuid2 = UUID.randomUUID();
+		List<UUID> fileIdsFromString = uploadServlet.getFileIdsFromString(uuid1+","+uuid2);
+		Assert.assertThat(fileIdsFromString.size(), CoreMatchers.is(2));
+		Assert.assertTrue(fileIdsFromString.contains(uuid1));
+		Assert.assertTrue(fileIdsFromString.contains(uuid2));
+	}
 
+	@Test
+	public void testGetOneFileIdFromString() {
+		UUID uuid1 = UUID.randomUUID();
+		List<UUID> fileIdsFromString = uploadServlet.getFileIdsFromString(uuid1.toString());
+		Assert.assertThat(fileIdsFromString.size(), CoreMatchers.is(1));
+		Assert.assertTrue(fileIdsFromString.contains(uuid1));
+	}
+	
+	
 }
