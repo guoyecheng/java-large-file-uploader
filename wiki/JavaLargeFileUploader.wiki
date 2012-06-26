@@ -84,6 +84,25 @@ jlfu.pauseFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(pendingFil
 });
 }}} 
 ----
+===pauseAllFileUploads===
+{{{
+jlfu.pauseAllFileUploads(callback);
+}}}
+
+_since 1.1.2_
+
+Pauses all the uploads of all the files (does not start the files queued).
+The uploads can be resumed independently using [JavaLargeFileUploader#resumeFileUpload] or [JavaLargeFileUploader#resumeAllFileUploads].
+  * callback:
+  A function with that will be executed for all the files once the files have been paused containing the following parameters:
+    # pendingFile (PendingFile) : the pending file object instance that has been paused. 
+Example: 
+{{{
+jlfu.pauseAllFileUploads(function(pendingFile) {
+	//do something when the call is complete
+});
+}}} 
+----
 ===resumeFileUpload===
 {{{
 jlfu.resumeFileUpload(pendingFileId, callback);
@@ -97,6 +116,24 @@ Resumes the file with the specified id on the server that has been previously pa
 Example: 
 {{{
 jlfu.resumeFileUpload("4ec798ec-eba1-4ef7-afbe-df6f4635783d", function(pendingFile) {
+	//do something when the call is complete
+});
+}}} 
+----
+===resumeAllFileUploads===
+{{{
+jlfu.resumeAllFileUploads(callback);
+}}}
+
+_since 1.1.2_
+
+Resumes all the file that have been paused using [JavaLargeFileUploader#pauseFileUpload] or [JavaLargeFileUploader#pauseAllFileUploads].
+  * callback:
+  A function which will be executed for all the files once the file has been resumed containing the following parameters:
+    # pendingFile (PendingFile) : the pending file object instance that has been resumed. 
+Example: 
+{{{
+jlfu.resumeAllFileUploads(function(pendingFile) {
 	//do something when the call is complete
 });
 }}} 
