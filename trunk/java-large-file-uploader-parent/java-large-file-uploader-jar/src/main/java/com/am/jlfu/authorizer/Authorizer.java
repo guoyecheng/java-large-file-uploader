@@ -25,12 +25,12 @@ public interface Authorizer {
 	 *            the action that the client wishes to perform
 	 * @param clientId
 	 *            the identifier of the client
-	 * @param optionalFileId
-	 *            if available, the file id
+	 * @param optionalFileIds
+	 *            if available, the file id(s)
 	 * @throws AuthorizationException
 	 *             if the client cannot perform the action on this file
 	 */
-	void getAuthorization(HttpServletRequest request, UploadServletAction action, UUID clientId, UUID optionalFileId)
+	void getAuthorization(HttpServletRequest request, UploadServletAction action, UUID clientId, UUID... optionalFileIds)
 			throws AuthorizationException;
 
 }

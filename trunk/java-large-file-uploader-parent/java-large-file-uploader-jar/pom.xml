@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>com.am</groupId>
 		<artifactId>java-large-file-uploader-parent</artifactId>
-		<version>1.1-SNAPSHOT</version>
+		<version>1.1.2-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>java-large-file-uploader-jar</artifactId>

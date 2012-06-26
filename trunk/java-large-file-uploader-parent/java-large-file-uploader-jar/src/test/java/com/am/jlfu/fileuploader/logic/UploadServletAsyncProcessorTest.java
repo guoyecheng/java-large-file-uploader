@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -437,7 +438,7 @@ public class UploadServletAsyncProcessorTest {
 				if (currentSlice == numberOfSlices / 2) {
 
 					// pause
-					uploadProcessor.pauseFile(fileId);
+					uploadProcessor.pauseFile(Arrays.asList(new UUID[] {fileId}));
 
 					// get the file size
 					long length = new File(absoluteFullPathOfUploadedFile).length();

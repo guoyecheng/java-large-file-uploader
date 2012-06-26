@@ -8,12 +8,13 @@ import javax.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 
 import com.am.jlfu.authorizer.Authorizer;
+import com.am.jlfu.fileuploader.exception.AuthorizationException;
 import com.am.jlfu.fileuploader.web.UploadServletAction;
 
 
 
 /**
- * Default authorizer that always returns true.
+ * Default {@link Authorizer} that never throws an {@link AuthorizationException}.
  * 
  * @author antoinem
  * 
@@ -23,7 +24,7 @@ public class DefaultAuthorizer
 		implements Authorizer {
 
 	@Override
-	public void getAuthorization(HttpServletRequest request, UploadServletAction action, UUID clientId, UUID optionalFileId) {
+	public void getAuthorization(HttpServletRequest request, UploadServletAction action, UUID clientId, UUID... optionalFileId) {
 		// by default, all calls are authorized
 	}
 

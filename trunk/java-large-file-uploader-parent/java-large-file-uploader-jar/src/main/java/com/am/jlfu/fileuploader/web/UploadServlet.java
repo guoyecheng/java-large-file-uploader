@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 import javax.servlet.annotation.WebServlet;
@@ -32,6 +33,7 @@ import com.am.jlfu.fileuploader.web.utils.FileUploaderHelper;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 
@@ -108,7 +110,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 		if (!actionByParameterName.equals(UploadServletAction.getProgress)) {
 
 			// extract uuid
-			final String uuid = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId, false);
+			final String fileIdFieldValue = fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId, false);
 
 			// if this is init, the identifier is the one in parameter
 			UUID clientOrJobId;
@@ -121,13 +123,13 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				clientOrJobId = staticStateIdentifierManager.getIdentifier();
 			}
 
-
+			
 			// call authorizer
 			authorizer.getAuthorization(
 					request,
 					actionByParameterName,
 					clientOrJobId,
-					uuid != null ? UUID.fromString(uuid) : null);
+					fileIdFieldValue != null ? getFileIdsFromString(fileIdFieldValue).toArray(new UUID[] {}) : null);
 
 		}
 	}
@@ -158,7 +160,8 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				uploadProcessor.clearAll();
 				break;
 			case pauseFile:
-				uploadProcessor.pauseFile(UUID.fromString(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId)));
+				List<UUID> uuids = getFileIdsFromString(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
+				uploadProcessor.pauseFile(uuids);
 				break;
 			case resumeFile:
 				returnObject =
@@ -173,6 +176,16 @@ public class UploadServlet extends HttpRequestHandlerServlet
 				break;
 		}
 		return returnObject;
+	}
+
+
+	List<UUID> getFileIdsFromString(String fileIds) {
+		String[] splittedFileIds = fileIds.split(",");
+		List<UUID> uuids = Lists.newArrayList();
+		for (int i = 0; i < splittedFileIds.length; i++) {
+			uuids.add(UUID.fromString(splittedFileIds[i]));
+		} 
+		return uuids;
 	}
 
 

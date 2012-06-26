@@ -9,8 +9,8 @@ import com.am.jlfu.fileuploader.web.UploadServletAction;
 
 public class AuthorizationException extends Exception {
 
-	public AuthorizationException(UploadServletAction actionByParameterName, UUID clientId, UUID optionalFileId) {
-		super("User " + clientId + " is not authorized to perform " + actionByParameterName + (optionalFileId != null ? " on " + optionalFileId : ""));
+	public AuthorizationException(UploadServletAction actionByParameterName, UUID clientId, UUID... optionalFileIds) {
+		super("User " + clientId + " is not authorized to perform " + actionByParameterName + (optionalFileIds != null ? " on " + optionalFileIds : ""));
 	}
 
 
