@@ -157,7 +157,10 @@ function JavaLargeFileUploader() {
 		if (filesToSend.length > 0) {
 			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=pauseFile&fileId=" + filesToSend,	function(e) {
 				if (callback) {
-					callback(pendingFiles[fileId]);
+					for (var i in fileIds) {
+						var fileId = fileIds[i];
+						callback(pendingFiles[fileId]);
+					}
 				}
 			});
 		}
