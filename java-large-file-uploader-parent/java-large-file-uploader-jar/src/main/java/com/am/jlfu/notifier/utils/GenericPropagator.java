@@ -18,7 +18,7 @@ import com.google.common.collect.Lists;
 
 /**
  * Propagates the methods called on {@link #proxiedElement} to all objects in {@link #propagateTo}.<br>
- * {@link #getProxiedClass()} has to be overridden by any subclass.
+ * <strong>{@link #getProxiedClass()} has to be overridden by any subclass.</strong>
  * 
  * @param <T>
  * @author antoinem
