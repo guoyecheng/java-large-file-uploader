@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.StaticStateManager;
+import com.am.jlfu.staticstate.StaticStateManagerService;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.cache.CacheBuilder;
@@ -45,6 +46,9 @@ public class RateLimiterConfigurationManager
 
 	@Autowired
 	private StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
+
+	@Autowired
+	private StaticStateManagerService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
 
 	/** the cache containing all configuration for requests and clients */
 	LoadingCache<UUID, RequestUploadProcessingConfiguration> configurationMap;
@@ -137,7 +141,7 @@ public class RateLimiterConfigurationManager
 
 			// check if client id is in state
 			final StaticStatePersistedOnFileSystemEntity entityIfPresentWithIdentifier =
-					staticStateManager.getEntityIfPresentWithIdentifier(key);
+					staticStateManagerService.getEntityIfPresent(key);
 
 			if (entityIfPresentWithIdentifier != null) {
 

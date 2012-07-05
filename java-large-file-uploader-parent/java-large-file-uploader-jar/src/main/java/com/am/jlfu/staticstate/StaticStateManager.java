@@ -4,8 +4,6 @@ package com.am.jlfu.staticstate;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -31,7 +29,10 @@ import com.thoughtworks.xstream.XStream;
 
 
 /**
- * Has to be initialized with the {@link #init(Class)} method first.
+ * Manages the information related to the files.<br>
+ * This information is stored locally in a cache and also persisted on the file system.<br>
+ * All of the methods used here are to be called within the scope of a request. Most of these methods (to query and update) are also available outside of such a scope in {@link StaticStateManagerService}
+ * This class has to be initialized with the {@link #init(Class)} method first.
  * 
  * @author antoinem
  * 
@@ -41,7 +42,7 @@ import com.thoughtworks.xstream.XStream;
 public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity> {
 
 	private static final Logger log = LoggerFactory.getLogger(StaticStateManager.class);
-	private static final String FILENAME = "StaticState.xml";
+	static final String FILENAME = "StaticState.xml";
 
 	@Autowired
 	FileDeleter fileDeleter;
@@ -55,6 +56,8 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	@Autowired
 	StaticStateDirectoryManager staticStateDirectoryManager;
 
+	@Autowired
+	StaticStateManagerService<T> staticStateManagerService;
 
 	/**
 	 * Used to bypass generic type erasure.<br>
@@ -148,25 +151,13 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 			catch (IllegalAccessException e) {
 				throw new RuntimeException(e);
 			}
-			write(entity, uuidFile);
+			staticStateManagerService.writeEntity(uuidFile, entity);
 
 		}
 
 		// then return entity
 		return entity;
 	}
-
-
-	/**
-	 * Retrieves the entity from cache using a client identifier
-	 * 
-	 * @param clientIdentifier
-	 * @return
-	 */
-	public T getEntityIfPresentWithIdentifier(UUID clientIdentifier) {
-		return cache.getIfPresent(clientIdentifier);
-	}
-
 
 	/**
 	 * Retrieves the entity from cookie or cache if it exists or create one if it does not exists.
@@ -185,7 +176,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * @return
 	 */
 	public StaticStatePersistedOnFileSystemEntity getEntityIfPresent() {
-		return getEntityIfPresentWithIdentifier(staticStateIdentifierManager.getIdentifier());
+		return staticStateManagerService.getEntityIfPresent(staticStateIdentifierManager.getIdentifier());
 	}
 
 
@@ -196,22 +187,9 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * @return
 	 * @throws ExecutionException
 	 */
-	public void processEntityTreatment(T entity) {
+	public void updateEntity(T entity) {
 		UUID uuid = staticStateIdentifierManager.getIdentifier();
-		log.debug("writing state for " + uuid);
-		cache.put(uuid, entity);
-		write(entity, new File(staticStateDirectoryManager.getUUIDFileParent(), FILENAME));
-	}
-
-
-	/**
-	 * Persists modifications onto filesystem only.
-	 * 
-	 * @param entity
-	 */
-	public void writeEntity(UUID uuid, T entity) {
-		write(entity, new File(staticStateDirectoryManager.getUUIDFileParent(uuid), FILENAME));
-
+		staticStateManagerService.updateEntity(uuid, entity);
 	}
 
 
@@ -224,60 +202,20 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 */
 	public void clear()
 	{
-		log.debug("Clearing everything including cache, session, files.");
-
-		final File uuidFileParent = staticStateDirectoryManager.getUUIDFileParent();
-
-		// schedule file for deletion
-		fileDeleter.deleteFile(uuidFileParent);
-
-		// remove entity from cache
-		cache.invalidate(staticStateIdentifierManager.getIdentifier());
-
+		//clear stuff on the server
+		staticStateManagerService.clearClient(staticStateIdentifierManager.getIdentifier());
+		
 		// remove cookie and session
 		staticStateIdentifierManager.clearIdentifier();
 
 	}
 
-
+	
 	public void clearFile(final UUID fileId)
 	{
-		log.debug("Clearing pending uploaded file and all attributes linked to it.");
-
-		final File uuidFileParent = staticStateDirectoryManager.getUUIDFileParent();
-
-
-		// remove the uploaded file for this particular id
-		fileDeleter.deleteFile(uuidFileParent.listFiles(new FilenameFilter() {
-
-			public boolean accept(File dir, String name) {
-				return name.startsWith(fileId.toString());
-			}
-		}));
-
-		// remove the file information in entity
-		T entity = getEntity();
-		entity.getFileStates().remove(fileId);
-
-		// and save
-		processEntityTreatment(entity);
+		staticStateManagerService.clearFile(staticStateIdentifierManager.getIdentifier(), fileId);
 	}
 
-
-	private void write(T modelFromContext, File modelFile) {
-		XStream xStream = new XStream();
-		FileOutputStream fs = null;
-		try {
-			fs = new FileOutputStream(modelFile);
-			xStream.toXML(modelFromContext, fs);
-		}
-		catch (FileNotFoundException e) {
-			log.error("cannot write to model file for " + modelFromContext.getClass().getSimpleName() + ": " + e.getMessage(), e);
-		}
-		finally {
-			IOUtils.closeQuietly(fs);
-		}
-	}
 
 
 	T read(File f) {
@@ -351,7 +289,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 			@Override
 			public void run() {
 				// write this later on.
-				writeEntity(clientId, entity);
+				staticStateManagerService.writeEntity(clientId, entity);
 			}
 		});
 

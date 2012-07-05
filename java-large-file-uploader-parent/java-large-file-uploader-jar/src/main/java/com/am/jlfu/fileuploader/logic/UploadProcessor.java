@@ -41,6 +41,7 @@ import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
+import com.am.jlfu.staticstate.StaticStateManagerService;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.base.Functions;
@@ -66,6 +67,9 @@ public class UploadProcessor {
 
 	@Autowired
 	StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
+
+	@Autowired
+	StaticStateManagerService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
 
 	@Autowired
 	StaticStateIdentifierManager staticStateIdentifierManager;
@@ -221,7 +225,7 @@ public class UploadProcessor {
 		jsonFileState.setCreationDate(new Date());
 
 		// write the state
-		staticStateManager.processEntityTreatment(model);
+		staticStateManager.updateEntity(model);
 
 		// call listener
 		jlfuListenerPropagator.getPropagator().onFileUploadPrepared(staticStateIdentifierManager.getIdentifier(), fileId);
@@ -340,52 +344,14 @@ public class UploadProcessor {
 	}
 
 
-	public Float getProgress(UUID clientId, UUID fileId)
-			throws FileNotFoundException {
-
-
-		// get the file
-		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntityIfPresentWithIdentifier(clientId);
-		StaticFileState fileState = model.getFileStates().get(fileId);
-		if (fileState == null) {
-			throw new FileNotFoundException("File with id " + fileId + " not found");
-		}
-		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
-
-		// compare size o6f the file to the expected size
-		Float progress = getProgress(file.length(), fileState.getStaticFileStateJson().getOriginalFileSizeInBytes()).floatValue();
-
-		log.debug("progress for file " + fileId + ": " + progress);
-		return progress;
-	}
-
-
 	public Float getProgress(UUID fileId)
 			throws FileNotFoundException {
 
+		// get the identifier of the client
+		UUID clientId = staticStateIdentifierManager.getIdentifier();
 
-		// get the file
-		StaticStatePersistedOnFileSystemEntity model = staticStateManager.getEntity();
-		StaticFileState fileState = model.getFileStates().get(fileId);
-		if (fileState == null) {
-			throw new FileNotFoundException("File with id " + fileId + " not found");
-		}
-		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
-
-		// compare size o6f the file to the expected size
-		Float progress = getProgress(file.length(), fileState.getStaticFileStateJson().getOriginalFileSizeInBytes()).floatValue();
-
-		log.debug("progress for file " + fileId + ": " + progress);
-		return progress;
-	}
-
-
-	Double getProgress(Long currentSize, Long expectedSize) {
-		double percent = currentSize.doubleValue() / expectedSize.doubleValue() * 100d;
-		if (percent == 100 && expectedSize - currentSize != 0) {
-			percent = 99.99d;
-		}
-		return percent;
+		// return progress
+		return staticStateManagerService.getProgress(clientId, fileId);
 	}
 
 
@@ -404,21 +370,21 @@ public class UploadProcessor {
 		entity.getFileStates().get(fileId).getStaticFileStateJson().setRateInKiloBytes(rate);
 
 		// persist changes
-		staticStateManager.processEntityTreatment(entity);
+		staticStateManager.updateEntity(entity);
 	}
 
 
 	public void pauseFile(List<UUID> uuids) {
 
-		//for all these files
+		// for all these files
 		for (UUID uuid : uuids) {
-			
+
 			// specify as paused
 			uploadProcessingConfigurationManager.pause(uuid);
-	
+
 			// close stream
 			closeStreamForFiles(uuid);
-	
+
 			// then call listener
 			jlfuListenerPropagator.getPropagator().onFileUploadPaused(staticStateIdentifierManager.getIdentifier(), uuid);
 		}
