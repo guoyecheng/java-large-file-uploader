@@ -2,7 +2,6 @@ package com.am.jlfu.fileuploader.logic;
 
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -90,20 +89,6 @@ public class UploadProcessorTest {
 		content = new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 		file = new MockMultipartFile("blob", content);
 		fileSize = Integer.valueOf(content.length).longValue();
-	}
-
-
-	@Test
-	public void progressCalculationTest() {
-		// check basic 30% (30/100)
-		Assert.assertThat(Double.valueOf(30), is(uploadProcessor.getProgress(30l, 100l)));
-		Long bigValue = 1000000000000000000l;
-		// check that we dont return 100% if values are not exactly equals
-		Assert.assertThat(Double.valueOf(100), is(not(uploadProcessor.getProgress(bigValue - 1, bigValue))));
-		// check that we return 100% if values are equals
-		Assert.assertThat(Double.valueOf(100), is(uploadProcessor.getProgress(bigValue, bigValue)));
-		// check that we return 0% when 0/x
-		Assert.assertThat(Double.valueOf(0), is(uploadProcessor.getProgress(0l, 240l)));
 	}
 
 

@@ -128,7 +128,7 @@ public class StaticStateManagerTest {
 
 		// put some stuff in the file
 		value.setAbsoluteFullPathOfUploadedFile(absoluteFullPathOfUploadedFile);
-		staticStateManager.processEntityTreatment(entity);
+		staticStateManager.updateEntity(entity);
 
 		// remove from cache
 		staticStateManager.cache.invalidate(staticStateIdentifierManager.getIdentifier());
