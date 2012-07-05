@@ -26,7 +26,7 @@ public class StaticStatePersistedOnFileSystemEntity
 	/** generated id */
 	private static final long serialVersionUID = 6033009138577295466L;
 
-	/** The states of the files being uploaded, the string being its identifier. */
+	/** The states of the files being uploaded, the UUID being its identifier. */
 	private Map<UUID, StaticFileState> fileStates = Maps.newHashMap();
 
 
