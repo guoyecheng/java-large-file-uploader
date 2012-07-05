@@ -8,7 +8,7 @@ import com.am.jlfu.notifier.utils.GenericPropagator;
 
 
 /**
- * Propagates all events fired on {@link #proxiedListener} to the {@link #listeners}.
+ * Propagates the events to the registered listeners.
  * 
  * @author antoinem
  * 
