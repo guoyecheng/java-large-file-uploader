@@ -111,6 +111,11 @@ errorMessages[6] = "No files have been selected, please select at least one file
 errorMessages[7] = "Resuming file upload with previous slice as the last part is invalid.";
 errorMessages[8] = "Error while uploading a slice of the file";
 errorMessages[9] = "Maximum number of concurrent uploads reached, the upload is queued and waiting for one to finish.";
+errorMessages[10] = "An exception occurred. Retrying ...";
+errorMessages[11] = "Connection lost. Automatically retrying in a moment.";
+errorMessages[12] = "You do not have the permission to perform this action.";
+errorMessages[13] = "FireBug is enabled, you may experience issues if you do not disable it while uploading.";
+errorMessages[14] = "File corrupted. An unknown error has occured and the file is corrupted. The usual cause is that the file has been modified during the upload. Please clear it and re-upload it.";
 }}}
 You can retrieve this map using [JavaLargeFileUploader#getErrorMessages] and modify them directly.
 
