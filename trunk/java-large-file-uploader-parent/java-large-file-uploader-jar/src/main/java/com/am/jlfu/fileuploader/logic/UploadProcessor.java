@@ -92,7 +92,13 @@ public class UploadProcessor {
 	@Value("${jlfu.sliceSizeInBytes:10485760}")
 	private long sliceSizeInBytes;
 
-
+	/**
+	 * Keeps the original name of the uploaded files.<br>
+	 * If <code>false</code>, the name will be a {@link UUID} which will guarantee no name-collision.<br>
+	 * Default to <code>false</code>
+	 */
+	@Value("${jlfu.keepOriginalFileName:false}")
+	private boolean keepOriginalFileName;
 
 	public InitializationConfiguration getConfig(UUID clientId) {
 
@@ -210,7 +216,7 @@ public class UploadProcessor {
 
 		// create a new file for it
 		UUID fileId = UUID.randomUUID();
-		File file = new File(staticStateDirectoryManager.getUUIDFileParent(), fileId + fileExtension);
+		File file = new File(staticStateDirectoryManager.getUUIDFileParent(), keepOriginalFileName ? fileName : fileId + fileExtension);
 		file.createNewFile();
 		StaticFileState fileState = new StaticFileState();
 		FileStateJsonBase jsonFileState = new FileStateJsonBase();
