@@ -68,8 +68,6 @@ public class UploadProcessorTest {
 
 	String fileName = "zenameofzefile.owf";
 
-	private String fileId;
-
 	private Long fileSize;
 
 	private byte[] content;
@@ -85,7 +83,6 @@ public class UploadProcessorTest {
 
 
 		staticStateManager.clear();
-		fileId = null;
 		content = new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 		file = new MockMultipartFile("blob", content);
 		fileSize = Integer.valueOf(content.length).longValue();
@@ -211,4 +208,6 @@ public class UploadProcessorTest {
 		Assert.assertThat(withMethod.getTotalRead(), is(content.length));
 
 	}
+	
+	
 }

@@ -35,6 +35,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.am.jlfu.fileuploader.exception.FileCorruptedException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
 import com.am.jlfu.fileuploader.json.CRCResult;
@@ -585,6 +586,16 @@ public class UploadServletAsyncProcessorTest {
 			}
 			return super.read(b);
 		}
+	}
+	
+
+	@Test(expected = FileCorruptedException.class)
+	public void testFileCorruptedException() throws IOException, InterruptedException, InvalidCrcException, FileCorruptedException {
+
+		// begin a file upload process
+		UUID fileId = uploadProcessor.prepareUpload(tinyFileSize, fileName, "lala");
+		staticStateManager.setCrcBytesValidated(staticStateIdentifierManager.getIdentifier(), fileId, 10);
+		
 	}
 
 }

@@ -18,6 +18,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.fileuploader.exception.FileCorruptedException;
+import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
@@ -253,35 +255,37 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	 * @param clientId
 	 * @param fileId
 	 * @return true if the file is complete
+	 * @throws FileCorruptedException 
 	 */
-	public void setCrcBytesValidated(final UUID clientId, UUID fileId, final long validated) {
+	public void setCrcBytesValidated(final UUID clientId, UUID fileId, final long validated) throws FileCorruptedException {
 
 		final T entity = cache.getIfPresent(clientId);
 		if (entity == null) {
 			return;
 		}
 		final StaticFileState staticFileState = entity.getFileStates().get(fileId);
-		Long crcredBytes = staticFileState.getStaticFileStateJson().getCrcedBytes();
-		staticFileState.getStaticFileStateJson().setCrcedBytes(
+		if (staticFileState == null) {
+			return;
+		}
+		FileStateJsonBase staticFileStateJson = staticFileState.getStaticFileStateJson();
+		if (staticFileStateJson == null) {
+			return;
+		}
+		Long crcredBytes = staticFileStateJson.getCrcedBytes();
+		staticFileStateJson.setCrcedBytes(
 				crcredBytes + validated);
 
 		log.debug(validated + " more bytes have been validated appended to the already " + crcredBytes + " bytes validated for file " + fileId +
 				" for client id " + clientId);
 
 		// manage the end of file
-		if (staticFileState.getStaticFileStateJson().getCrcedBytes() == staticFileState.getStaticFileStateJson().getOriginalFileSizeInBytes()) {
+		if (staticFileStateJson.getCrcedBytes() == staticFileStateJson.getOriginalFileSizeInBytes()) {
 			jlfuListenerPropagator.getPropagator().onFileUploadEnd(clientId, fileId);
 		}
 
-		// TODO remove when stable or make a proper end of upload verification with crc of last
-		// chunk?
-		if (staticFileState.getStaticFileStateJson().getCrcedBytes() > staticFileState.getStaticFileStateJson().getOriginalFileSizeInBytes()) {
-			log.error("###############################################################################");
-			log.error("###############################################################################");
-			log.error("# " + staticFileState.getStaticFileStateJson().getCrcedBytes() + " crced bytes are more than it should be: " +
-					staticFileState.getStaticFileStateJson().getOriginalFileSizeInBytes() + " #");
-			log.error("###############################################################################");
-			log.error("###############################################################################");
+		//checks whether we have a file corruption exception
+		if (staticFileStateJson.getCrcedBytes() > staticFileStateJson.getOriginalFileSizeInBytes()) {
+			throw new FileCorruptedException(staticFileStateJson.getCrcedBytes() + " crced bytes are more than it should be: " + staticFileStateJson.getOriginalFileSizeInBytes());
 		}
 
 		fileStateUpdaterExecutor.submit(new Runnable() {

@@ -21,6 +21,7 @@ import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.fileuploader.exception.FileCorruptedException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.limiter.RateLimiter;
@@ -228,7 +229,7 @@ public class UploadServletAsyncProcessor {
 
 
 		private void write(int available)
-				throws IOException {
+				throws IOException, FileCorruptedException {
 
 			// check if user wants to cancel
 			if (uploadProcessingConfigurationManager.requestHasToBeCancelled(fileId)) {
