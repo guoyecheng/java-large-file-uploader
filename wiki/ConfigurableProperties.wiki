@@ -7,54 +7,76 @@ Some Java properties are exposed and can be configured using a properties file.
 You can add a _java-large-file-uploader.properties_ file to your classpath which can include:
 
 
+
 ====maximumRatePerClientInKiloBytes====
 
-key: `jlfu.ratelimiter.maximumRatePerClientInKiloBytes`
+{{{ 
+jlfu.ratelimiter.maximumRatePerClientInKiloBytes 
+}}}
 
 The maximum upload rate per client in kilo bytes. (Default is 10240 (10MB/s))
 
 Exposed as MBean.
 
+
+
 ====maximumOverAllRateInKiloBytes====
 
-key: `jlfu.ratelimiter.maximumOverAllRateInKiloBytes`
+{{{
+jlfu.ratelimiter.maximumOverAllRateInKiloBytes
+}}}
 
 The maximum total upload rate in kilo bytes. (Default is 10240 (10MB/s))
 
 Exposed as MBean.
 
+
+
 ====maximumInactivityInHoursBeforeDelete====
 
-key: `jlfu.filecleaner.maximumInactivityInHoursBeforeDelete`
+{{{
+jlfu.filecleaner.maximumInactivityInHoursBeforeDelete
+}}}
 
 The maximum time files can stay inactive on the server (Default is 48)
 
 Exposed as MBean.
 
 
+
 ====uploadFolder====
 
-key: `jlfu.defaultUploadFolder`
+{{{
+jlfu.defaultUploadFolder
+}}}
 
 The folder where the files and state are stored on the server (Default is "/JavaLargeFileUploader")
 
 
+
 ====uploadFolderRelativePath====
 
-key: `jlfu.uploadFolderRelativePath`
+{{{
+jlfu.uploadFolderRelativePath
+}}}
 
 Boolean specifying whether the defaultUploaderFolder described previously is a relative path (true) or an absolute path (false) (Default is `true`)
 
 
+
 ====keepOriginalFileName====
 
-key: `jlfu.keepOriginalFileName
+{{{
+jlfu.keepOriginalFileName
+}}}
 
 Boolean specifying whether the originalFileName should be kept while preparing the upload of a file. If set to false, a name generated from a UUID will be assigned to avoid name collision. (Default is `false`)
 
 
 
 ----
+
+
 
 ==javascript-attributes==
 
