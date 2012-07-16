@@ -46,6 +46,14 @@ key: `jlfu.uploadFolderRelativePath`
 Boolean specifying whether the defaultUploaderFolder described previously is a relative path (true) or an absolute path (false) (Default is `true`)
 
 
+====keepOriginalFileName====
+
+key: `jlfu.keepOriginalFileName
+
+Boolean specifying whether the originalFileName should be kept while preparing the upload of a file. If set to false, a name generated from a UUID will be assigned to avoid name collision. (Default is `false`)
+
+
+
 ----
 
 ==javascript-attributes==
