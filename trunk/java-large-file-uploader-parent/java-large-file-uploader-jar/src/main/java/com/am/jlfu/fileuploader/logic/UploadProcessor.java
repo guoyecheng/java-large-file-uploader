@@ -26,6 +26,7 @@ import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.fileuploader.exception.FileCorruptedException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.CRCResult;
 import com.am.jlfu.fileuploader.json.FileStateJson;
@@ -412,7 +413,7 @@ public class UploadProcessor {
 
 
 	public void verifyCrcOfUncheckedPart(UUID fileId, String inputCrc)
-			throws IOException, InvalidCrcException {
+			throws IOException, InvalidCrcException, FileCorruptedException {
 		log.debug("validating the bytes that have not been validated from the previous interrupted upload for file " +
 				fileId);
 

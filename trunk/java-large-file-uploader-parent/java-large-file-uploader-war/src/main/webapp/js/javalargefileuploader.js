@@ -27,6 +27,8 @@ function JavaLargeFileUploader() {
 	errorMessages[11] = "Connection lost. Automatically retrying in a moment.";
 	errorMessages[12] = "You do not have the permission to perform this action.";
 	errorMessages[13] = "FireBug is enabled, you may experience issues if you do not disable it while uploading.";
+	errorMessages[14] = "File corrupted. An unknown error has occured and the file is corrupted. The usual cause is that the file has been modified during the upload. Please clear it and re-upload it.";
+	exceptionsRetryable = [3,7,8,10,11];
 	
 	this.setJavaLargeFileUploaderHost = function (javaLargeFileUploaderHostI) {
 		javaLargeFileUploaderHost = javaLargeFileUploaderHostI;
@@ -645,7 +647,7 @@ function JavaLargeFileUploader() {
 						if (xhr.response) {
 							var resp = JSON.parse(xhr.response);
 							displayException(pendingFile, resp.value);
-							if (autoRetry) {
+							if (autoRetry && isExceptionRetryable(resp.value)) {
 								//submit retry
 								retryRecursive(pendingFile);
 							}
@@ -738,6 +740,10 @@ function JavaLargeFileUploader() {
 	function uploadIsActive(pendingFile) {
 		//process only if we have this id in the pending files and if the file is incomplete and if the file is not paused and if the file is started!
 		return pendingFiles[pendingFile.id] && !isFilePaused(pendingFile) && !pendingFile.fileComplete && pendingFile.started;
+	}
+	
+	function isExceptionRetryable(errorId) {
+		return (exceptionsRetryable.indexOf(errorId) != -1);
 	}
 	
 	function startProgressPoller() {

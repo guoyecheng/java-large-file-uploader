@@ -6,7 +6,7 @@
 	<groupId>com.am</groupId>
 	<artifactId>java-large-file-uploader-parent</artifactId>
 	<packaging>pom</packaging>
-	<version>1.1.2-SNAPSHOT</version>
+	<version>1.1.4-SNAPSHOT</version>
 
 	<modules>
 		<module>java-large-file-uploader-jar</module>

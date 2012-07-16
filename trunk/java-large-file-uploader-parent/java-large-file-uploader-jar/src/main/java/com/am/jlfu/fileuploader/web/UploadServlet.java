@@ -23,6 +23,7 @@ import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
 import com.am.jlfu.authorizer.Authorizer;
 import com.am.jlfu.fileuploader.exception.AuthorizationException;
+import com.am.jlfu.fileuploader.exception.FileCorruptedException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
 import com.am.jlfu.fileuploader.json.PrepareUploadJson;
@@ -245,7 +246,7 @@ public class UploadServlet extends HttpRequestHandlerServlet
 
 
 	private Boolean verifyCrcOfUncheckedPart(HttpServletRequest request)
-			throws IOException, MissingParameterException {
+			throws IOException, MissingParameterException, FileCorruptedException {
 		UUID fileId = UUID.fromString(fileUploaderHelper.getParameterValue(request, UploadServletParameter.fileId));
 		try {
 			uploadProcessor.verifyCrcOfUncheckedPart(fileId,
