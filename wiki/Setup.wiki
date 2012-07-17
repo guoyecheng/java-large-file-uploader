@@ -31,7 +31,7 @@ And the repository:
 
 ====Spring====
 
-Also if your are using Spring and your are defining your own `contextConfigLocation` in your web.xml, it will override the one defined in the web fragment.
+If you are using Spring and you are defining your own `contextConfigLocation` in your web.xml, it will override the one defined in the web fragment.
 
 Please add '`classpath*:/META-INF/jlfu-web-fragment-context.xml`' inside the param value.
 
