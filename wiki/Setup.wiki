@@ -28,6 +28,23 @@ And the repository:
 }}}
 And do not forget to specify `version="3.0"` in the `web-app` element of your web.xml !
 
+====Spring====
+
+Also if your are using Spring and your are defining your own `contextConfigLocation` in your web.xml, it will override the one defined in the web fragment.
+
+Please add '`classpath*:/META-INF/jlfu-web-fragment-context.xml`' inside the param value.
+
+Example:
+{{{
+<context-param>
+	<param-name>contextConfigLocation</param-name>
+	<param-value>
+		classpath*:/META-INF/jlfu-web-fragment-context.xml
+		/WEB-INF/spring/another-spring-configuration-file.xml
+	</param-value>
+</context-param>
+}}}
+
 ===javascript===
 
 See [JavaLargeFileUploader]
