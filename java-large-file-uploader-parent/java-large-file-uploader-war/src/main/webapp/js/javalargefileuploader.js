@@ -11,7 +11,7 @@ function JavaLargeFileUploader() {
 	progressPollerRefreshRate = 1000;
 	maxNumberOfConcurrentUploads = 5; 
 	autoRetry = true; 
-	autoRetryDelay = 1000; 
+	autoRetryDelay = 5000; 
 	errorMessages = new Object();
 	errorMessages[0] = "Request failed for an unknown reason, please contact an administrator if the problem persists.";
 	errorMessages[1] = "The request is not multipart.";
