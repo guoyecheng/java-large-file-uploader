@@ -38,7 +38,7 @@ public class RateLimiterConfigurationManager
 	private static final Logger log = LoggerFactory.getLogger(RateLimiterConfigurationManager.class);
 
 	/** Client is evicted from the map when not accessed for that duration */
-	@Value("${jlfu.rateLimiterConfiguration.evictionTimeInSeconds:120}")
+	@Value("jlfu{jlfu.rateLimiterConfiguration.evictionTimeInSeconds:120}")
 	public int clientEvictionTimeInSeconds;
 
 	@Autowired
@@ -88,12 +88,12 @@ public class RateLimiterConfigurationManager
 	// ///////////////
 
 	// 10mb/s
-	@Value("${jlfu.ratelimiter.maximumRatePerClientInKiloBytes:10240}")
+	@Value("jlfu{jlfu.ratelimiter.maximumRatePerClientInKiloBytes:10240}")
 	private volatile long maximumRatePerClientInKiloBytes;
 
 
 	// 10mb/s
-	@Value("${jlfu.ratelimiter.maximumOverAllRateInKiloBytes:10240}")
+	@Value("jlfu{jlfu.ratelimiter.maximumOverAllRateInKiloBytes:10240}")
 	private volatile long maximumOverAllRateInKiloBytes;
 
 
