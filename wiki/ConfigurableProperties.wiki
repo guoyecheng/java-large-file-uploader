@@ -131,7 +131,7 @@ Use [JavaLargeFileUploader#setProgressPollerRefreshRate] to set this value up.
 
 _default autoretry value is *true*_
 
-_default autoretry delay is *1000*_
+_default autoretry delay is *5000*_
 
 Whenever the connection is lost, the API can try to resume the file upload automatically. 
 
