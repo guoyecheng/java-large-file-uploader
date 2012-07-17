@@ -5,6 +5,8 @@
 This project is really easy to configure as the dependencies are a war containing a simple javascript file and a jar which includes all the web configuration (using web fragment from servlet 3.0 specification).
 [ConfigurableProperties Some properties] are exposed as MBeans and can be changed at runtime and others can be set directly in the javascript.
 
+====Maven====
+
 Just define the maven dependencies:
 {{{
 <dependency>
