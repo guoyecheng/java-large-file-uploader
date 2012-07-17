@@ -26,7 +26,6 @@ And the repository:
 	<url>http://java-large-file-uploader.googlecode.com/svn/mvnrepo</url>
 </repository>
 }}}
-And do not forget to specify `version="3.0"` in the `web-app` element of your web.xml !
 
 ====Spring====
 
@@ -44,6 +43,8 @@ Example:
 	</param-value>
 </context-param>
 }}}
+
+*/!\* And do not forget to specify `version="3.0"` in the `web-app` element of your web.xml !
 
 ===javascript===
 
