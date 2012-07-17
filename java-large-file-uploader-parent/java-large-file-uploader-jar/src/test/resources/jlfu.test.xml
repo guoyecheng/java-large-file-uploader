@@ -36,6 +36,7 @@
 	
 	<bean
 		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="placeholderPrefix" value="jlfu{" />
 		<property name="locations">
 			<list>
 				<value>classpath:jlfu.test.properties</value>

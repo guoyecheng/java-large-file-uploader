@@ -35,7 +35,7 @@ public class ImportedFilesCleaner {
 	@Autowired
 	FileDeleter fileDeleter;
 
-	@Value("${jlfu.filecleaner.maximumInactivityInHoursBeforeDelete:48}")
+	@Value("jlfu{jlfu.filecleaner.maximumInactivityInHoursBeforeDelete:48}")
 	volatile Integer maximumInactivityInHoursBeforeDelete;
 
 
