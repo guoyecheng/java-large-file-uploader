@@ -6,7 +6,12 @@ import java.io.Serializable;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 
 
-
+/**
+ * Server-side entity representing a file.<br>
+ * It contains the shared file information ({@link FileStateJsonBase}) and the url of the file.
+ * @author antoinem
+ *
+ */
 public class StaticFileState
 		implements Serializable {
 

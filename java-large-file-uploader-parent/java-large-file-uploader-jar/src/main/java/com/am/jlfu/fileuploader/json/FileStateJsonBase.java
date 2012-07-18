@@ -5,7 +5,10 @@ import java.io.Serializable;
 import java.util.Date;
 
 
-
+/**
+ * Shared entity (java/javascript) containing information about a file being uploaded.<br>
+ * @author antoinem
+ */
 public class FileStateJsonBase
 		implements Serializable {
 
