@@ -45,7 +45,7 @@ import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
-import com.am.jlfu.staticstate.StaticStateManagerService;
+import com.am.jlfu.staticstate.JavaLargeFileUploaderService;
 import com.am.jlfu.staticstate.entities.FileProgressStatus;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
@@ -74,7 +74,7 @@ public class UploadProcessor {
 	StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
 
 	@Autowired
-	StaticStateManagerService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
+	JavaLargeFileUploaderService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
 
 	@Autowired
 	StaticStateIdentifierManager staticStateIdentifierManager;

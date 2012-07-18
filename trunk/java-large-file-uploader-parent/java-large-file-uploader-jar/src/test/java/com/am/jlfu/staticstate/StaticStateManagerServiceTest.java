@@ -17,7 +17,7 @@ import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 public class StaticStateManagerServiceTest {
 
 	@Autowired
-	StaticStateManagerService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
+	JavaLargeFileUploaderService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
 	
 	@Test
 	public void progressCalculationTest() {

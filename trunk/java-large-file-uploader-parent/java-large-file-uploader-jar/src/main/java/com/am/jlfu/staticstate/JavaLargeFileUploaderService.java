@@ -26,7 +26,7 @@ import com.thoughtworks.xstream.XStream;
  * @see StaticStateManager
  */
 @Component
-public class StaticStateManagerService<T extends StaticStatePersistedOnFileSystemEntity> {
+public class JavaLargeFileUploaderService<T extends StaticStatePersistedOnFileSystemEntity> {
 
 	@Autowired
 	FileDeleter fileDeleter;
@@ -37,7 +37,7 @@ public class StaticStateManagerService<T extends StaticStatePersistedOnFileSyste
 	@Autowired
 	StaticStateDirectoryManager staticStateDirectoryManager;
 
-	private static final Logger log = LoggerFactory.getLogger(StaticStateManagerService.class);
+	private static final Logger log = LoggerFactory.getLogger(JavaLargeFileUploaderService.class);
 
 	
 	/**

@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 
 import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.StaticStateManager;
-import com.am.jlfu.staticstate.StaticStateManagerService;
+import com.am.jlfu.staticstate.JavaLargeFileUploaderService;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.cache.CacheBuilder;
@@ -48,7 +48,7 @@ public class RateLimiterConfigurationManager
 	private StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
 
 	@Autowired
-	private StaticStateManagerService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
+	private JavaLargeFileUploaderService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
 
 	/** the cache containing all configuration for requests and clients */
 	LoadingCache<UUID, RequestUploadProcessingConfiguration> configurationMap;

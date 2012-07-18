@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 import com.am.jlfu.notifier.JLFUListener;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
-import com.am.jlfu.staticstate.StaticStateManagerService;
+import com.am.jlfu.staticstate.JavaLargeFileUploaderService;
 import com.am.jlfu.staticstate.entities.FileProgressStatus;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.collect.Maps;
@@ -41,7 +41,7 @@ public class ProgressManager {
 	private ClientToFilesMap clientToFilesMap;
 	
 	@Autowired
-	private StaticStateManagerService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
+	private JavaLargeFileUploaderService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
 
 	/** Internal map. */
 	Map<UUID, FileProgressStatus> fileToProgressInfo = Maps.newHashMap();
