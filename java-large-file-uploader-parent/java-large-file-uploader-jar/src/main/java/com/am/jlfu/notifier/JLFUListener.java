@@ -115,7 +115,7 @@ public interface JLFUListener {
 	 * @param fileId
 	 * @param progress
 	 */
-	void OnFileUploadProgress(UUID clientId, UUID fileId, FileProgressStatus progress);
+	void onFileUploadProgress(UUID clientId, UUID fileId, FileProgressStatus progress);
 
 
 }
