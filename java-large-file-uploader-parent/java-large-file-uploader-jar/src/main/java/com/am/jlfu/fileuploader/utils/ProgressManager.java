@@ -97,16 +97,8 @@ public class ProgressManager {
 	
 	class ProgressManagerAdvertiser {
 		
-		void advertise(final UUID clientId, final UUID fileId, final FileProgressStatus newProgress) {
-			
-			new Runnable() {
-				
-				@Override
-				public void run() {
-					jlfuListenerPropagator.getPropagator().onFileUploadProgress(clientId, fileId, newProgress);
-				}
-			}.run();
-			
+		void advertise(UUID clientId, UUID fileId, FileProgressStatus newProgress) {
+			jlfuListenerPropagator.getPropagator().onFileUploadProgress(clientId, fileId, newProgress);
 		}
 	}
 

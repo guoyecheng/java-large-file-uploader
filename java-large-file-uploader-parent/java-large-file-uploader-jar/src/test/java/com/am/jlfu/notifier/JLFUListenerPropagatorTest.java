@@ -21,7 +21,7 @@ public class JLFUListenerPropagatorTest {
 	@Autowired
 	JLFUListenerPropagator jlfuListenerPropagator;
 
-	private int testCounter;
+	private volatile int testCounter;
 
 	private JLFUListenerAdapter listener;
 
@@ -29,6 +29,8 @@ public class JLFUListenerPropagatorTest {
 
 	@Before
 	public void before() {
+		jlfuListenerPropagator.unregisterAllListeners();
+		
 		testCounter = 0;
 		listener = new JLFUListenerAdapter() {
 
@@ -42,7 +44,7 @@ public class JLFUListenerPropagatorTest {
 
 
 	@Test
-	public void test() {
+	public void test() throws InterruptedException {
 
 		// add two listener
 		jlfuListenerPropagator.registerListener(listener);
@@ -50,6 +52,7 @@ public class JLFUListenerPropagatorTest {
 
 		// trigger event
 		jlfuListenerPropagator.getPropagator().onNewClient(UUID.randomUUID());
+		Thread.sleep(100);
 
 		// assert
 		Assert.assertThat(testCounter, CoreMatchers.is(2));
@@ -59,9 +62,28 @@ public class JLFUListenerPropagatorTest {
 
 		// trigger event
 		jlfuListenerPropagator.getPropagator().onNewClient(UUID.randomUUID());
+		Thread.sleep(100);
 
 		// assert
 		Assert.assertThat(testCounter, CoreMatchers.is(3));
 
 	}
+	
+	@Test
+	public void testNotBlocked() {
+		jlfuListenerPropagator.registerListener(new JLFUListenerAdapter() {
+			@Override
+			public void onClientBack(UUID clientId) {
+				try {
+					Thread.sleep(10000);
+				}
+				catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				Assert.fail();
+			}
+		});
+		jlfuListenerPropagator.getPropagator().onClientBack(UUID.randomUUID());
+	}
+	
 }
