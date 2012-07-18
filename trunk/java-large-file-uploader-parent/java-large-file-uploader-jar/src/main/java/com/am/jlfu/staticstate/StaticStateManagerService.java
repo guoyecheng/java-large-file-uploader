@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.staticstate.entities.FileProgressStatus;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.thoughtworks.xstream.XStream;
@@ -48,17 +49,21 @@ public class StaticStateManagerService<T extends StaticStatePersistedOnFileSyste
 	 * @return
 	 * @throws FileNotFoundException
 	 */
-	public Float getProgress(UUID clientId, UUID fileId)
+	public FileProgressStatus getProgress(UUID clientId, UUID fileId)
 			throws FileNotFoundException {
 
 		// get the file
 		StaticStatePersistedOnFileSystemEntity model = getEntityIfPresent(clientId);
+		//if cannot find the model, return null
+		if (model == null) {
+			return null;
+		}
 		return processProgress(fileId, model);
 	}
 
 
 
-	private Float processProgress(UUID fileId, StaticStatePersistedOnFileSystemEntity model)
+	private FileProgressStatus processProgress(UUID fileId, StaticStatePersistedOnFileSystemEntity model)
 			throws FileNotFoundException {
 		StaticFileState fileState = model.getFileStates().get(fileId);
 		if (fileState == null) {
@@ -67,10 +72,19 @@ public class StaticStateManagerService<T extends StaticStatePersistedOnFileSyste
 		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
 
 		// compare size of the file to the expected size
-		Float progress = calculateProgress(file.length(), fileState.getStaticFileStateJson().getOriginalFileSizeInBytes()).floatValue();
+		Long originalFileSizeInBytes = fileState.getStaticFileStateJson().getOriginalFileSizeInBytes();
+		long currentFileSize = file.length();
+		Float progress = calculateProgress(currentFileSize, originalFileSizeInBytes).floatValue();
 
 		log.debug("queried progress for file " + fileId + ": " + progress);
-		return progress;
+		
+		//init returned entity
+		FileProgressStatus fileProgressStatus = new FileProgressStatus();
+		fileProgressStatus.setPercentageCompleted(progress);
+		fileProgressStatus.setTotalFileSize(originalFileSizeInBytes);
+		fileProgressStatus.setBytesUploaded(currentFileSize);
+		
+		return fileProgressStatus;
 	}
 	
 

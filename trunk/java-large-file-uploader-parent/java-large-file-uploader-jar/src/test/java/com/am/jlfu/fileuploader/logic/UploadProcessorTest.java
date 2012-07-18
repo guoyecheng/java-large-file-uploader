@@ -208,6 +208,5 @@ public class UploadProcessorTest {
 		Assert.assertThat(withMethod.getTotalRead(), is(content.length));
 
 	}
-	
-	
+
 }

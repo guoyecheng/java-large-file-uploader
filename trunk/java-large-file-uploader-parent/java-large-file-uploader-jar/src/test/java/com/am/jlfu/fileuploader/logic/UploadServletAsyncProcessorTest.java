@@ -190,28 +190,28 @@ public class UploadServletAsyncProcessorTest {
 		CRCResult bufferedCrc = crcHelper.getBufferedCrc(new ByteArrayInputStream(tinyFileContent.clone()));
 
 		// get progress
-		Assert.assertThat(0f, is(uploadProcessor.getProgress(fileId)));
+		Assert.assertThat(0f, is(uploadProcessor.getProgress(fileId).getProgress()));
 
 		// upload first part
 		splitResult = UploadProcessorTest.getByteArrayFromFile(tinyFile, 0, 3);
 		processWaitForCompletionAndCheck(fileId, splitResult);
 
 		// get progress
-		Assert.assertThat(Math.round(staticStateManagerService.getProgress(staticStateIdentifierManager.getIdentifier(), fileId)), is(3 * 100 / tinyFileSize.intValue()));
+		Assert.assertThat(Math.round(staticStateManagerService.getProgress(staticStateIdentifierManager.getIdentifier(), fileId).getPercentageCompleted()), is(3 * 100 / tinyFileSize.intValue()));
 
 		// upload second part
 		splitResult = UploadProcessorTest.getByteArrayFromFile(tinyFile, 3, 5);
 		processWaitForCompletionAndCheck(fileId, splitResult);
 
 		// get progress
-		Assert.assertThat(Math.round(staticStateManagerService.getProgress(staticStateIdentifierManager.getIdentifier(), fileId)), is(Math.round(5f / tinyFileSize.floatValue() * 100f)));
+		Assert.assertThat(Math.round(staticStateManagerService.getProgress(staticStateIdentifierManager.getIdentifier(), fileId).getPercentageCompleted()), is(Math.round(5f / tinyFileSize.floatValue() * 100f)));
 
 		// upload last part
 		splitResult = UploadProcessorTest.getByteArrayFromFile(tinyFile, 5, tinyFileSize.intValue());
 		processWaitForCompletionAndCheck(fileId, splitResult);
 
 		// get progress
-		Assert.assertThat(Math.round(staticStateManagerService.getProgress(staticStateIdentifierManager.getIdentifier(), fileId)), is(100));
+		Assert.assertThat(Math.round(staticStateManagerService.getProgress(staticStateIdentifierManager.getIdentifier(), fileId).getPercentageCompleted()), is(100));
 
 		// check crc
 		CRCResult fileCrc =

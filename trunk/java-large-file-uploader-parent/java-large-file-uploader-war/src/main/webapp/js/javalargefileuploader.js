@@ -182,7 +182,7 @@ function JavaLargeFileUploader() {
 			fileIds.push(fileId);
 		}
 		this.resumeFileUploads (fileIds, callback);  
-	}
+	};
 	
 	this.resumeFileUploads = function (fileIds, callback) {
 		for (var i in fileIds) {
@@ -719,6 +719,37 @@ function JavaLargeFileUploader() {
 		}
 	}
 	
+
+	/*
+	 * inspired from http://codeaid.net/javascript/convert-seconds-to-hours-minutes-and-seconds-(javascript)
+	 */
+	function getFormattedTime(secs)
+	{
+		if (secs < 1) {
+			return "-";
+		}
+		
+	    var hours = Math.floor(secs / (60 * 60));
+	    
+	    var divisor_for_minutes = secs % (60 * 60);
+	    var minutes = Math.floor(divisor_for_minutes / 60);
+	 
+	    var divisor_for_seconds = divisor_for_minutes % 60;
+	    var seconds = Math.ceil(divisor_for_seconds);
+	    
+	    var returned = '';
+	    if (hours > 0) {
+	    	returned += hours + "h";
+	    }
+	    if (minutes > 0) {
+	    	returned += minutes + "m";
+	    }
+	    if (returned === '') {
+	    	returned += seconds + "s";
+	    }
+	    return returned;
+	}
+	
 	function getFormattedSize(size) {
 		if (size < 1024) {
 			return format(size) + 'B';
@@ -778,11 +809,16 @@ function JavaLargeFileUploader() {
 									var uploadRate = getFormattedSize(progress.uploadRate);
 								}
 								
+								//if we have information about the time remaining:
+								if (progress.estimatedRemainingTimeInSeconds != undefined) {
+									var estimatedRemainingTimeInSeconds = getFormattedTime(progress.estimatedRemainingTimeInSeconds);
+								}
+								
 								//keep progress
 								pendingFile.percentageCompleted = format(progress.progress);
 								
 								// specify progress
-								pendingFile.progressCallback(pendingFile, pendingFile.percentageCompleted, uploadRate,
+								pendingFile.progressCallback(pendingFile, pendingFile.percentageCompleted, uploadRate, estimatedRemainingTimeInSeconds,
 										pendingFile.referenceToFileElement);
 								
 							}

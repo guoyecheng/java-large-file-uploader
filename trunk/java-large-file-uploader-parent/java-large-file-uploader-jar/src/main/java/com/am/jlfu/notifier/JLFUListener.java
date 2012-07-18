@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.identifier.impl.DefaultIdentifierProvider;
+import com.am.jlfu.staticstate.entities.FileProgressStatus;
 
 
 
@@ -114,7 +115,7 @@ public interface JLFUListener {
 	 * @param fileId
 	 * @param progress
 	 */
-	void OnFileUploadProgress(UUID clientId, UUID fileId, Float progress);
+	void OnFileUploadProgress(UUID clientId, UUID fileId, FileProgressStatus progress);
 
 
 }

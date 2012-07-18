@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import com.am.jlfu.notifier.JLFUListener;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.StaticStateManagerService;
+import com.am.jlfu.staticstate.entities.FileProgressStatus;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.collect.Maps;
 
@@ -43,7 +44,7 @@ public class ProgressManager {
 	private StaticStateManagerService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
 
 	/** Internal map. */
-	Map<UUID, Float> fileToProgressInfo = Maps.newHashMap();
+	Map<UUID, FileProgressStatus> fileToProgressInfo = Maps.newHashMap();
 	
 	/** Simple advertiser. */
 	ProgressManagerAdvertiser progressManagerAdvertiser = new ProgressManagerAdvertiser();
@@ -62,22 +63,27 @@ public class ProgressManager {
 					try {
 						
 						//calculate its progress
-						Float newProgress = staticStateManagerService.getProgress(entry.getKey(), fileId);
+						FileProgressStatus newProgress = staticStateManagerService.getProgress(entry.getKey(), fileId);
 
-						//get from map
-						Float progressInMap = fileToProgressInfo.get(fileId);
-						
-						//if not present in map
-						//or if present in map but different from previous one
-						if (progressInMap == null || !progressInMap.equals(newProgress)) {
+						//if progress has successfully been computed
+						if (newProgress != null) {
 							
-							//add to map
-							fileToProgressInfo.put(fileId, newProgress);
+							//get from map
+							FileProgressStatus progressInMap = fileToProgressInfo.get(fileId);
 							
-							// and avertise
-							progressManagerAdvertiser.advertise(entry.getKey(), fileId, newProgress);
-							
+							//if not present in map
+							//or if present in map but different from previous one
+							if (progressInMap == null || !Float.valueOf(progressInMap.getPercentageCompleted()).equals(newProgress.getPercentageCompleted())) {
+								
+								//add to map
+								fileToProgressInfo.put(fileId, newProgress);
+								
+								// and avertise
+								progressManagerAdvertiser.advertise(entry.getKey(), fileId, newProgress);
+								
+							}
 						}
+						
 					}
 					catch (FileNotFoundException e) {
 						log.debug("cannot retrieve progress for "+fileId);
@@ -91,13 +97,13 @@ public class ProgressManager {
 	
 	class ProgressManagerAdvertiser {
 		
-		void advertise(final UUID clientId, final UUID fileId, final Float progress) {
+		void advertise(final UUID clientId, final UUID fileId, final FileProgressStatus newProgress) {
 			
 			new Runnable() {
 				
 				@Override
 				public void run() {
-					jlfuListenerPropagator.getPropagator().OnFileUploadProgress(clientId, fileId, progress);
+					jlfuListenerPropagator.getPropagator().OnFileUploadProgress(clientId, fileId, newProgress);
 				}
 			};
 			
@@ -110,10 +116,9 @@ public class ProgressManager {
 	 * @param fileId
 	 * @return
 	 */
-	public Float getProgress(UUID fileId) {
+	public FileProgressStatus getProgress(UUID fileId) {
 		synchronized (fileToProgressInfo) {
-			Float progress = fileToProgressInfo.get(fileId);
-			return progress != null ? progress : 0f;
+			return fileToProgressInfo.get(fileId);
 		}
 	}
 

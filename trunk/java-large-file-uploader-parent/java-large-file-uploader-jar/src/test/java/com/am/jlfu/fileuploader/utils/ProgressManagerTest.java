@@ -19,6 +19,7 @@ import org.unitils.mock.core.MockObject;
 import com.am.jlfu.fileuploader.utils.ProgressManager.ProgressManagerAdvertiser;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.StaticStateManagerService;
+import com.am.jlfu.staticstate.entities.FileProgressStatus;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.collect.Sets;
 
@@ -70,19 +71,21 @@ public class ProgressManagerTest {
 			throws FileNotFoundException {
 		
 		//mock service
-		staticStateManagerService.onceReturns(returnedValue).getProgress(clientId, fileId);
+		FileProgressStatus fileProgressStatus = new FileProgressStatus();
+		fileProgressStatus.setPercentageCompleted(returnedValue);
+		staticStateManagerService.onceReturns(fileProgressStatus).getProgress(clientId, fileId);
 		
 		//calculate progress
 		progressManager.calculateProgress();
 		
 		//assert map is filled
-		Assert.assertThat(progressManager.fileToProgressInfo.get(fileId), CoreMatchers.is(returnedValue));
+		Assert.assertThat(progressManager.fileToProgressInfo.get(fileId).getPercentageCompleted(), CoreMatchers.is(returnedValue));
 		
 		//assert that event is propagated
 		if (shallBePropagated) {
-			progressManagerAdvertiser.assertInvoked().advertise(clientId, fileId, returnedValue);
+			progressManagerAdvertiser.assertInvoked().advertise(clientId, fileId, fileProgressStatus);
 		} else {
-			progressManagerAdvertiser.assertNotInvoked().advertise(clientId, fileId, returnedValue);
+			progressManagerAdvertiser.assertNotInvoked().advertise(clientId, fileId, fileProgressStatus);
 		}
 	}
 	
