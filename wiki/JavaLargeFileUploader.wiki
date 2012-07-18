@@ -196,7 +196,7 @@ jlfu.fileUploadProcess(fileElement,
 	},		
 		
 	//define a progressCallback
-	function(pendingFile, percentageCompleted, uploadRate, referenceToFileElement) {
+	function(pendingFile, percentageCompleted, uploadRate, estimatedRemainingTime, referenceToFileElement) {
 	}, 
 	
 	//define a finishCallback showing the completion in the em element 
