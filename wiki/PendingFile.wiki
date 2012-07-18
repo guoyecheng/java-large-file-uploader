@@ -36,8 +36,8 @@
   (function) : function that will be called to monitor the progress
     # the PendingFile object
     # the percentage
-    # the current upload rate formatted
-    # the estimated remaining time formatted
+    # the current upload rate formatted as a String
+    # the estimated remaining time formatted as a String
     # the origin element
 ====finishCallback====
   (function): function that will be called when the process is fully complete. 
