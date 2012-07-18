@@ -2,7 +2,7 @@
 
 ==Javascript==
 
-All the operations available on the client side are performed using a single object instance: JavaLargeFileUploader.
+All the operations available on the client side are performed using a single object instance: [http://code.google.com/p/java-large-file-uploader/wiki/JavaLargeFileUploader JavaLargeFileUploader].
 
 ==Java==
 
@@ -13,16 +13,16 @@ On the Java side, there are two kind of possible interactions:
 JLFU provides a Listener system that lets you listen to pretty much everything happening on the server side:
 
 {{{
-onNewClient(UUID)
-onClientBack(UUID)
-onClientInactivity(UUID, int)
-onFileUploadEnd(UUID, UUID)
-onFileUploadPrepared(UUID, UUID)
-onAllFileUploadsPrepared(UUID, Collection<UUID>)
-onFileUploadCancelled(UUID, UUID)
-onFileUploadPaused(UUID, UUID)
-onFileUploadResumed(UUID, UUID)
-onFileUploadProgress(UUID, UUID, FileProgressStatus)
+onNewClient(clientId)
+onClientBack(clientId)
+onClientInactivity(clientId, inactivityTime)
+onFileUploadEnd(clientId, fileId)
+onFileUploadPrepared(clientId, fileId)
+onAllFileUploadsPrepared(clientId, fileIds)
+onFileUploadCancelled(clientId, fileId)
+onFileUploadPaused(clientId, fileId)
+onFileUploadResumed(clientId, fileId)
+onFileUploadProgress(clientId, fileId, FileProgressStatus)
 }}}
 
 You can register a JLFUListener (or an JLFUListenerAdapter) to the JLFUListenerPropagator which will propagates all the events to the registered listeners:
@@ -31,11 +31,11 @@ You can register a JLFUListener (or an JLFUListenerAdapter) to the JLFUListenerP
 
 JLFU also provides a few methods in JavaLargeFileUploaderService like:
 {{{
-getProgress(UUID, UUID)
-updateEntity(UUID, T)
-writeEntity(UUID, T)
-writeEntity(File, T)
-getEntityIfPresent(UUID)
-clearFile(UUID, UUID)
-clearClient(UUID)
+getProgress(clientId, fileId)
+updateEntity(clientId, entity)
+writeEntity(clientId, entity)
+writeEntity(File, entity)
+getEntityIfPresent(clientId)
+clearFile(clientId, fileId)
+clearClient(clientId)
 }}}
