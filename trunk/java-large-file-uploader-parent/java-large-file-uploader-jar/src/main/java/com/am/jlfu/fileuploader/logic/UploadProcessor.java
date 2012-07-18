@@ -38,6 +38,7 @@ import com.am.jlfu.fileuploader.limiter.RequestUploadProcessingConfiguration;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
 import com.am.jlfu.fileuploader.utils.ConditionProvider;
 import com.am.jlfu.fileuploader.utils.GeneralUtils;
+import com.am.jlfu.fileuploader.utils.ProgressManager;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
@@ -80,6 +81,9 @@ public class UploadProcessor {
 
 	@Autowired
 	GeneralUtils generalUtils;
+
+	@Autowired
+	ProgressManager progressManager;
 
 	@Autowired
 	private JLFUListenerPropagator jlfuListenerPropagator;
@@ -354,11 +358,8 @@ public class UploadProcessor {
 	public Float getProgress(UUID fileId)
 			throws FileNotFoundException {
 
-		// get the identifier of the client
-		UUID clientId = staticStateIdentifierManager.getIdentifier();
-
 		// return progress
-		return staticStateManagerService.getProgress(clientId, fileId);
+		return progressManager.getProgress(fileId);
 	}
 
 

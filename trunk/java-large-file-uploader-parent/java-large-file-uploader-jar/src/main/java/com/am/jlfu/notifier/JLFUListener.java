@@ -106,5 +106,15 @@ public interface JLFUListener {
 	 */
 	void onFileUploadResumed(UUID clientId, UUID fileId);
 
+	/**
+	 * Fired about every second for each file currently uploading specified by the fileId for the client
+	 * specified by the clientId whose progress has changed.
+	 * 
+	 * @param clientId
+	 * @param fileId
+	 * @param progress
+	 */
+	void OnFileUploadProgress(UUID clientId, UUID fileId, Float progress);
+
 
 }

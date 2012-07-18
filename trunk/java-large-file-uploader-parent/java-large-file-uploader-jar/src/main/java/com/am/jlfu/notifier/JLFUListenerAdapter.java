@@ -67,6 +67,10 @@ public class JLFUListenerAdapter
 	public void onAllFileUploadsPrepared(UUID identifier, Collection<UUID> fileIds) {
 
 	}
-
+	
+	@Override
+	public void OnFileUploadProgress(UUID clientId, UUID fileId, Float progress) {
+		
+	}
 
 }
