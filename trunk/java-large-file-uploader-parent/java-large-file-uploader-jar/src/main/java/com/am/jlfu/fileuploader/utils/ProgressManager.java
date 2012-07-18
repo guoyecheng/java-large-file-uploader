@@ -103,7 +103,7 @@ public class ProgressManager {
 				
 				@Override
 				public void run() {
-					jlfuListenerPropagator.getPropagator().OnFileUploadProgress(clientId, fileId, newProgress);
+					jlfuListenerPropagator.getPropagator().onFileUploadProgress(clientId, fileId, newProgress);
 				}
 			};
 			

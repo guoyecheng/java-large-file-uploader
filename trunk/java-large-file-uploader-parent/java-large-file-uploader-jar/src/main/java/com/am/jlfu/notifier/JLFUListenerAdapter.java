@@ -72,7 +72,7 @@ public class JLFUListenerAdapter
 
 
 	@Override
-	public void OnFileUploadProgress(UUID clientId, UUID fileId, FileProgressStatus progress) {
+	public void onFileUploadProgress(UUID clientId, UUID fileId, FileProgressStatus progress) {
 
 	}
 
