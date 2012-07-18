@@ -33,17 +33,20 @@ import com.am.jlfu.fileuploader.json.FileStateJson;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.json.InitializationConfiguration;
 import com.am.jlfu.fileuploader.json.PrepareUploadJson;
+import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.fileuploader.limiter.RequestUploadProcessingConfiguration;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
 import com.am.jlfu.fileuploader.utils.ConditionProvider;
 import com.am.jlfu.fileuploader.utils.GeneralUtils;
 import com.am.jlfu.fileuploader.utils.ProgressManager;
+import com.am.jlfu.fileuploader.utils.RemainingTimeEstimator;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.StaticStateManagerService;
+import com.am.jlfu.staticstate.entities.FileProgressStatus;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.base.Functions;
@@ -84,7 +87,10 @@ public class UploadProcessor {
 
 	@Autowired
 	ProgressManager progressManager;
-
+	
+	@Autowired
+	RemainingTimeEstimator remainingTimeEstimator;  
+	
 	@Autowired
 	private JLFUListenerPropagator jlfuListenerPropagator;
 
@@ -355,18 +361,33 @@ public class UploadProcessor {
 	}
 
 
-	public Float getProgress(UUID fileId)
+	public ProgressJson getProgress(UUID fileId)
 			throws FileNotFoundException {
-
-		// return progress
-		return progressManager.getProgress(fileId);
+		
+		// progress
+		FileProgressStatus progress = progressManager.getProgress(fileId);
+		
+		//upload stat
+		Long uploadRate = uploadProcessingConfigurationManager.getUploadState(fileId);
+		
+		//return values
+		ProgressJson progressJson = new ProgressJson();
+		if (progress != null) {
+		
+			//set progress
+			progressJson.setProgress(progress.getPercentageCompleted());
+			
+			//calculate remaining time
+			progressJson.setEstimatedRemainingTimeInSeconds(remainingTimeEstimator.getRemainingTime(fileId, progress, uploadRate));
+			
+		} else {
+			progressJson.setProgress(0f);
+			progressJson.setEstimatedRemainingTimeInSeconds(0l);
+		}
+		progressJson.setUploadRate(uploadRate);
+		return progressJson;
 	}
-
-
-	public Long getUploadStat(UUID fileId) {
-		return uploadProcessingConfigurationManager.getUploadState(fileId);
-	}
-
+	
 
 	public void setUploadRate(UUID fileId, Long rate) {
 
@@ -400,7 +421,13 @@ public class UploadProcessor {
 	}
 
 
-	public FileStateJson resumeFile(UUID fileId) {
+	public FileStateJson resumeFile(UUID fileId) throws FileNotFoundException {
+
+		//check if we have this file
+		StaticFileState value = staticStateManager.getEntity().getFileStates().get(fileId);
+		if (value == null) {
+			throw new FileNotFoundException("File with id " + fileId + " not found");
+		}
 
 		// set as resumed
 		uploadProcessingConfigurationManager.resume(fileId);
@@ -409,7 +436,7 @@ public class UploadProcessor {
 		jlfuListenerPropagator.getPropagator().onFileUploadResumed(staticStateIdentifierManager.getIdentifier(), fileId);
 
 		// and return some information about it
-		return getFileStateJson(fileId, staticStateManager.getEntity().getFileStates().get(fileId));
+		return getFileStateJson(fileId, value);
 	}
 
 
@@ -498,6 +525,8 @@ public class UploadProcessor {
 	public void setSliceSizeInBytes(long sliceSizeInBytes) {
 		this.sliceSizeInBytes = sliceSizeInBytes;
 	}
+
+
 
 
 }

@@ -207,14 +207,8 @@ public class UploadServlet extends HttpRequestHandlerServlet
 		returnObject = Maps.newHashMap();
 		for (UUID fileId : uuids) {
 			try {
-				Float progress = uploadProcessor.getProgress(fileId);
-				Long uploadStat = uploadProcessor.getUploadStat(fileId);
-				ProgressJson progressJson = new ProgressJson();
-				progressJson.setProgress(progress);
-				if (uploadStat != null) {
-					progressJson.setUploadRate(uploadStat);
-				}
-				((HashMap<String, ProgressJson>) returnObject).put(fileId.toString(), progressJson);
+				ProgressJson progress = uploadProcessor.getProgress(fileId);
+				((HashMap<String, ProgressJson>) returnObject).put(fileId.toString(), progress);
 			}
 			catch (FileNotFoundException e) {
 				log.debug("No progress will be retrieved for " + fileId + " because " + e.getMessage());

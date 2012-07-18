@@ -15,7 +15,7 @@ public class ProgressJson
 
 	private Float progress;
 	private Long uploadRate;
-
+	private Long estimatedRemainingTimeInSeconds;
 
 
 	public ProgressJson() {
@@ -41,5 +41,16 @@ public class ProgressJson
 		this.uploadRate = uploadRate;
 	}
 
+
+	
+	public Long getEstimatedRemainingTimeInSeconds() {
+		return estimatedRemainingTimeInSeconds;
+	}
+
+
+	
+	public void setEstimatedRemainingTimeInSeconds(Long estimatedRemainingTimeInSeconds) {
+		this.estimatedRemainingTimeInSeconds = estimatedRemainingTimeInSeconds;
+	}
 
 }

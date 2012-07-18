@@ -4,6 +4,8 @@ package com.am.jlfu.notifier;
 import java.util.Collection;
 import java.util.UUID;
 
+import com.am.jlfu.staticstate.entities.FileProgressStatus;
+
 
 
 /**
@@ -67,10 +69,11 @@ public class JLFUListenerAdapter
 	public void onAllFileUploadsPrepared(UUID identifier, Collection<UUID> fileIds) {
 
 	}
-	
+
+
 	@Override
-	public void OnFileUploadProgress(UUID clientId, UUID fileId, Float progress) {
-		
+	public void OnFileUploadProgress(UUID clientId, UUID fileId, FileProgressStatus progress) {
+
 	}
 
 }

@@ -96,9 +96,9 @@ function appendFileInputElement() {
   			},		
   				
   			//define a progressCallback to show the progress in the em elements 
-			function(pendingFile, percentageCompleted, uploadRate, origin) {
+			function(pendingFile, percentageCompleted, uploadRate, estimatedRemainingTime, origin) {
  				document.getElementById(pendingFile.id).children[0].textContent = 
-  					"Uploading "+pendingFile.originalFileName+" ... ("+percentageCompleted+"% complete) at "+uploadRate + " per second.";
+  					"Uploading "+pendingFile.originalFileName+" ... ("+percentageCompleted+"% complete) at "+uploadRate + " per second. "+estimatedRemainingTime+" remaining.";
 	            $("#"+ pendingFile.id).children(".progressbar").progressbar({
 	                value: Math.floor(percentageCompleted)
 	            });
