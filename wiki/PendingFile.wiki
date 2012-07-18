@@ -37,6 +37,7 @@
     # the PendingFile object
     # the percentage
     # the current upload rate formatted
+    # the estimated remaining time formatted
     # the origin element
 ====finishCallback====
   (function): function that will be called when the process is fully complete. 
