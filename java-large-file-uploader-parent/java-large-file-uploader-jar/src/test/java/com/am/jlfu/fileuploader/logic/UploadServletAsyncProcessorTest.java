@@ -46,6 +46,7 @@ import com.am.jlfu.fileuploader.utils.CRCHelper;
 import com.am.jlfu.fileuploader.web.utils.RequestComponentContainer;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
+import com.am.jlfu.staticstate.StaticStateManagerService;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 
 
@@ -74,6 +75,9 @@ public class UploadServletAsyncProcessorTest {
 
 	@Autowired
 	StaticStateManager<StaticStatePersistedOnFileSystemEntity> staticStateManager;
+
+	@Autowired
+	StaticStateManagerService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
 
 	@Autowired
 	StaticStateIdentifierManager staticStateIdentifierManager;
@@ -193,21 +197,21 @@ public class UploadServletAsyncProcessorTest {
 		processWaitForCompletionAndCheck(fileId, splitResult);
 
 		// get progress
-		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(3 * 100 / tinyFileSize.intValue()));
+		Assert.assertThat(Math.round(staticStateManagerService.getProgress(staticStateIdentifierManager.getIdentifier(), fileId)), is(3 * 100 / tinyFileSize.intValue()));
 
 		// upload second part
 		splitResult = UploadProcessorTest.getByteArrayFromFile(tinyFile, 3, 5);
 		processWaitForCompletionAndCheck(fileId, splitResult);
 
 		// get progress
-		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(Math.round(5f / tinyFileSize.floatValue() * 100f)));
+		Assert.assertThat(Math.round(staticStateManagerService.getProgress(staticStateIdentifierManager.getIdentifier(), fileId)), is(Math.round(5f / tinyFileSize.floatValue() * 100f)));
 
 		// upload last part
 		splitResult = UploadProcessorTest.getByteArrayFromFile(tinyFile, 5, tinyFileSize.intValue());
 		processWaitForCompletionAndCheck(fileId, splitResult);
 
 		// get progress
-		Assert.assertThat(Math.round(uploadProcessor.getProgress(fileId)), is(100));
+		Assert.assertThat(Math.round(staticStateManagerService.getProgress(staticStateIdentifierManager.getIdentifier(), fileId)), is(100));
 
 		// check crc
 		CRCResult fileCrc =

@@ -7,8 +7,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.fileuploader.utils.ClientToFilesMap;
 import com.google.common.collect.Maps;
 
 
@@ -16,6 +18,9 @@ import com.google.common.collect.Maps;
 @Component
 public class UploadProcessingOperationManager {
 
+	@Autowired
+	ClientToFilesMap clientToFilesMap;
+	
 	// ////////////
 	// operation//
 	// ////////////
@@ -26,20 +31,9 @@ public class UploadProcessingOperationManager {
 	/** Operation for master. */
 	final UploadProcessingOperation masterProcessingOperation = new UploadProcessingOperation();
 
-	// ////////////
-
-	/** Maps a client to its current requests */
-	final ConcurrentMap<UUID, Set<UUID>> clientToRequestsMapping = Maps.newConcurrentMap();
-
-
-
+	
 	public Map<UUID, UploadProcessingOperation> getClientsAndRequestsProcessingOperation() {
 		return clientsAndRequestsProcessingOperation;
-	}
-
-
-	public Map<UUID, Set<UUID>> getClientToRequestsMapping() {
-		return clientToRequestsMapping;
 	}
 
 
@@ -53,10 +47,10 @@ public class UploadProcessingOperationManager {
 		clientsAndRequestsProcessingOperation.putIfAbsent(clientId, new UploadProcessingOperation());
 
 		// mapping
-		Set<UUID> set = clientToRequestsMapping.get(clientId);
+		Set<UUID> set = clientToFilesMap.get(clientId);
 		if (set == null) {
 			set = new HashSet<UUID>();
-			clientToRequestsMapping.put(clientId, set);
+			clientToFilesMap.put(clientId, set);
 		}
 		set.add(fileId);
 
@@ -69,12 +63,12 @@ public class UploadProcessingOperationManager {
 		clientsAndRequestsProcessingOperation.remove(fileId);
 
 		// remove mapping
-		clientToRequestsMapping.get(clientId).remove(fileId);
+		clientToFilesMap.get(clientId).remove(fileId);
 
 		// if client is empty, remove client
-		final boolean noreMoreUploadsForThisClient = clientToRequestsMapping.get(clientId).isEmpty();
+		final boolean noreMoreUploadsForThisClient = clientToFilesMap.get(clientId).isEmpty();
 		if (noreMoreUploadsForThisClient) {
-			clientToRequestsMapping.remove(clientId);
+			clientToFilesMap.remove(clientId);
 			clientsAndRequestsProcessingOperation.remove(clientId);
 		}
 	}
