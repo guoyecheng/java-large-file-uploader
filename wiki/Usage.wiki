@@ -25,11 +25,11 @@ onFileUploadResumed(clientId, fileId)
 onFileUploadProgress(clientId, fileId, FileProgressStatus)
 }}}
 
-You can register a JLFUListener (or an JLFUListenerAdapter) to the JLFUListenerPropagator which will propagates all the events to the registered listeners:
+You can register a [http://code.google.com/p/java-large-file-uploader/source/browse/trunk/java-large-file-uploader-parent/java-large-file-uploader-jar/src/main/java/com/am/jlfu/notifier/JLFUListener.java JLFUListener] (or an [http://code.google.com/p/java-large-file-uploader/source/browse/trunk/java-large-file-uploader-parent/java-large-file-uploader-jar/src/main/java/com/am/jlfu/notifier/JLFUListenerAdapter.java JLFUListenerAdapter]) to the [http://code.google.com/p/java-large-file-uploader/source/browse/trunk/java-large-file-uploader-parent/java-large-file-uploader-jar/src/main/java/com/am/jlfu/notifier/JLFUListenerPropagator.java JLFUListenerPropagator] which will propagates all the events to the registered listeners.
 
 ===Service===
 
-JLFU also provides a few methods in JavaLargeFileUploaderService like:
+JLFU also provides a few methods in [http://code.google.com/p/java-large-file-uploader/source/browse/trunk/java-large-file-uploader-parent/java-large-file-uploader-jar/src/main/java/com/am/jlfu/staticstate/JavaLargeFileUploaderService.java JavaLargeFileUploaderService] like:
 {{{
 getProgress(clientId, fileId)
 updateEntity(clientId, entity)
