@@ -1,0 +1,41 @@
+#summary Using the API
+
+==Javascript==
+
+All the operations available on the client side are performed using a single object instance: JavaLargeFileUploader.
+
+==Java==
+
+On the Java side, there are two kind of possible interactions:
+
+===Listener===
+
+JLFU provides a Listener system that lets you listen to pretty much everything happening on the server side:
+
+{{{
+onNewClient(UUID)
+onClientBack(UUID)
+onClientInactivity(UUID, int)
+onFileUploadEnd(UUID, UUID)
+onFileUploadPrepared(UUID, UUID)
+onAllFileUploadsPrepared(UUID, Collection<UUID>)
+onFileUploadCancelled(UUID, UUID)
+onFileUploadPaused(UUID, UUID)
+onFileUploadResumed(UUID, UUID)
+onFileUploadProgress(UUID, UUID, FileProgressStatus)
+}}}
+
+You can register a JLFUListener (or an JLFUListenerAdapter) to the JLFUListenerPropagator which will propagates all the events to the registered listeners:
+
+===Service===
+
+JLFU also provides a few methods in JavaLargeFileUploaderService like:
+{{{
+getProgress(UUID, UUID)
+updateEntity(UUID, T)
+writeEntity(UUID, T)
+writeEntity(File, T)
+getEntityIfPresent(UUID)
+clearFile(UUID, UUID)
+clearClient(UUID)
+}}}
