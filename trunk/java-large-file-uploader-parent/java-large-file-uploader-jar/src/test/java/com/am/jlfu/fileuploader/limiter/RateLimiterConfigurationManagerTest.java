@@ -72,7 +72,7 @@ public class RateLimiterConfigurationManagerTest {
 	}
 
 
-	private void testAssert(boolean lala) {
+	private void testAssert(boolean lala) throws InterruptedException {
 		jlfuListenerPropagator.registerListener(new JLFUListenerAdapter() {
 
 			@Override
@@ -102,6 +102,7 @@ public class RateLimiterConfigurationManagerTest {
 
 		rateLimiterConfigurationManager.remove(RemovalCause.EXPIRED, identifier);
 
+		Thread.sleep(100);
 		if (lala) {
 			Assert.assertThat(assertt, CoreMatchers.is(true));
 		}
