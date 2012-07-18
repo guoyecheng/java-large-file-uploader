@@ -18,7 +18,7 @@ import org.unitils.mock.core.MockObject;
 
 import com.am.jlfu.fileuploader.utils.ProgressManager.ProgressManagerAdvertiser;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
-import com.am.jlfu.staticstate.StaticStateManagerService;
+import com.am.jlfu.staticstate.JavaLargeFileUploaderService;
 import com.am.jlfu.staticstate.entities.FileProgressStatus;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.collect.Sets;
@@ -36,7 +36,7 @@ public class ProgressManagerTest {
 	@Autowired
 	JLFUListenerPropagator jlfuListenerPropagator;
 	
-	Mock<StaticStateManagerService<StaticStatePersistedOnFileSystemEntity>> staticStateManagerService = new MockObject<StaticStateManagerService<StaticStatePersistedOnFileSystemEntity>>(StaticStateManagerService.class, new Object());
+	Mock<JavaLargeFileUploaderService<StaticStatePersistedOnFileSystemEntity>> staticStateManagerService = new MockObject<JavaLargeFileUploaderService<StaticStatePersistedOnFileSystemEntity>>(JavaLargeFileUploaderService.class, new Object());
 	Mock<ProgressManagerAdvertiser> progressManagerAdvertiser = new MockObject<ProgressManagerAdvertiser>(ProgressManagerAdvertiser.class, new Object());
 	
 	private UUID clientId = UUID.randomUUID();

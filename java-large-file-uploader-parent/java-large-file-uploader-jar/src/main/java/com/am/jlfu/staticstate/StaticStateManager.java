@@ -33,7 +33,7 @@ import com.thoughtworks.xstream.XStream;
 /**
  * Manages the information related to the files.<br>
  * This information is stored locally in a cache and also persisted on the file system.<br>
- * All of the methods used here are to be called within the scope of a request. Most of these methods (to query and update) are also available outside of such a scope in {@link StaticStateManagerService}
+ * All of the methods used here are to be called within the scope of a request. Most of these methods (to query and update) are also available outside of such a scope in {@link JavaLargeFileUploaderService}
  * This class has to be initialized with the {@link #init(Class)} method first.
  * 
  * @author antoinem
@@ -59,7 +59,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 	StaticStateDirectoryManager staticStateDirectoryManager;
 
 	@Autowired
-	StaticStateManagerService<T> staticStateManagerService;
+	JavaLargeFileUploaderService<T> staticStateManagerService;
 
 	/**
 	 * Used to bypass generic type erasure.<br>
