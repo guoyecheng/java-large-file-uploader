@@ -738,13 +738,16 @@ function JavaLargeFileUploader() {
 	    var seconds = Math.ceil(divisor_for_seconds);
 	    
 	    var returned = '';
+	    var displaySeconds = true;
 	    if (hours > 0) {
 	    	returned += hours + "h";
+	    	displaySeconds = false;
 	    }
 	    if (minutes > 0) {
 	    	returned += minutes + "m";
+	    	displaySeconds &= minutes <= 10;
 	    }
-	    if (returned === '') {
+	    if (displaySeconds) {
 	    	returned += seconds + "s";
 	    }
 	    return returned;
