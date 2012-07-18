@@ -105,7 +105,7 @@ public class ProgressManager {
 				public void run() {
 					jlfuListenerPropagator.getPropagator().onFileUploadProgress(clientId, fileId, newProgress);
 				}
-			};
+			}.run();
 			
 		}
 	}
