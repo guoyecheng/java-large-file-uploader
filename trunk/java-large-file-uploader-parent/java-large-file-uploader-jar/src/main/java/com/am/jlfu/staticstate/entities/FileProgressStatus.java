@@ -61,5 +61,12 @@ public class FileProgressStatus extends ProgressJson{
 		return s;
 	}
 	
-	
+	/**
+	 * Please use {@link #getProgress()}
+	 * @return
+	 */
+	@Deprecated
+	public Float getPercentageCompleted() {
+		return getProgress();
+	}
 }
