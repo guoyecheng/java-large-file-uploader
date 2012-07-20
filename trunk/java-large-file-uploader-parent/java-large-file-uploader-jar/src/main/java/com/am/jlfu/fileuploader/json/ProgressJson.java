@@ -21,7 +21,10 @@ public class ProgressJson
 	public ProgressJson() {
 	}
 
-
+	
+	/**
+	 * @return the percentage completed.
+	 */
 	public Float getProgress() {
 		return progress;
 	}
@@ -31,7 +34,9 @@ public class ProgressJson
 		this.progress = progress;
 	}
 
-
+	/**
+	 * @return current file upload rate in byte per second.
+	 */
 	public Long getUploadRate() {
 		return uploadRate;
 	}
@@ -42,7 +47,9 @@ public class ProgressJson
 	}
 
 
-	
+	/**
+	 * @return the estimated remaining time in seconds.
+	 */
 	public Long getEstimatedRemainingTimeInSeconds() {
 		return estimatedRemainingTimeInSeconds;
 	}
