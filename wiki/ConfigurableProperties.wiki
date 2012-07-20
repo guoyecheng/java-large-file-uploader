@@ -31,6 +31,13 @@ The maximum total upload rate in kilo bytes. (Default is 10240 (10MB/s))
 Exposed as MBean.
 
 
+====sliceSizeInBytes====
+
+{{{
+jlfu.sliceSizeInBytes
+}}}
+
+The size of the slice that javascript read and send. (Default is 10240 (10MB))
 
 ====maximumInactivityInHoursBeforeDelete====
 
@@ -71,6 +78,7 @@ jlfu.keepOriginalFileName
 }}}
 
 Boolean specifying whether the originalFileName should be kept while preparing the upload of a file. If set to false, a name generated from a UUID will be assigned to avoid name collision. (Default is `false`)
+
 
 
 
