@@ -28,7 +28,7 @@ function JavaLargeFileUploader() {
 	errorMessages[12] = "You do not have the permission to perform this action.";
 	errorMessages[13] = "FireBug is enabled, you may experience issues if you do not disable it while uploading.";
 	errorMessages[14] = "File corrupted. An unknown error has occured and the file is corrupted. The usual cause is that the file has been modified during the upload. Please clear it and re-upload it.";
-	exceptionsRetryable = [3,7,8,10,11];
+	exceptionsRetryable = [0,3,7,8,10,11];
 	
 	this.setJavaLargeFileUploaderHost = function (javaLargeFileUploaderHostI) {
 		javaLargeFileUploaderHost = javaLargeFileUploaderHostI;
@@ -209,13 +209,17 @@ function JavaLargeFileUploader() {
 		}
 	}
 	
+	function retryStart(pendingFile) {
+		setTimeout(retryRecursive, autoRetryDelay, pendingFile);
+	}
+	
 	function retryRecursive(pendingFile) {
 		if (pendingFile) {
 			displayException(pendingFile, 10);
 			resumeFileUploadInternal(pendingFile, null, function(ok) {
 				if (ok === false) {
 					displayException(pendingFile, 11);
-					setTimeout(retryRecursive, autoRetryDelay, pendingFile);
+					retryStart(pendingFile);
 				}
 			});
 		}
@@ -636,7 +640,7 @@ function JavaLargeFileUploader() {
 								displayException(pendingFile, 8);
 								if (autoRetry) {
 									//submit retry
-									retryRecursive(pendingFile);
+									retryStart(pendingFile);
 								}
 								uploadEnd(pendingFile, true);
 							}
@@ -649,7 +653,7 @@ function JavaLargeFileUploader() {
 							displayException(pendingFile, resp.value);
 							if (autoRetry && isExceptionRetryable(resp.value)) {
 								//submit retry
-								retryRecursive(pendingFile);
+								retryStart(pendingFile);
 							}
 							uploadEnd(pendingFile, true);
 							return;
@@ -685,7 +689,7 @@ function JavaLargeFileUploader() {
 					displayException(pendingFile, 8);
 					if (autoRetry) {
 						//submit retry
-						retryRecursive(pendingFile);
+						retryStart(pendingFile);
 					}
 					return;
 				}
