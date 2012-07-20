@@ -55,5 +55,13 @@ public class FileProgressStatus implements Serializable{
 		this.bytesUploaded = bytesUploaded;
 	}
 	
+	@Override
+	public String toString() {
+		String s = "";
+		s+= "Uploaded "+bytesUploaded;
+		s+= "/"+totalFileSize+" Bytes";
+		s+= "("+percentageCompleted+"%)";
+		return s;
+	}
 	
 }
