@@ -15,9 +15,7 @@ import org.springframework.stereotype.Component;
 
 import com.am.jlfu.notifier.JLFUListener;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
-import com.am.jlfu.staticstate.JavaLargeFileUploaderService;
 import com.am.jlfu.staticstate.entities.FileProgressStatus;
-import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.collect.Maps;
 
 
@@ -41,7 +39,7 @@ public class ProgressManager {
 	private ClientToFilesMap clientToFilesMap;
 	
 	@Autowired
-	private JavaLargeFileUploaderService<StaticStatePersistedOnFileSystemEntity> staticStateManagerService;
+	private ProgressCalculator progressCalculator;
 
 	/** Internal map. */
 	Map<UUID, FileProgressStatus> fileToProgressInfo = Maps.newHashMap();
@@ -63,7 +61,7 @@ public class ProgressManager {
 					try {
 						
 						//calculate its progress
-						FileProgressStatus newProgress = staticStateManagerService.getProgress(entry.getKey(), fileId);
+						FileProgressStatus newProgress = progressCalculator.getProgress(entry.getKey(), fileId);
 
 						//if progress has successfully been computed
 						if (newProgress != null) {
@@ -73,7 +71,7 @@ public class ProgressManager {
 							
 							//if not present in map
 							//or if present in map but different from previous one
-							if (progressInMap == null || !Float.valueOf(progressInMap.getPercentageCompleted()).equals(newProgress.getPercentageCompleted())) {
+							if (progressInMap == null || !Float.valueOf(progressInMap.getProgress()).equals(newProgress.getProgress())) {
 								
 								//add to map
 								fileToProgressInfo.put(fileId, newProgress);
@@ -104,7 +102,6 @@ public class ProgressManager {
 
 	/**
 	 * Returns a calculated progress of a pending file upload.<br>
-	 * returns 0 if not yet calculated.
 	 * @param fileId
 	 * @return
 	 */
@@ -114,6 +111,6 @@ public class ProgressManager {
 		}
 	}
 
-
+	
 	
 }

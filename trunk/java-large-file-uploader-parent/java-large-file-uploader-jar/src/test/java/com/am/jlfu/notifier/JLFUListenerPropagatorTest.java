@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.am.jlfu.staticstate.entities.FileProgressStatus;
+
 
 
 @ContextConfiguration(locations = { "classpath:jlfu.test.xml" })
@@ -84,6 +86,16 @@ public class JLFUListenerPropagatorTest {
 			}
 		});
 		jlfuListenerPropagator.getPropagator().onClientBack(UUID.randomUUID());
+	}
+	
+	@Test
+	public void log() {
+		jlfuListenerPropagator.registerListener(new JLFUListenerAdapter());
+		FileProgressStatus progress = new FileProgressStatus();
+		progress.setBytesUploaded(123);
+		progress.setProgress(1234f);
+		progress.setTotalFileSize(12340124);
+		jlfuListenerPropagator.getPropagator().onFileUploadProgress(UUID.randomUUID(),UUID.randomUUID(), progress);
 	}
 	
 }

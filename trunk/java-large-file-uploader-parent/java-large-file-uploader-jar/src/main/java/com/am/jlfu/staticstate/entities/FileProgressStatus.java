@@ -1,6 +1,7 @@
 package com.am.jlfu.staticstate.entities;
 
-import java.io.Serializable;
+import com.am.jlfu.fileuploader.json.ProgressJson;
+import com.am.jlfu.fileuploader.utils.UnitConverter;
 
 /**
  * Entity providing progress information about a file.
@@ -8,31 +9,21 @@ import java.io.Serializable;
  * @author antoinem
  *
  */
-public class FileProgressStatus implements Serializable{
+public class FileProgressStatus extends ProgressJson{
 
 	/**
 	 * Generated id. 
 	 */
 	private static final long serialVersionUID = -6247365041854992033L;
 	
-	private float percentageCompleted;
 	private long totalFileSize;
 	private long bytesUploaded;
-	
+
 	/**
 	 * Default constructor.
 	 */
 	public FileProgressStatus() {
-	}
-
-	
-	public float getPercentageCompleted() {
-		return percentageCompleted;
-	}
-
-	
-	public void setPercentageCompleted(float percentageCompleted) {
-		this.percentageCompleted = percentageCompleted;
+		super();
 	}
 
 	
@@ -60,8 +51,15 @@ public class FileProgressStatus implements Serializable{
 		String s = "";
 		s+= "Uploaded "+bytesUploaded;
 		s+= "/"+totalFileSize+" Bytes";
-		s+= "("+percentageCompleted+"%)";
+		s+= "("+progress+"%)";
+		if (uploadRate != null) {
+			s+=  "at rate: "+UnitConverter.getFormattedSize(uploadRate) +"/s.";
+		}
+		if (estimatedRemainingTimeInSeconds != null) {
+			s+= " Finishing in "+UnitConverter.getFormattedTime(estimatedRemainingTimeInSeconds)+".";
+		}
 		return s;
 	}
+	
 	
 }

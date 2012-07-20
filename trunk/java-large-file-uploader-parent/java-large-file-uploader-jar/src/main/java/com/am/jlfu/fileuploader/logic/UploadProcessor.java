@@ -42,10 +42,10 @@ import com.am.jlfu.fileuploader.utils.GeneralUtils;
 import com.am.jlfu.fileuploader.utils.ProgressManager;
 import com.am.jlfu.fileuploader.utils.RemainingTimeEstimator;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
+import com.am.jlfu.staticstate.JavaLargeFileUploaderService;
 import com.am.jlfu.staticstate.StaticStateDirectoryManager;
 import com.am.jlfu.staticstate.StaticStateIdentifierManager;
 import com.am.jlfu.staticstate.StaticStateManager;
-import com.am.jlfu.staticstate.JavaLargeFileUploaderService;
 import com.am.jlfu.staticstate.entities.FileProgressStatus;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
@@ -367,24 +367,17 @@ public class UploadProcessor {
 		// progress
 		FileProgressStatus progress = progressManager.getProgress(fileId);
 		
-		//upload stat
-		Long uploadRate = uploadProcessingConfigurationManager.getUploadState(fileId);
-		
 		//return values
 		ProgressJson progressJson = new ProgressJson();
 		if (progress != null) {
-		
-			//set progress
-			progressJson.setProgress(progress.getPercentageCompleted());
-			
-			//calculate remaining time
-			progressJson.setEstimatedRemainingTimeInSeconds(remainingTimeEstimator.getRemainingTime(fileId, progress, uploadRate));
-			
+			progressJson.setProgress(progress.getProgress());
+			progressJson.setEstimatedRemainingTimeInSeconds(progress.getEstimatedRemainingTimeInSeconds());
+			progressJson.setUploadRate(progress.getUploadRate());
 		} else {
 			progressJson.setProgress(0f);
 			progressJson.setEstimatedRemainingTimeInSeconds(0l);
+			progressJson.setUploadRate(0l);
 		}
-		progressJson.setUploadRate(uploadRate);
 		return progressJson;
 	}
 	
