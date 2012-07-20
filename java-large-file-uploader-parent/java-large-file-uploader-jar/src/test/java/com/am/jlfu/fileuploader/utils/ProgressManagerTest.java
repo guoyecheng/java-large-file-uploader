@@ -18,9 +18,7 @@ import org.unitils.mock.core.MockObject;
 
 import com.am.jlfu.fileuploader.utils.ProgressManager.ProgressManagerAdvertiser;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
-import com.am.jlfu.staticstate.JavaLargeFileUploaderService;
 import com.am.jlfu.staticstate.entities.FileProgressStatus;
-import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.collect.Sets;
 
 @ContextConfiguration(locations = { "classpath:jlfu.test.xml" })
@@ -36,7 +34,7 @@ public class ProgressManagerTest {
 	@Autowired
 	JLFUListenerPropagator jlfuListenerPropagator;
 	
-	Mock<JavaLargeFileUploaderService<StaticStatePersistedOnFileSystemEntity>> staticStateManagerService = new MockObject<JavaLargeFileUploaderService<StaticStatePersistedOnFileSystemEntity>>(JavaLargeFileUploaderService.class, new Object());
+	Mock<ProgressCalculator> progressCalculator = new MockObject<ProgressCalculator>(ProgressCalculator.class, new Object());
 	Mock<ProgressManagerAdvertiser> progressManagerAdvertiser = new MockObject<ProgressManagerAdvertiser>(ProgressManagerAdvertiser.class, new Object());
 	
 	private UUID clientId = UUID.randomUUID();
@@ -55,7 +53,7 @@ public class ProgressManagerTest {
 		progressManager.fileToProgressInfo.clear();
 		
 		//set mock
-		ReflectionTestUtils.setField(progressManager, "staticStateManagerService", staticStateManagerService.getMock());
+		ReflectionTestUtils.setField(progressManager, "progressCalculator", progressCalculator.getMock());
 		ReflectionTestUtils.setField(progressManager, "progressManagerAdvertiser", progressManagerAdvertiser.getMock());
 		
 	}
@@ -72,14 +70,14 @@ public class ProgressManagerTest {
 		
 		//mock service
 		FileProgressStatus fileProgressStatus = new FileProgressStatus();
-		fileProgressStatus.setPercentageCompleted(returnedValue);
-		staticStateManagerService.onceReturns(fileProgressStatus).getProgress(clientId, fileId);
+		fileProgressStatus.setProgress(returnedValue);
+		progressCalculator.onceReturns(fileProgressStatus).getProgress(clientId, fileId);
 		
 		//calculate progress
 		progressManager.calculateProgress();
 		
 		//assert map is filled
-		Assert.assertThat(progressManager.fileToProgressInfo.get(fileId).getPercentageCompleted(), CoreMatchers.is(returnedValue));
+		Assert.assertThat(progressManager.fileToProgressInfo.get(fileId).getProgress(), CoreMatchers.is(returnedValue));
 		
 		//assert that event is propagated
 		if (shallBePropagated) {

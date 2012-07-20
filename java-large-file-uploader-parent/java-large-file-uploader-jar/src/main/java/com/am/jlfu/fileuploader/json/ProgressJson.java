@@ -13,9 +13,9 @@ public class ProgressJson
 	 */
 	private static final long serialVersionUID = -8710522591230352636L;
 
-	private Float progress;
-	private Long uploadRate;
-	private Long estimatedRemainingTimeInSeconds;
+	protected Float progress;
+	protected Long uploadRate;
+	protected Long estimatedRemainingTimeInSeconds;
 
 
 	public ProgressJson() {

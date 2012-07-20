@@ -14,8 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.fileuploader.utils.ProgressManager;
 import com.am.jlfu.staticstate.entities.FileProgressStatus;
-import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.thoughtworks.xstream.XStream;
 
@@ -35,6 +35,9 @@ public class JavaLargeFileUploaderService<T extends StaticStatePersistedOnFileSy
 	StaticStateManager<T> staticStateManager;
 
 	@Autowired
+	ProgressManager progressManager;
+	
+	@Autowired
 	StaticStateDirectoryManager staticStateDirectoryManager;
 
 	private static final Logger log = LoggerFactory.getLogger(JavaLargeFileUploaderService.class);
@@ -51,51 +54,10 @@ public class JavaLargeFileUploaderService<T extends StaticStatePersistedOnFileSy
 	 */
 	public FileProgressStatus getProgress(UUID clientId, UUID fileId)
 			throws FileNotFoundException {
-
-		// get the file
-		StaticStatePersistedOnFileSystemEntity model = getEntityIfPresent(clientId);
-		//if cannot find the model, return null
-		if (model == null) {
-			return null;
-		}
-		return processProgress(fileId, model);
+		return progressManager.getProgress(fileId);
 	}
 
 
-
-	private FileProgressStatus processProgress(UUID fileId, StaticStatePersistedOnFileSystemEntity model)
-			throws FileNotFoundException {
-		StaticFileState fileState = model.getFileStates().get(fileId);
-		if (fileState == null) {
-			throw new FileNotFoundException("File with id " + fileId + " not found");
-		}
-		File file = new File(fileState.getAbsoluteFullPathOfUploadedFile());
-
-		// compare size of the file to the expected size
-		Long originalFileSizeInBytes = fileState.getStaticFileStateJson().getOriginalFileSizeInBytes();
-		long currentFileSize = file.length();
-		Float progress = calculateProgress(currentFileSize, originalFileSizeInBytes).floatValue();
-
-		log.debug("queried progress for file " + fileId + ": " + progress);
-		
-		//init returned entity
-		FileProgressStatus fileProgressStatus = new FileProgressStatus();
-		fileProgressStatus.setPercentageCompleted(progress);
-		fileProgressStatus.setTotalFileSize(originalFileSizeInBytes);
-		fileProgressStatus.setBytesUploaded(currentFileSize);
-		
-		return fileProgressStatus;
-	}
-	
-
-
-	Double calculateProgress(Long currentSize, Long expectedSize) {
-		double percent = currentSize.doubleValue() / expectedSize.doubleValue() * 100d;
-		if (percent == 100 && expectedSize - currentSize != 0) {
-			percent = 99.99d;
-		}
-		return percent;
-	}
 
 	/**
 	 * Updates an entity inside the cache and onto the filesystem.
