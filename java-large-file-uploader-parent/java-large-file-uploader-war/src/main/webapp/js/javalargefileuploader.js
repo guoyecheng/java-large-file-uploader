@@ -777,7 +777,7 @@ function JavaLargeFileUploader() {
 	}
 	
 	function isExceptionRetryable(errorId) {
-		return (exceptionsRetryable.indexOf(errorId) != -1);
+		return (exceptionsRetryable.indexOf(parseInt(errorId)) != -1);
 	}
 	
 	function startProgressPoller() {
