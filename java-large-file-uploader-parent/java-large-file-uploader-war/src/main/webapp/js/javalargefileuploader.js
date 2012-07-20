@@ -60,13 +60,7 @@ function JavaLargeFileUploader() {
 		}
 		
 		//if firebug is enabled, show exception
-		if (window.console && (window.console.firebug || window.console.exception)) {
-			if (exceptionCallback) {
-				exceptionCallback(errorMessages[13]);
-			} else {
-				alert(errorMessages[13]);
-			}
-		}
+		manageFirebug(exceptionCallback)
 		
 		// get the configuration
 		$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=getConfig" + appended, function(data) {
@@ -604,6 +598,9 @@ function JavaLargeFileUploader() {
 	}
 	
 	function go(pendingFile) {
+		
+		//every time a chunk is being uplodaed, we check for firebug !
+		manageFirebug(pendingFile.exceptionCallback);
 	
 		//if file id is in the pending files:
 		var chunk = slice(pendingFile.blob, pendingFile.fileCompletionInBytes, pendingFile.end);
@@ -782,6 +779,17 @@ function JavaLargeFileUploader() {
 	
 	function isExceptionRetryable(errorId) {
 		return (exceptionsRetryable.indexOf(parseInt(errorId)) != -1);
+	}
+
+	function manageFirebug(exceptionCallback) {
+		//if firebug is enabled, show exception
+		if (window.console && (window.console.firebug || window.console.exception)) {
+			if (exceptionCallback) {
+				exceptionCallback(errorMessages[13]);
+			} else {
+				alert(errorMessages[13]);
+			}
+		}		
 	}
 	
 	function startProgressPoller() {
