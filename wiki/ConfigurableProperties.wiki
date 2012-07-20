@@ -37,7 +37,7 @@ Exposed as MBean.
 jlfu.sliceSizeInBytes
 }}}
 
-The size of the slice that javascript read and send. (Default is 10240 (10MB))
+The size of the slice that javascript read and send. (Default is 10485760 (10MB))
 
 ====maximumInactivityInHoursBeforeDelete====
 
