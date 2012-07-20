@@ -279,7 +279,7 @@ public class StaticStateManager<T extends StaticStatePersistedOnFileSystemEntity
 				" for client id " + clientId);
 
 		// manage the end of file
-		if (staticFileStateJson.getCrcedBytes() == staticFileStateJson.getOriginalFileSizeInBytes()) {
+		if (staticFileStateJson.getCrcedBytes().equals(staticFileStateJson.getOriginalFileSizeInBytes())) {
 			jlfuListenerPropagator.getPropagator().onFileUploadEnd(clientId, fileId);
 		}
 
