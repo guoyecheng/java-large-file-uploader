@@ -26,7 +26,9 @@ public class FileProgressStatus extends ProgressJson{
 		super();
 	}
 
-	
+	/**
+	 * @return total file of the size in bytes.
+	 */
 	public long getTotalFileSize() {
 		return totalFileSize;
 	}
@@ -36,7 +38,9 @@ public class FileProgressStatus extends ProgressJson{
 		this.totalFileSize = totalFileSize;
 	}
 
-	
+	/**
+	 * @return quantity of bytes uploaded.
+	 */
 	public long getBytesUploaded() {
 		return bytesUploaded;
 	}
