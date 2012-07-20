@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.am.jlfu.notifier.JLFUListener;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 
@@ -63,21 +64,27 @@ public abstract class GenericPropagator<T> {
 						return null;
 					}
 
+
 					private void process(final List<T> list, final Method method, final Object[] args) {
 						new Thread() {
+
 							@Override
 							public void run() {
-									log.trace("{propagating " + method.getName() + " to " + list.size() + " elements}");
-									for (T o : list) {
-										try {
-											method.invoke(o, args);
-										}
-										catch (Exception e) {
-											log.error("cannot propagate " + method.getName(), e);
-										}
+								
+								if (log.isTraceEnabled()) {
+									log.trace("{propagating `" + method.getName() + "` with args `"+Joiner.on(',').join(args)+"` to `" + list.size() + "` elements}");
+								}
+								
+								for (T o : list) {
+									try {
+										method.invoke(o, args);
+									}
+									catch (Exception e) {
+										log.error("cannot propagate " + method.getName(), e);
 									}
 								}
-						}.start();						
+							}
+						}.start();
 					}
 				});
 
@@ -107,6 +114,7 @@ public abstract class GenericPropagator<T> {
 		}
 	}
 
+
 	/**
 	 * Unregister all the listeners.
 	 */
@@ -115,6 +123,7 @@ public abstract class GenericPropagator<T> {
 			propagateTo.clear();
 		}
 	}
+
 
 	/**
 	 * @return the propagator.
