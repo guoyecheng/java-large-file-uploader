@@ -151,14 +151,11 @@ function JavaLargeFileUploader() {
 			}
 		}
 		if (filesToSend.length > 0) {
-			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=pauseFile&fileId=" + filesToSend,	function(e) {
-				if (callback) {
-					for (var i in fileIds) {
-						var fileId = fileIds[i];
-						callback(pendingFiles[fileId]);
-					}
-				}
-			});
+			for (var i in fileIds) {
+				var fileId = fileIds[i];
+				pendingFiles[fileId].pausedCallback = callback;
+			}
+			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=pauseFile&fileId=" + filesToSend);
 		}
 	};
 	
@@ -633,6 +630,9 @@ function JavaLargeFileUploader() {
 								console.log("The file is paused.");
 								uploadEnd(pendingFile, false);
 								pendingFile.paused=true;
+								if (pendingFile.pausedCallback) {
+									pendingFile.pausedCallback(pendingFile);
+								}
 							} else {
 								displayException(pendingFile, 8);
 								if (autoRetry) {
