@@ -2,6 +2,7 @@ package com.am.jlfu.fileuploader.limiter;
 
 
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
@@ -111,4 +112,17 @@ public class RateLimiterConfigurationManagerTest {
 		}
 	}
 
+	
+	@Test
+	public void testStreamExpectedToBeClosed() throws ExecutionException {
+		UUID randomUUID = UUID.randomUUID();
+		rateLimiterConfigurationManager.configurationMap.put(randomUUID, new RequestUploadProcessingConfiguration());
+		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isStreamExpectedToBeClosed(), CoreMatchers.is(false));
+		rateLimiterConfigurationManager.expectStreamClose(randomUUID);
+		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isStreamExpectedToBeClosed(), CoreMatchers.is(true));
+		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isStreamExpectedToBeClosed(), CoreMatchers.is(true));
+		rateLimiterConfigurationManager.configurationMap.get(randomUUID).resetExpectStreamClose();
+		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isStreamExpectedToBeClosed(), CoreMatchers.is(false));
+		
+	}
 }

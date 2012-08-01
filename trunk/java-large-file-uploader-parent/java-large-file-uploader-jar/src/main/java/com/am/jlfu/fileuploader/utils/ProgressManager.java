@@ -17,6 +17,7 @@ import com.am.jlfu.notifier.JLFUListener;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.entities.FileProgressStatus;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 
 
@@ -56,7 +57,12 @@ public class ProgressManager {
 			for (Entry<UUID, Set<UUID>> entry : clientToFilesMap.entrySet()) {
 				
 				//for all pending upload
-				for (UUID fileId : entry.getValue()) {
+				Set<UUID> originSet = entry.getValue();
+				Set<UUID> copySet;
+				synchronized (originSet) {
+					 copySet = Sets.newHashSet(originSet);
+				}
+				for (UUID fileId : copySet) {
 				
 					try {
 						

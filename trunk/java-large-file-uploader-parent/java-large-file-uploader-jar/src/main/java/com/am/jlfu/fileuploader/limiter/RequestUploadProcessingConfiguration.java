@@ -4,26 +4,16 @@ package com.am.jlfu.fileuploader.limiter;
 public class RequestUploadProcessingConfiguration extends UploadProcessingConfiguration {
 
 	/**
-	 * Boolean specifying whether that request shall be cancelled (and the relating streams
-	 * closed)<br>
-	 * 
-	 * @see RateLimiterConfigurationManager#markRequestHasShallBeCancelled(String)
-	 * @see UploadProcessingConfigurationManager#requestHasToBeCancelled(String))
-	 * */
-	volatile boolean cancelRequest;
-
-	/**
 	 * Boolean specifying whether the upload is processing or not.
 	 */
-	private volatile boolean isProcessing = false;
+	private volatile boolean isProcessing;
 
-	/**
-	 * Boolean specifying whether the upload is paused or not.
+	/** 
+	 * Boolean specifying whether the client uploading the file is telling the server that the client will close the stream and that the server shall expect it.
 	 */
-	private volatile boolean isPaused = false;
+	private volatile boolean expectingStreamClose;
 
-
-
+	
 	public boolean isProcessing() {
 		return isProcessing;
 	}
@@ -34,13 +24,16 @@ public class RequestUploadProcessingConfiguration extends UploadProcessingConfig
 	}
 
 
-	public boolean isPaused() {
-		return isPaused;
+	public void expectStreamClose() {
+		this.expectingStreamClose = true;
 	}
 
-
-	public void setPaused(boolean isPaused) {
-		this.isPaused = isPaused;
+	public void resetExpectStreamClose() {
+		this.expectingStreamClose = false;
+	}
+	
+	public boolean isStreamExpectedToBeClosed() {
+		return this.expectingStreamClose;
 	}
 
 
