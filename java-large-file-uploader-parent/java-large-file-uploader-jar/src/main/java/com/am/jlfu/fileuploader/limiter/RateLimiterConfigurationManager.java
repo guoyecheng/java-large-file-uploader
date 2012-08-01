@@ -17,8 +17,8 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
 import com.am.jlfu.notifier.JLFUListenerPropagator;
-import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.JavaLargeFileUploaderService;
+import com.am.jlfu.staticstate.StaticStateManager;
 import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.cache.CacheBuilder;
@@ -101,39 +101,6 @@ public class RateLimiterConfigurationManager
 	// ///////////////
 
 
-	/**
-	 * Specify that a request has to be cancelled, the file is scheduled for deletion.
-	 * 
-	 * @param fileId
-	 * @return true if there was a pending upload for this file.
-	 */
-	public boolean markRequestHasShallBeCancelled(UUID fileId) {
-		RequestUploadProcessingConfiguration ifPresent = configurationMap.getIfPresent(fileId);
-
-		// if we have a value in the map
-		if (ifPresent != null) {
-			RequestUploadProcessingConfiguration unchecked = configurationMap.getUnchecked(fileId);
-
-			// and if this file is currently being processed
-			if (unchecked.isProcessing()) {
-
-				// we ask for cancellation
-				unchecked.cancelRequest = true;
-			}
-
-			// we return true if the file was processing, false otherwise
-			return unchecked.isProcessing();
-		}
-
-		// if we dont have a value in the map, there is no pending upload
-		else {
-
-			// we can return false
-			return false;
-		}
-	}
-
-
 	void remove(RemovalCause cause, UUID key) {
 
 		// if expired
@@ -163,18 +130,6 @@ public class RateLimiterConfigurationManager
 	}
 
 
-	public boolean requestIsReset(UUID fileId) {
-		RequestUploadProcessingConfiguration unchecked = configurationMap.getUnchecked(fileId);
-		return unchecked.cancelRequest && !unchecked.isProcessing();
-	}
-
-
-	public boolean requestHasToBeCancelled(UUID fileId) {
-		RequestUploadProcessingConfiguration unchecked = configurationMap.getUnchecked(fileId);
-		return unchecked.cancelRequest;
-	}
-
-
 	public Set<Entry<UUID, RequestUploadProcessingConfiguration>> getRequestEntries() {
 		return configurationMap.asMap().entrySet();
 	}
@@ -182,8 +137,8 @@ public class RateLimiterConfigurationManager
 
 	public void reset(UUID fileId) {
 		final RequestUploadProcessingConfiguration unchecked = configurationMap.getUnchecked(fileId);
-		unchecked.cancelRequest = false;
 		unchecked.setProcessing(false);
+		unchecked.resetExpectStreamClose();
 	}
 
 
@@ -199,16 +154,6 @@ public class RateLimiterConfigurationManager
 
 	public RequestUploadProcessingConfiguration getUploadProcessingConfiguration(UUID uuid) {
 		return configurationMap.getUnchecked(uuid);
-	}
-
-
-	public void pause(UUID fileId) {
-		configurationMap.getUnchecked(fileId).setPaused(true);
-	}
-
-
-	public void resume(UUID fileId) {
-		configurationMap.getUnchecked(fileId).setPaused(false);
 	}
 
 
@@ -244,4 +189,11 @@ public class RateLimiterConfigurationManager
 	public void setClientEvictionTimeInSeconds(int clientEvictionTimeInSeconds) {
 		this.clientEvictionTimeInSeconds = clientEvictionTimeInSeconds;
 	}
+
+
+	public void expectStreamClose(UUID fileId) {
+		configurationMap.getUnchecked(fileId).expectStreamClose();
+	}
+
+
 }

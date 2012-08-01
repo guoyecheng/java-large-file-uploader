@@ -51,7 +51,6 @@ import com.am.jlfu.staticstate.entities.StaticFileState;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Maps.EntryTransformer;
 import com.google.common.collect.Ordering;
@@ -161,10 +160,6 @@ public class UploadProcessor {
 			// apply transformed map
 			config.setPendingFiles(newMap);
 
-			// reset paused attribute
-			for (UUID fileId : sortedMap.keySet()) {
-				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).setPaused(false);
-			}
 		}
 
 		// fill configuration
@@ -292,56 +287,14 @@ public class UploadProcessor {
 	}
 
 
-	private void closeStreamForFiles(UUID... fileIds) {
-
-		// submit them
-		List<ConditionProvider> conditionProviders = Lists.newArrayList();
-		for (final UUID fileId : fileIds) {
-
-			log.debug("asking for stream close for file with id " + fileId);
-
-			// ask for the stream to close
-			boolean needToCloseStream = uploadProcessingConfigurationManager.markRequestHasShallBeCancelled(fileId);
-
-			if (needToCloseStream) {
-				log.debug("waiting for the stream to be closed for " + fileId);
-
-				conditionProviders.add(new ConditionProvider() {
-
-					@Override
-					public boolean condition() {
-						return !uploadProcessingConfigurationManager.requestIsReset(fileId);
-					}
-
-
-					@Override
-					public void onSuccess() {
-						log.debug("file stream has been closed for " + fileId);
-					}
-
-
-					@Override
-					public void onFail() {
-						log.warn("cannot confirm that file stream is closed for " + fileId);
-					}
-
-				});
-
-			}
-		}
-
-		generalUtils.waitForConditionToCompleteRunnable(1000, conditionProviders);
-
-	}
-
 
 	public void clearFile(UUID fileId)
 			throws InterruptedException, ExecutionException, TimeoutException {
 
-		// ask for the stream to be closed
-		closeStreamForFiles(fileId);
-
-		// then delete
+		//amorce cancellation
+		uploadProcessingConfigurationManager.expectStreamClose(fileId);
+		
+		// delete
 		staticStateManager.clearFile(fileId);
 
 		// then call listener
@@ -352,11 +305,12 @@ public class UploadProcessor {
 	public void clearAll()
 			throws InterruptedException, ExecutionException, TimeoutException {
 
-		// close any pending stream before clearing the file
-		closeStreamForFiles(staticStateManager.getEntity().getFileStates().keySet().toArray(new UUID[] {}));
-
-
-		// then clear everything
+		//amorce cancellation for all the files
+		for (UUID fileId : staticStateManager.getEntity().getFileStates().keySet()) {
+			uploadProcessingConfigurationManager.expectStreamClose(fileId);
+		}
+		
+		// clear everything
 		staticStateManager.clear();
 	}
 
@@ -402,10 +356,7 @@ public class UploadProcessor {
 		for (UUID uuid : uuids) {
 
 			// specify as paused
-			uploadProcessingConfigurationManager.pause(uuid);
-
-			// close stream
-			closeStreamForFiles(uuid);
+			uploadProcessingConfigurationManager.expectStreamClose(uuid);
 
 			// then call listener
 			jlfuListenerPropagator.getPropagator().onFileUploadPaused(staticStateIdentifierManager.getIdentifier(), uuid);
@@ -421,9 +372,6 @@ public class UploadProcessor {
 		if (value == null) {
 			throw new FileNotFoundException("File with id " + fileId + " not found");
 		}
-
-		// set as resumed
-		uploadProcessingConfigurationManager.resume(fileId);
 
 		// then call listener
 		jlfuListenerPropagator.getPropagator().onFileUploadResumed(staticStateIdentifierManager.getIdentifier(), fileId);

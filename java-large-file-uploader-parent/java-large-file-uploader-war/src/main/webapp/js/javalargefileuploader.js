@@ -60,7 +60,7 @@ function JavaLargeFileUploader() {
 		}
 		
 		//if firebug is enabled, show exception
-		manageFirebug(exceptionCallback)
+		manageFirebug(exceptionCallback);
 		
 		// get the configuration
 		$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=getConfig" + appended, function(data) {
@@ -115,7 +115,13 @@ function JavaLargeFileUploader() {
 		var fileId = fileIdI;
 		if(fileId && pendingFiles[fileId]) {
 			pendingFiles[fileId].cancelled = true;
+			if (pendingFiles[fileId].xhr) {
+				pendingFiles[fileId].xhr.abort();
+			}
 			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=clearFile&fileId=" + fileId,	function(e) {
+				if (pendingFiles[fileId].xhr) {
+					pendingFiles[fileId].xhr.abort();
+				}
 				if (callback) {
 					callback(fileId);
 				}
@@ -151,11 +157,16 @@ function JavaLargeFileUploader() {
 			}
 		}
 		if (filesToSend.length > 0) {
-			for (var i in fileIds) {
-				var fileId = fileIds[i];
-				pendingFiles[fileId].pausedCallback = callback;
-			}
-			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=pauseFile&fileId=" + filesToSend);
+			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=pauseFile&fileId=" + filesToSend, function() {
+				for (var i in fileIds) {
+					var fileId = fileIds[i];
+					var pendingFile = pendingFiles[fileId];
+					pendingFile.pausedCallback = callback;
+					if (pendingFile.xhr) {
+						pendingFile.xhr.abort();
+					}
+				}
+			});
 		}
 	};
 	
@@ -594,6 +605,7 @@ function JavaLargeFileUploader() {
 		}
 	}
 	
+	
 	function go(pendingFile) {
 		
 		//every time a chunk is being uplodaed, we check for firebug !
@@ -615,32 +627,40 @@ function JavaLargeFileUploader() {
 		
 				// prepare xhr request
 				var xhr = new XMLHttpRequest();
+				pendingFile.xhr = xhr;
+				
+				//assign pause callback
+				xhr.addEventListener("abort", function(event) {
+					if (pendingFile.pausing) {
+						console.log("The file is paused.");
+						uploadEnd(pendingFile, false);
+						pendingFile.paused=true;
+						if (pendingFile.pausedCallback) {
+							pendingFile.pausedCallback(pendingFile);
+						}
+					}
+				}, false);
+				
+				//then open
 				xhr.open('POST', javaLargeFileUploaderHost + uploadServletMapping + '?action=upload&fileId=' + pendingFile.id + '&crc=' + decimalToHexString(digest), true);
 		
 				// assign callback
 				xhr.onreadystatechange = function() {
 					if (xhr.readyState == 4) {
 		
+						//if we are pausing or cancelling, we just return
+						if (pendingFile.pausing || pendingFile.cancelled) {
+							return;
+						}
+						
+						//if we have an exception in the call
 						if (xhr.status != 200) {
-							if (pendingFile.cancelled === true) {
-								return;
+							displayException(pendingFile, 8);
+							if (autoRetry) {
+								//submit retry
+								retryStart(pendingFile);
 							}
-							if (xhr.status == 499) {
-								//paused
-								console.log("The file is paused.");
-								uploadEnd(pendingFile, false);
-								pendingFile.paused=true;
-								if (pendingFile.pausedCallback) {
-									pendingFile.pausedCallback(pendingFile);
-								}
-							} else {
-								displayException(pendingFile, 8);
-								if (autoRetry) {
-									//submit retry
-									retryStart(pendingFile);
-								}
-								uploadEnd(pendingFile, true);
-							}
+							uploadEnd(pendingFile, true);
 							return;
 						}
 						
@@ -679,7 +699,10 @@ function JavaLargeFileUploader() {
 				try {
 					//only send if it is pending, because it could have been asked for cancellation while we were reading the file!
 					if (pendingFiles[pendingFile.id]) {
-						xhr.send(formData);
+						//and if we are not pausing or cancelling
+						if (!pendingFile.pausing && !pendingFile.cancelled) {
+							xhr.send(formData);
+						}
 					}
 				} catch (e) {
 					uploadEnd(pendingFile, true);
@@ -703,7 +726,6 @@ function JavaLargeFileUploader() {
 		
 		//the file is not started anymore
 		pendingFile.started=false;
-		
 		
 		//process the queue if it was not an exception and if there is no auto retry
 		if (withException === false) {
@@ -774,7 +796,7 @@ function JavaLargeFileUploader() {
 	
 	function uploadIsActive(pendingFile) {
 		//process only if we have this id in the pending files and if the file is incomplete and if the file is not paused and if the file is started!
-		return pendingFiles[pendingFile.id] && !isFilePaused(pendingFile) && !pendingFile.fileComplete && pendingFile.started;
+		return pendingFile && pendingFiles[pendingFile.id] && !isFilePaused(pendingFile) && !pendingFile.fileComplete && pendingFile.started;
 	}
 	
 	function isExceptionRetryable(errorId) {

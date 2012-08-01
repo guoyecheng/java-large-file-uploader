@@ -218,8 +218,23 @@ public class UploadServletAsyncProcessor {
 				}
 			}
 			catch (Exception e) {
-				// forward exception
-				completeWithError(e);
+				
+				//check if this is a legal exception (ie if stream was closed on client for either pause or cancellation)
+				if (e.getMessage() != null && 
+						e.getMessage().equals("Stream ended unexpectedly")
+							&& uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).isStreamExpectedToBeClosed()) {
+					log.debug("FileUploadStream has been closed for file : "+fileId+ ". That was expected from pause or cancellation.");
+					success();
+				}
+				
+				//if this is illegal:
+				else {
+
+					// forward exception
+					completeWithError(e);
+					
+				}
+				
 			}
 			return null;
 		}
@@ -229,11 +244,12 @@ public class UploadServletAsyncProcessor {
 				throws IOException, FileCorruptedException {
 
 			// check if user wants to cancel
-			if (uploadProcessingConfigurationManager.requestHasToBeCancelled(fileId)) {
-				log.debug("User cancellation detected.");
-				success();
-				return;
-			}
+			//TODO for now firefox is waiting oo long for socket timeout..
+//			if (uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).isStreamExpectedToBeClosed()) {
+//				log.debug("User cancellation detected.");
+//				success();
+//				return;
+//			}
 
 			// init the buffer with the size of what we read
 			byte[] buffer = new byte[Math.min(available, SIZE_OF_THE_BUFFER_IN_BYTES)];
@@ -333,18 +349,6 @@ public class UploadServletAsyncProcessor {
 
 	}
 
-
-	/**
-	 * Checks whether is file is paused or not.
-	 * 
-	 * @param fileId
-	 * @return
-	 */
-	public boolean isPausedOrCancelled(UUID fileId) {
-		StaticStatePersistedOnFileSystemEntity entityIfPresent = staticStateManager.getEntityIfPresent();
-		return entityIfPresent != null && (entityIfPresent.getFileStates().get(fileId) == null ||
-				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).isPaused());
-	}
 
 
 	public static int minOf(int... numbers) {

@@ -52,7 +52,9 @@ public class UploadProcessingOperationManager {
 			set = new HashSet<UUID>();
 			clientToFilesMap.put(clientId, set);
 		}
-		set.add(fileId);
+		synchronized (set) {
+			set.add(fileId);
+		}
 
 	}
 
@@ -63,14 +65,18 @@ public class UploadProcessingOperationManager {
 		clientsAndRequestsProcessingOperation.remove(fileId);
 
 		// remove mapping
-		clientToFilesMap.get(clientId).remove(fileId);
+		Set<UUID> set = clientToFilesMap.get(clientId);
+		synchronized (set) {
+			set.remove(fileId);
 
-		// if client is empty, remove client
-		final boolean noreMoreUploadsForThisClient = clientToFilesMap.get(clientId).isEmpty();
-		if (noreMoreUploadsForThisClient) {
-			clientToFilesMap.remove(clientId);
-			clientsAndRequestsProcessingOperation.remove(clientId);
+			// if client is empty, remove client
+			final boolean noreMoreUploadsForThisClient = set.isEmpty();
+			if (noreMoreUploadsForThisClient) {
+				clientToFilesMap.remove(clientId);
+				clientsAndRequestsProcessingOperation.remove(clientId);
+			}
 		}
+
 	}
 
 

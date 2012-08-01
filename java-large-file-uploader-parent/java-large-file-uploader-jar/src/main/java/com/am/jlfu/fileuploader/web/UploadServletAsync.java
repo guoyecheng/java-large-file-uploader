@@ -44,7 +44,7 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 
 	@Autowired
 	UploadServletAsyncProcessor uploadServletAsyncProcessor;
-
+	
 	@Autowired
 	StaticStateIdentifierManager staticStateIdentifierManager;
 
@@ -76,26 +76,12 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 			// extract stuff from request
 			final FileUploadConfiguration process = fileUploaderHelper.extractFileUploadConfiguration(request);
 
-			// check if the file is paused or not, if paused, we do not process this request
-			if (uploadServletAsyncProcessor.isPausedOrCancelled(process.getFileId())) {
-				log.debug(process.getFileId() + " is paused, request ignored.");
-				response.sendError(499);
-				return;
-			}
-
 			// verify authorization
 			final UUID clientId = staticStateIdentifierManager.getIdentifier();
 			authorizer.getAuthorization(request, UploadServletAction.upload, clientId, process.getFileId());
 
 			// get the model
-			final StaticStatePersistedOnFileSystemEntity entityIfPresent = staticStateManager.getEntityIfPresent();
-			if (entityIfPresent == null) {
-				log.debug(process.getFileId() + " is cancelled, request ignored.");
-				// if not present, its cancelled, but the client can handle this as paused.
-				response.sendError(499);
-				return;
-			}
-			StaticFileState fileState = entityIfPresent.getFileStates().get(process.getFileId());
+			StaticFileState fileState = staticStateManager.getEntityIfPresent().getFileStates().get(process.getFileId());
 			if (fileState == null) {
 				throw new FileNotFoundException("File with id " + process.getFileId() + " not found");
 			}
