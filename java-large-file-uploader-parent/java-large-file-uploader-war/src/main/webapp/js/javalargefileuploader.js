@@ -518,22 +518,23 @@ function JavaLargeFileUploader() {
 
 			        //and send it
 					$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=verifyCrcOfUncheckedPart&fileId=" + pendingFile.id + "&crc=" + decimalToHexString(digest),	function(data) {
-						//verify stuff!
-						if (data === false) {
-							displayException(pendingFile, 7);
-							console.log("crc verification failed for unchecked chunk, filecompletion is truncated to "+pendingFile.crcedBytes+" (was "+pendingFile.fileCompletionInBytes+")");
-							//and assign the completion to last verified
-							pendingFile.fileCompletionInBytes = pendingFile.crcedBytes;
-
-						} else if (data === true) {
-							//then process upload
-							fileUploadProcessStarter(pendingFile);
-						} else if (data) {
+						//check if we have an exception
+						if (data.value) {
 							displayException(pendingFile, data.value);
 							if (autoRetry && isExceptionRetryable(data.value)) {
 								//submit retry
 								retryStart(pendingFile);
 							}
+						} else {
+							//verify stuff!
+							if (data === false) {
+								displayException(pendingFile, 7);
+								console.log("crc verification failed for unchecked chunk, filecompletion is truncated to "+pendingFile.crcedBytes+" (was "+pendingFile.fileCompletionInBytes+")");
+								//and assign the completion to last verified
+								pendingFile.fileCompletionInBytes = pendingFile.crcedBytes;
+							}	
+							//then process upload
+							fileUploadProcessStarter(pendingFile);						
 						}
 					});
 			    }
