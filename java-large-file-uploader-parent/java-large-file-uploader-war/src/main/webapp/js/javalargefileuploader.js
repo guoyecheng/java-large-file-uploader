@@ -28,7 +28,8 @@ function JavaLargeFileUploader() {
 	errorMessages[12] = "You do not have the permission to perform this action.";
 	errorMessages[13] = "FireBug is enabled, you may experience issues if you do not disable it while uploading.";
 	errorMessages[14] = "File corrupted. An unknown error has occured and the file is corrupted. The usual cause is that the file has been modified during the upload. Please clear it and re-upload it.";
-	exceptionsRetryable = [0,3,7,8,10,11];
+	errorMessages[15] = "File is currently locked, retrying in a moment...";
+	exceptionsRetryable = [0,3,7,8,10,11,15];
 	
 	this.setJavaLargeFileUploaderHost = function (javaLargeFileUploaderHostI) {
 		javaLargeFileUploaderHost = javaLargeFileUploaderHostI;
@@ -524,9 +525,16 @@ function JavaLargeFileUploader() {
 							//and assign the completion to last verified
 							pendingFile.fileCompletionInBytes = pendingFile.crcedBytes;
 
-						} 
-						//then process upload
-						fileUploadProcessStarter(pendingFile);
+						} else if (data === true) {
+							//then process upload
+							fileUploadProcessStarter(pendingFile);
+						} else if (data) {
+							displayException(pendingFile, data.value);
+							if (autoRetry && isExceptionRetryable(data.value)) {
+								//submit retry
+								retryStart(pendingFile);
+							}
+						}
 					});
 			    }
 				
