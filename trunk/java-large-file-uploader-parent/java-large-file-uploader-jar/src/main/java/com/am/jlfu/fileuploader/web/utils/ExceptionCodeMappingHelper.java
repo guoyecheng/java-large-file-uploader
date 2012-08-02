@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.exception.AuthorizationException;
 import com.am.jlfu.fileuploader.exception.FileCorruptedException;
+import com.am.jlfu.fileuploader.exception.FileStillProcessingException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.exception.JavaFileUploaderException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
@@ -43,7 +44,8 @@ public class ExceptionCodeMappingHelper {
 		InvalidCRC (3, InvalidCrcException.class),
 		MissingParameterException (4, MissingParameterException.class),
 		AuthorizationException (12, AuthorizationException.class),
-		FileCorruptedException (14, FileCorruptedException.class);
+		FileCorruptedException (14, FileCorruptedException.class),
+		FileStillProcessingException (15, FileStillProcessingException.class);
 
 		private int exceptionIdentifier;
 		private Class<? extends Exception> clazz;

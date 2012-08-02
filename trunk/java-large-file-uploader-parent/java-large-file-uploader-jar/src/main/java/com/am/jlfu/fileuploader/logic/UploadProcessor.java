@@ -27,6 +27,7 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.exception.FileCorruptedException;
+import com.am.jlfu.fileuploader.exception.FileStillProcessingException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.json.CRCResult;
 import com.am.jlfu.fileuploader.json.FileStateJson;
@@ -35,10 +36,7 @@ import com.am.jlfu.fileuploader.json.InitializationConfiguration;
 import com.am.jlfu.fileuploader.json.PrepareUploadJson;
 import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
-import com.am.jlfu.fileuploader.limiter.RequestUploadProcessingConfiguration;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
-import com.am.jlfu.fileuploader.utils.ConditionProvider;
-import com.am.jlfu.fileuploader.utils.GeneralUtils;
 import com.am.jlfu.fileuploader.utils.ProgressManager;
 import com.am.jlfu.fileuploader.utils.RemainingTimeEstimator;
 import com.am.jlfu.notifier.JLFUListenerPropagator;
@@ -80,9 +78,6 @@ public class UploadProcessor {
 
 	@Autowired
 	StaticStateDirectoryManager staticStateDirectoryManager;
-
-	@Autowired
-	GeneralUtils generalUtils;
 
 	@Autowired
 	ProgressManager progressManager;
@@ -143,10 +138,6 @@ public class UploadProcessor {
 
 						@Override
 						public FileStateJson transformEntry(UUID fileId, StaticFileState value) {
-
-							// wait until pending processing is performed
-							waitUntilProcessingAreFinished(fileId);
-
 							return getFileStateJson(fileId, value);
 						}
 					});
@@ -166,24 +157,6 @@ public class UploadProcessor {
 		config.setInByte(sliceSizeInBytes);
 
 		return config;
-	}
-
-
-	private void waitUntilProcessingAreFinished(UUID fileId) {
-		final RequestUploadProcessingConfiguration uploadProcessingConfiguration =
-				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
-		generalUtils.waitForConditionToCompleteRunnable(5000, new ConditionProvider() {
-
-			@Override
-			public boolean condition() {
-				return !uploadProcessingConfiguration.isProcessing();
-			}
-
-
-			public void onFail() {
-				log.error("/!\\ One of the pending file upload is still processing !!");
-			};
-		});
 	}
 
 
@@ -382,7 +355,7 @@ public class UploadProcessor {
 
 
 	public void verifyCrcOfUncheckedPart(UUID fileId, String inputCrc)
-			throws IOException, InvalidCrcException, FileCorruptedException {
+			throws IOException, InvalidCrcException, FileCorruptedException, FileStillProcessingException {
 		log.debug("validating the bytes that have not been validated from the previous interrupted upload for file " +
 				fileId);
 
@@ -401,42 +374,51 @@ public class UploadProcessor {
 		if (!file.exists()) {
 			throw new FileNotFoundException("File with id " + fileId + " not found");
 		}
+		
+		//check if this file is processing
+		if (uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).isProcessing()) {
+			throw new FileStillProcessingException(fileId);
+		}
 
 		// open the file stream
-		FileInputStream fileInputStream = new FileInputStream(file);
-		// skip the crced part
-		fileInputStream.skip(fileState.getStaticFileStateJson().getCrcedBytes());
+		FileInputStream fileInputStream = null;
+		try {
+			fileInputStream = new FileInputStream(file);
+			// skip the crced part
+			fileInputStream.skip(fileState.getStaticFileStateJson().getCrcedBytes());
+			
+			// read the crc
+			final CRCResult fileCrc = crcHelper.getBufferedCrc(fileInputStream);
 
-		// read the crc
-		final CRCResult fileCrc = crcHelper.getBufferedCrc(fileInputStream);
-		IOUtils.closeQuietly(fileInputStream);
+			// compare them
+			log.debug("validating chunk crc " + fileCrc.getCrcAsString() + " against " + inputCrc);
+	
+			// if not equal, we have an issue:
+			if (!fileCrc.getCrcAsString().equals(inputCrc)) {
+				log.debug("invalid crc ... now truncating file to match validated bytes " + fileState.getStaticFileStateJson().getCrcedBytes());
+	
+				// we are just sure now that the file before the crc validated is actually valid, and
+				// after that, it seems it is not
+				// so we get the file and remove everything after that crc validation so that user can
+				// resume the fileupload from there.
+	
+				// truncate the file
+				RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rwd");
+				randomAccessFile.setLength(fileState.getStaticFileStateJson().getCrcedBytes());
+				randomAccessFile.close();
+	
+				// throw the exception
+				throw new InvalidCrcException(fileCrc.getCrcAsString(), inputCrc);
+			}
+			// if correct, we can add these bytes as validated inside the file
+			else {
+				staticStateManager.setCrcBytesValidated(staticStateIdentifierManager.getIdentifier(), fileId,
+						fileCrc.getTotalRead());
+			}
 
-		// compare them
-		log.debug("validating chunk crc " + fileCrc.getCrcAsString() + " against " + inputCrc);
-
-		// if not equal, we have an issue:
-		if (!fileCrc.getCrcAsString().equals(inputCrc)) {
-			log.debug("invalid crc ... now truncating file to match validated bytes " + fileState.getStaticFileStateJson().getCrcedBytes());
-
-			// we are just sure now that the file before the crc validated is actually valid, and
-			// after that, it seems it is not
-			// so we get the file and remove everything after that crc validation so that user can
-			// resume the fileupload from there.
-
-			// truncate the file
-			RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rwd");
-			randomAccessFile.setLength(fileState.getStaticFileStateJson().getCrcedBytes());
-			randomAccessFile.close();
-
-			// throw the exception
-			throw new InvalidCrcException(fileCrc.getCrcAsString(), inputCrc);
+		} finally {
+			IOUtils.closeQuietly(fileInputStream);
 		}
-		// if correct, we can add these bytes as validated inside the file
-		else {
-			staticStateManager.setCrcBytesValidated(staticStateIdentifierManager.getIdentifier(), fileId,
-					fileCrc.getTotalRead());
-		}
-
 	}
 
 
