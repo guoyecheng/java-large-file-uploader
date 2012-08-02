@@ -338,26 +338,30 @@ function JavaLargeFileUploader() {
 		        	//if that file is not already being uploaded:
 		        	if (!pendingFileToCheck.started) {
 
-		        		//fill pending file to check with new info
-						//populate stuff retrieved in initialization 
-			        	pendingFile.fileCompletionInBytes = pendingFileToCheck.fileCompletionInBytes;
-			        	pendingFile.crcedBytes = pendingFileToCheck.crcedBytes;
-						pendingFile.firstChunkCrc = pendingFileToCheck.firstChunkCrc;
-						pendingFile.started = pendingFileToCheck.started;
-						pendingFile.id = pendingFileToCheck.id;
-						
-						//put it into the pending files array
-						pendingFiles[pendingFileToCheck.id] = pendingFile;
-					
-						// process the upload
-						fileResumeProcessStarter(pendingFile);
+		        		//if that file is paused 
+		        		if (isFilePaused(pendingFileToCheck)) {
+		        		
+		        			//resume it
+		        			resumeFileUploadInternal(pendingFileToCheck);
+
+		        		} else {
+		        			
+		        			//fill pending file to check with new info
+		        			//populate stuff retrieved in initialization 
+		        			pendingFile.fileCompletionInBytes = pendingFileToCheck.fileCompletionInBytes;
+		        			pendingFile.crcedBytes = pendingFileToCheck.crcedBytes;
+		        			pendingFile.firstChunkCrc = pendingFileToCheck.firstChunkCrc;
+		        			pendingFile.started = pendingFileToCheck.started;
+		        			pendingFile.id = pendingFileToCheck.id;
+		        			
+		        			//put it into the pending files array
+		        			pendingFiles[pendingFileToCheck.id] = pendingFile;
+		        			
+		        			// process the upload
+		        			fileResumeProcessStarter(pendingFile);
+		        		}
 					}
 		        	
-		        	//if that file is paused 
-		        	if (isFilePaused(pendingFileToCheck)) {
-		        		//resume it
-		        		resumeFileUploadInternal(pendingFileToCheck);
-		        	}
 		        	
 				} else {
 					console.log("Invalid resume crc for "+pendingFileToCheck.originalFileName+". processing as a new file.");
