@@ -66,14 +66,16 @@ public class UploadProcessingOperationManager {
 
 		// remove mapping
 		Set<UUID> set = clientToFilesMap.get(clientId);
-		synchronized (set) {
-			set.remove(fileId);
-
-			// if client is empty, remove client
-			final boolean noreMoreUploadsForThisClient = set.isEmpty();
-			if (noreMoreUploadsForThisClient) {
-				clientToFilesMap.remove(clientId);
-				clientsAndRequestsProcessingOperation.remove(clientId);
+		if (set != null) {
+			synchronized (set) {
+				set.remove(fileId);
+				
+				// if client is empty, remove client
+				final boolean noreMoreUploadsForThisClient = set.isEmpty();
+				if (noreMoreUploadsForThisClient) {
+					clientToFilesMap.remove(clientId);
+					clientsAndRequestsProcessingOperation.remove(clientId);
+				}
 			}
 		}
 
