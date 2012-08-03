@@ -91,7 +91,13 @@ function JavaLargeFileUploader() {
 		
 		// launch the progress poller
 		startProgressPoller();
-	
+		
+		//initialize the pause all file uploads on close
+		$(window).bind('beforeunload', function() {
+			pauseAllFileUploadsI(false);
+		});
+
+		
 	};
 	
 	this.clearFileUpload = function (callback) {
@@ -128,18 +134,22 @@ function JavaLargeFileUploader() {
 	};
 	
 	this.pauseFileUpload = function (fileIdI, callback) {
-		this.pauseFileUploads([fileIdI], callback);
+		pauseFileUploads(true, [fileIdI], callback);
 	};
 	
 	this.pauseAllFileUploads = function (callback) {
+		pauseAllFileUploadsI(true, callback);
+	};
+	
+	function pauseAllFileUploadsI(async, callback) {
 		var fileIds = [];
 		for (var fileId in pendingFiles) {
 			fileIds.push(fileId);
 		}
-		this.pauseFileUploads (fileIds, callback);  
-	};
+		pauseFileUploads(async, fileIds, callback);  
+	}
 	
-	this.pauseFileUploads = function (fileIds, callback) {
+	function pauseFileUploads(async, fileIds, callback) {
 		var filesToSend = []; 
 		for (var i in fileIds) {
 	        var fileId = fileIds[i];
@@ -153,16 +163,20 @@ function JavaLargeFileUploader() {
 			}
 		}
 		if (filesToSend.length > 0) {
-			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=pauseFile&fileId=" + filesToSend, function() {
-				for (var i in fileIds) {
-					var fileId = fileIds[i];
-					var pendingFile = pendingFiles[fileId];
-					pendingFile.pausedCallback = callback;
-					abort(pendingFile, true);
-				}
-			});
+			$.ajax({
+				  url: javaLargeFileUploaderHost + globalServletMapping + "?action=pauseFile&fileId=" + filesToSend,
+				  success: function() {
+						for (var i in fileIds) {
+							var fileId = fileIds[i];
+							var pendingFile = pendingFiles[fileId];
+							pendingFile.pausedCallback = callback;
+							abort(pendingFile, true);
+						}
+					},
+					async: async
+				});
 		}
-	};
+	}
 	
 	function abort(pendingFile, forPauseBool) {
 		if (pendingFile.xhr) {
