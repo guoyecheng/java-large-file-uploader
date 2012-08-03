@@ -9,9 +9,9 @@ public class RequestUploadProcessingConfiguration extends UploadProcessingConfig
 	private volatile boolean isProcessing;
 
 	/** 
-	 * Boolean specifying whether the client uploading the file is telling the server that the client will close the stream and that the server shall expect it.
+	 * Boolean specifying whether the client uploading the file is telling the server that it should not process the stream read.
 	 */
-	private volatile boolean expectingStreamClose;
+	private volatile boolean paused;
 
 	
 	public boolean isProcessing() {
@@ -24,16 +24,16 @@ public class RequestUploadProcessingConfiguration extends UploadProcessingConfig
 	}
 
 
-	public void expectStreamClose() {
-		this.expectingStreamClose = true;
+	public void pause() {
+		this.paused = true;
 	}
 
-	public void resetExpectStreamClose() {
-		this.expectingStreamClose = false;
+	public void resume() {
+		this.paused = false;
 	}
 	
-	public boolean isStreamExpectedToBeClosed() {
-		return this.expectingStreamClose;
+	public boolean isPaused() {
+		return this.paused;
 	}
 
 

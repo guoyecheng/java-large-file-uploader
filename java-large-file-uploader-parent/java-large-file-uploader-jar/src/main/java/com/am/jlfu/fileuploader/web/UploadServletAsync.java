@@ -59,11 +59,8 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 
 	/**
 	 * Maximum time that a streaming request can take.<br>
-	 * Note that the pause/resume stuff might not be a good idea as it keeps the stream opened while
-	 * paused.
 	 */
 	private long taskTimeOut = DateUtils.MILLIS_PER_HOUR;
-
 
 
 	@Override
@@ -75,6 +72,8 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 
 			// extract stuff from request
 			final FileUploadConfiguration process = fileUploaderHelper.extractFileUploadConfiguration(request);
+
+			log.debug("received upload request with config: "+process);
 
 			// verify authorization
 			final UUID clientId = staticStateIdentifierManager.getIdentifier();

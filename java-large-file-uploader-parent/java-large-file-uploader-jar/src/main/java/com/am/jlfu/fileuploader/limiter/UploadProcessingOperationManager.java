@@ -7,6 +7,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +19,8 @@ import com.google.common.collect.Maps;
 
 @Component
 public class UploadProcessingOperationManager {
+
+	private static final Logger log = LoggerFactory.getLogger(UploadProcessingOperationManager.class);
 
 	@Autowired
 	ClientToFilesMap clientToFilesMap;
@@ -38,7 +42,8 @@ public class UploadProcessingOperationManager {
 
 
 	public void startOperation(UUID clientId, UUID fileId) {
-
+		log.debug("starting operation for client "+clientId + " and file "+fileId);
+		
 		// create the request one
 		// XXX are we sure that there is only one there?
 		clientsAndRequestsProcessingOperation.put(fileId, new UploadProcessingOperation());
@@ -60,7 +65,8 @@ public class UploadProcessingOperationManager {
 
 
 	public void stopOperation(UUID clientId, UUID fileId) {
-
+		log.debug("stopping operation for client "+clientId + " and file "+fileId);
+		
 		// remove from map
 		clientsAndRequestsProcessingOperation.remove(fileId);
 

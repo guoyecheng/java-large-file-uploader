@@ -132,7 +132,7 @@ public class UploadServletTest {
 		}.getType());
 		ProgressJson[] array = new ProgressJson[] {};
 		array = fromJson.values().toArray(array);
-		Assert.assertThat(Float.valueOf(array[0].getProgress()), is(Float.valueOf(0)));
+		Assert.assertThat(array[0].getProgress(), is(Float.valueOf(0)));
 
 	}
 

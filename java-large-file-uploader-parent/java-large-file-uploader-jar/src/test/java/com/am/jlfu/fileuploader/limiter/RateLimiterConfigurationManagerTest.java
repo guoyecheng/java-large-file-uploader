@@ -117,12 +117,12 @@ public class RateLimiterConfigurationManagerTest {
 	public void testStreamExpectedToBeClosed() throws ExecutionException {
 		UUID randomUUID = UUID.randomUUID();
 		rateLimiterConfigurationManager.configurationMap.put(randomUUID, new RequestUploadProcessingConfiguration());
-		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isStreamExpectedToBeClosed(), CoreMatchers.is(false));
-		rateLimiterConfigurationManager.expectStreamClose(randomUUID);
-		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isStreamExpectedToBeClosed(), CoreMatchers.is(true));
-		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isStreamExpectedToBeClosed(), CoreMatchers.is(true));
-		rateLimiterConfigurationManager.configurationMap.get(randomUUID).resetExpectStreamClose();
-		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isStreamExpectedToBeClosed(), CoreMatchers.is(false));
+		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isPaused(), CoreMatchers.is(false));
+		rateLimiterConfigurationManager.configurationMap.get(randomUUID).pause();
+		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isPaused(), CoreMatchers.is(true));
+		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isPaused(), CoreMatchers.is(true));
+		rateLimiterConfigurationManager.configurationMap.get(randomUUID).resume();
+		Assert.assertThat(rateLimiterConfigurationManager.configurationMap.get(randomUUID).isPaused(), CoreMatchers.is(false));
 		
 	}
 }
