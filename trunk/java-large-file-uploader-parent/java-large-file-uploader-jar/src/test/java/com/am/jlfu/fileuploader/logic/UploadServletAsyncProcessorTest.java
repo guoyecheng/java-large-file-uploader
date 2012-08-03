@@ -405,8 +405,7 @@ public class UploadServletAsyncProcessorTest {
 					throws Exception {
 
 				// prepare that slice
-				String absoluteFullPathOfUploadedFile =
-						staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
+				staticStateManager.getEntity().getFileStates().get(fileId).getAbsoluteFullPathOfUploadedFile();
 				TestFileSplitResult byteArrayFromFile =
 						UploadProcessorTest.getByteArrayFromInputStream(new ByteArrayInputStream(fileContent), uploadProcessor.getSliceSizeInBytes() *
 								currentSlice, uploadProcessor.getSliceSizeInBytes() * currentSlice +
@@ -456,6 +455,9 @@ public class UploadServletAsyncProcessorTest {
 						throw new RuntimeException(e);
 					}
 
+					//process it, it should not be processed as the file is paused
+					processWaitForCompletionAndCheck(fileId, byteArrayFromFile);
+
 					// assert the size is the same
 					Assert.assertThat(new File(absoluteFullPathOfUploadedFile).length(), is(length));
 
@@ -464,6 +466,7 @@ public class UploadServletAsyncProcessorTest {
 
 				}
 
+				//process
 				processWaitForCompletionAndCheck(fileId, byteArrayFromFile);
 
 			}

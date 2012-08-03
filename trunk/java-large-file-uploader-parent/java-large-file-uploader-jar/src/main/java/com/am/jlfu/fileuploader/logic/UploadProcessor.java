@@ -36,6 +36,7 @@ import com.am.jlfu.fileuploader.json.InitializationConfiguration;
 import com.am.jlfu.fileuploader.json.PrepareUploadJson;
 import com.am.jlfu.fileuploader.json.ProgressJson;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
+import com.am.jlfu.fileuploader.limiter.RequestUploadProcessingConfiguration;
 import com.am.jlfu.fileuploader.utils.CRCHelper;
 import com.am.jlfu.fileuploader.utils.ProgressManager;
 import com.am.jlfu.fileuploader.utils.RemainingTimeEstimator;
@@ -146,6 +147,9 @@ public class UploadProcessor {
 			Map<String, FileStateJson> newMap = Maps.newHashMap();
 			for (Entry<UUID, FileStateJson> entry : transformEntries.entrySet()) {
 				newMap.put(entry.getKey().toString(), entry.getValue());
+				
+				//also, if we have a configuration existing for this file, we resume it
+				resume(entry.getKey());
 			}
 
 			// apply transformed map
@@ -158,6 +162,8 @@ public class UploadProcessor {
 
 		return config;
 	}
+
+
 
 
 	private FileStateJson getFileStateJson(UUID fileId, StaticFileState value) {
@@ -264,8 +270,8 @@ public class UploadProcessor {
 	public void clearFile(UUID fileId)
 			throws InterruptedException, ExecutionException, TimeoutException {
 
-		//amorce cancellation
-		uploadProcessingConfigurationManager.expectStreamClose(fileId);
+		// specify as paused
+		pause(fileId);
 		
 		// delete
 		staticStateManager.clearFile(fileId);
@@ -280,12 +286,14 @@ public class UploadProcessor {
 
 		//amorce cancellation for all the files
 		for (UUID fileId : staticStateManager.getEntity().getFileStates().keySet()) {
-			uploadProcessingConfigurationManager.expectStreamClose(fileId);
+			pause(fileId);
 		}
 		
 		// clear everything
 		staticStateManager.clear();
 	}
+
+
 
 
 	public ProgressJson getProgress(UUID fileId)
@@ -328,8 +336,8 @@ public class UploadProcessor {
 		// for all these files
 		for (UUID uuid : uuids) {
 
-			// specify as paused
-			uploadProcessingConfigurationManager.expectStreamClose(uuid);
+			//specifyStreamIsExpectedToClose
+			pause(uuid);
 
 			// then call listener
 			jlfuListenerPropagator.getPropagator().onFileUploadPaused(staticStateIdentifierManager.getIdentifier(), uuid);
@@ -346,6 +354,9 @@ public class UploadProcessor {
 			throw new FileNotFoundException("File with id " + fileId + " not found");
 		}
 
+		//resume the configuration
+		resume(fileId);
+		
 		// then call listener
 		jlfuListenerPropagator.getPropagator().onFileUploadResumed(staticStateIdentifierManager.getIdentifier(), fileId);
 
@@ -375,8 +386,14 @@ public class UploadProcessor {
 			throw new FileNotFoundException("File with id " + fileId + " not found");
 		}
 		
+		//get request conf
+		RequestUploadProcessingConfiguration uploadProcessingConfiguration = uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
+
+		//unpause the file
+		resume(fileId, uploadProcessingConfiguration);
+		
 		//check if this file is processing
-		if (uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).isProcessing()) {
+		if (uploadProcessingConfiguration.isProcessing()) {
 			throw new FileStillProcessingException(fileId);
 		}
 
@@ -422,6 +439,8 @@ public class UploadProcessor {
 	}
 
 
+
+
 	private void showDif(byte[] a, byte[] b) {
 
 		log.debug("comparing " + a + " to " + b);
@@ -451,5 +470,21 @@ public class UploadProcessor {
 
 
 
+	private void resume(UUID fileId) {
+		resume(fileId, uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId));
+	}
+
+	private void resume(UUID fileId, RequestUploadProcessingConfiguration uploadProcessingConfiguration) {
+		synchronized (uploadProcessingConfiguration) {
+			uploadProcessingConfiguration.resume();
+		}
+	}
+
+	private void pause(UUID fileId) {
+		RequestUploadProcessingConfiguration uploadProcessingConfiguration = uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
+		synchronized (uploadProcessingConfiguration) {
+			uploadProcessingConfiguration.pause();
+		}
+	}
 
 }

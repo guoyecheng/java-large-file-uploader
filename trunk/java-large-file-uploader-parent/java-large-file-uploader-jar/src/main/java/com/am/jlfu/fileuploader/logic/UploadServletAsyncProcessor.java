@@ -108,7 +108,7 @@ public class UploadServletAsyncProcessor {
 
 		// init the task
 		final WriteChunkToFileTask task =
-				new WriteChunkToFileTask(fileId, requestProcessingOperation, clientProcessingOperation,
+				new WriteChunkToFileTask(fileId, requestProcessingOperation, clientProcessingOperation, requestUploadProcessingConfiguration,
 						masterProcessingOperation, crc, inputStream,
 						outputStream, completionListener, clientId);
 
@@ -145,6 +145,7 @@ public class UploadServletAsyncProcessor {
 		private UploadProcessingOperation requestUploadProcessingOperation;
 		private UploadProcessingOperation clientUploadProcessingOperation;
 		private UploadProcessingOperation masterUploadProcessingOperation;
+		private RequestUploadProcessingConfiguration requestUploadProcessingConfiguration;
 
 		private CRC32 crc32 = new CRC32();
 		private long byteProcessed;
@@ -153,11 +154,12 @@ public class UploadServletAsyncProcessor {
 
 
 		public WriteChunkToFileTask(UUID fileId, UploadProcessingOperation requestOperation,
-				UploadProcessingOperation clientOperation, UploadProcessingOperation masterProcessingOperation,
+				UploadProcessingOperation clientOperation, RequestUploadProcessingConfiguration requestUploadProcessingConfiguration, UploadProcessingOperation masterProcessingOperation,
 				String crc,
 				InputStream inputStream,
 				FileOutputStream outputStream, WriteChunkCompletionListener completionListener, UUID clientId) {
 			this.fileId = fileId;
+			this.requestUploadProcessingConfiguration=requestUploadProcessingConfiguration;
 			this.requestUploadProcessingOperation = requestOperation;
 			this.clientUploadProcessingOperation = clientOperation;
 			this.masterUploadProcessingOperation = masterProcessingOperation;
@@ -218,23 +220,8 @@ public class UploadServletAsyncProcessor {
 				}
 			}
 			catch (Exception e) {
-				
-				//check if this is a legal exception (ie if stream was closed on client for either pause or cancellation)
-				if (e.getMessage() != null && 
-						e.getMessage().equals("Stream ended unexpectedly")
-							&& uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).isStreamExpectedToBeClosed()) {
-					log.debug("FileUploadStream has been closed for file : "+fileId+ ". That was expected from pause or cancellation.");
-					success();
-				}
-				
-				//if this is illegal:
-				else {
-
-					// forward exception
-					completeWithError(e);
-					
-				}
-				
+				// forward exception
+				completeWithError(e);
 			}
 			return null;
 		}
@@ -243,19 +230,25 @@ public class UploadServletAsyncProcessor {
 		private void write(int available)
 				throws IOException, FileCorruptedException {
 
-			// check if user wants to cancel
-			//TODO for now firefox is waiting oo long for socket timeout..
-//			if (uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId).isStreamExpectedToBeClosed()) {
-//				log.debug("User cancellation detected.");
-//				success();
-//				return;
-//			}
-
 			// init the buffer with the size of what we read
 			byte[] buffer = new byte[Math.min(available, SIZE_OF_THE_BUFFER_IN_BYTES)];
 
-			// read from stream
-			int bytesCount = inputStream.read(buffer);
+			//synchronizing on file here so that pause can be assigned before actually starting to read the file
+			int bytesCount;
+			synchronized (requestUploadProcessingConfiguration) {
+
+				// check if user wants to cancel
+				//firefox is waiting too long for socket timeout so we provocate a stream closure here..
+				if (requestUploadProcessingConfiguration.isPaused()) {
+					log.debug("User cancellation detected.");
+					success();
+					return;
+				}
+				
+				//read
+				bytesCount = inputStream.read(buffer);
+			}
+
 
 			// if we have something
 			if (bytesCount != -1) {

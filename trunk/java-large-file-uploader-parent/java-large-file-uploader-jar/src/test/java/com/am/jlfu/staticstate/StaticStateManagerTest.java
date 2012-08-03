@@ -61,7 +61,7 @@ public class StaticStateManagerTest {
 			throws InterruptedException, ExecutionException, TimeoutException {
 
 		// get entity
-		StaticStatePersistedOnFileSystemEntity entity = staticStateManager.getEntity();
+		staticStateManager.getEntity();
 
 		// assert directory is there
 		File uuidFileParent = staticStatedDirectoryManager.getUUIDFileParent();
@@ -134,7 +134,7 @@ public class StaticStateManagerTest {
 		staticStateManager.cache.invalidate(staticStateIdentifierManager.getIdentifier());
 
 		// get again (it will load from file into cache)
-		entity = staticStateManager.getEntity();
+		staticStateManager.getEntity();
 
 		// check everything is good
 		Assert.assertEquals(absoluteFullPathOfUploadedFile, value.getAbsoluteFullPathOfUploadedFile());

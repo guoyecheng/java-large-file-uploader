@@ -138,7 +138,6 @@ public class RateLimiterConfigurationManager
 	public void reset(UUID fileId) {
 		final RequestUploadProcessingConfiguration unchecked = configurationMap.getUnchecked(fileId);
 		unchecked.setProcessing(false);
-		unchecked.resetExpectStreamClose();
 	}
 
 
@@ -188,11 +187,6 @@ public class RateLimiterConfigurationManager
 
 	public void setClientEvictionTimeInSeconds(int clientEvictionTimeInSeconds) {
 		this.clientEvictionTimeInSeconds = clientEvictionTimeInSeconds;
-	}
-
-
-	public void expectStreamClose(UUID fileId) {
-		configurationMap.getUnchecked(fileId).expectStreamClose();
 	}
 
 

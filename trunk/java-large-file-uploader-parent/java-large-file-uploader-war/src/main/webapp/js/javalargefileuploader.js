@@ -116,13 +116,8 @@ function JavaLargeFileUploader() {
 		var fileId = fileIdI;
 		if(fileId && pendingFiles[fileId]) {
 			pendingFiles[fileId].cancelled = true;
-			if (pendingFiles[fileId].xhr) {
-				pendingFiles[fileId].xhr.abort();
-			}
 			$.get(javaLargeFileUploaderHost + globalServletMapping + "?action=clearFile&fileId=" + fileId,	function(e) {
-				if (pendingFiles[fileId].xhr) {
-					pendingFiles[fileId].xhr.abort();
-				}
+				abort(pendingFiles[fileId], false);
 				if (callback) {
 					callback(fileId);
 				}
@@ -163,13 +158,36 @@ function JavaLargeFileUploader() {
 					var fileId = fileIds[i];
 					var pendingFile = pendingFiles[fileId];
 					pendingFile.pausedCallback = callback;
-					if (pendingFile.xhr) {
-						pendingFile.xhr.abort();
-					}
+					abort(pendingFile, true);
 				}
 			});
 		}
 	};
+	
+	function abort(pendingFile, forPauseBool) {
+		if (pendingFile.xhr) {
+			pendingFile.xhr.abort();
+		}
+		if (forPauseBool) {
+			setTimeout(function() {
+				//if still paused after a certain delay, we unblock it
+				if (pendingFile.paused===false) {
+					notifyPause(pendingFile);
+				}
+			}, 2000);
+		}
+	}
+	
+	function notifyPause(pendingFile) {
+		if (pendingFile.pausing) {
+			console.log("The file is paused.");
+			uploadEnd(pendingFile, false);
+			pendingFile.paused=true;
+			if (pendingFile.pausedCallback) {
+				pendingFile.pausedCallback(pendingFile);
+			}
+		}
+	}
 	
 	function isFilePaused(pendingFile) {
 		return pendingFile.paused || pendingFile.pausing;
@@ -644,14 +662,7 @@ function JavaLargeFileUploader() {
 				
 				//assign pause callback
 				xhr.addEventListener("abort", function(event) {
-					if (pendingFile.pausing) {
-						console.log("The file is paused.");
-						uploadEnd(pendingFile, false);
-						pendingFile.paused=true;
-						if (pendingFile.pausedCallback) {
-							pendingFile.pausedCallback(pendingFile);
-						}
-					}
+					notifyPause(pendingFile);
 				}, false);
 				
 				//then open
@@ -713,7 +724,7 @@ function JavaLargeFileUploader() {
 					//only send if it is pending, because it could have been asked for cancellation while we were reading the file!
 					if (pendingFiles[pendingFile.id]) {
 						//and if we are not pausing or cancelling
-						if (!pendingFile.pausing && !pendingFile.cancelled) {
+						if (!isFilePaused(pendingFile) && !pendingFile.cancelled) {
 							xhr.send(formData);
 						}
 					}

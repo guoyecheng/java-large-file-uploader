@@ -77,7 +77,7 @@ public class ProgressManager {
 							
 							//if not present in map
 							//or if present in map but different from previous one
-							if (progressInMap == null || !Float.valueOf(progressInMap.getProgress()).equals(newProgress.getProgress())) {
+							if (progressInMap == null || !progressInMap.getProgress().equals(newProgress.getProgress())) {
 								
 								//add to map
 								fileToProgressInfo.put(fileId, newProgress);
