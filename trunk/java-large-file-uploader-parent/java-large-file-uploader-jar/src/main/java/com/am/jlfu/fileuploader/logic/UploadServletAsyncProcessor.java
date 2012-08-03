@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.exception.FileCorruptedException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
+import com.am.jlfu.fileuploader.exception.UploadIsCurrentlyDisabled;
 import com.am.jlfu.fileuploader.json.FileStateJsonBase;
 import com.am.jlfu.fileuploader.limiter.RateLimiter;
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
@@ -60,13 +61,14 @@ public class UploadServletAsyncProcessor {
 	/** The executor that process the stream */
 	private ScheduledThreadPoolExecutor uploadWorkersPool = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(10);
 
-
+	/** Specifies whether the uploads should be processed or not. */
+	private volatile boolean enabled = true;
 
 	public void process(StaticFileState fileState, UUID fileId, String crc, InputStream inputStream,
 			WriteChunkCompletionListener completionListener)
 			throws FileNotFoundException
 	{
-
+		
 		// get identifier
 		UUID clientId = staticStateIdentifierManager.getIdentifier();
 
@@ -228,8 +230,13 @@ public class UploadServletAsyncProcessor {
 
 
 		private void write(int available)
-				throws IOException, FileCorruptedException {
+				throws IOException, FileCorruptedException, UploadIsCurrentlyDisabled {
 
+			//check if uploading is enabled or not
+			if (!enabled) {
+				throw new UploadIsCurrentlyDisabled();
+			}
+			
 			// init the buffer with the size of what we read
 			byte[] buffer = new byte[Math.min(available, SIZE_OF_THE_BUFFER_IN_BYTES)];
 
@@ -370,4 +377,16 @@ public class UploadServletAsyncProcessor {
 	}
 
 
+	
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+
+	
+	public boolean isEnabled() {
+		return enabled;
+	}
+	
+	
 }

@@ -29,7 +29,8 @@ function JavaLargeFileUploader() {
 	errorMessages[13] = "FireBug is enabled, you may experience issues if you do not disable it while uploading.";
 	errorMessages[14] = "File corrupted. An unknown error has occured and the file is corrupted. The usual cause is that the file has been modified during the upload. Please clear it and re-upload it.";
 	errorMessages[15] = "File is currently locked, retrying in a moment...";
-	exceptionsRetryable = [0,3,7,8,10,11,15];
+	errorMessages[16] = "Uploads are momentarily disabled, retrying in a moment...";
+	exceptionsRetryable = [0,3,7,8,10,11,15,16];
 	
 	this.setJavaLargeFileUploaderHost = function (javaLargeFileUploaderHostI) {
 		javaLargeFileUploaderHost = javaLargeFileUploaderHostI;

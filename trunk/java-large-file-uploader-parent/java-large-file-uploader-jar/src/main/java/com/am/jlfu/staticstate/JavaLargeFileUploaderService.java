@@ -12,8 +12,11 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jmx.export.annotation.ManagedOperation;
+import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
+import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor;
 import com.am.jlfu.fileuploader.utils.ProgressManager;
 import com.am.jlfu.staticstate.entities.FileProgressStatus;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
@@ -26,6 +29,7 @@ import com.thoughtworks.xstream.XStream;
  * @see StaticStateManager
  */
 @Component
+@ManagedResource(objectName = "JavaLargeFileUploader:name=operationManager")
 public class JavaLargeFileUploaderService<T extends StaticStatePersistedOnFileSystemEntity> {
 
 	@Autowired
@@ -40,6 +44,9 @@ public class JavaLargeFileUploaderService<T extends StaticStatePersistedOnFileSy
 	@Autowired
 	StaticStateDirectoryManager staticStateDirectoryManager;
 
+	@Autowired
+	UploadServletAsyncProcessor uploadServletAsyncProcessor;
+	
 	private static final Logger log = LoggerFactory.getLogger(JavaLargeFileUploaderService.class);
 
 	
@@ -164,5 +171,25 @@ public class JavaLargeFileUploaderService<T extends StaticStatePersistedOnFileSy
 		staticStateManager.cache.invalidate(clientId);
 
 	}
+	
+	
+	/**
+	 * Enables the processing of file uploads. Clients will automatically resume their upload.
+	 * @see #disableFileUploader()
+	 */
+	@ManagedOperation
+	public void enableFileUploader() {
+		uploadServletAsyncProcessor.setEnabled(true);
+	}
+	
+	/**
+	 * Disables the processing of file uploads. Clients currently uploading Files will wait and automatically resume the uploads when {@link #enableFileUploader()} is called.
+	 * @see #enableFileUploader()
+	 */
+	@ManagedOperation
+	public void disableFileUploader() {
+		uploadServletAsyncProcessor.setEnabled(false);
+	}
+	
 }
 
