@@ -79,6 +79,12 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 			final UUID clientId = staticStateIdentifierManager.getIdentifier();
 			authorizer.getAuthorization(request, UploadServletAction.upload, clientId, process.getFileId());
 
+			//check if that file is not paused
+			if (uploadServletAsyncProcessor.isFilePaused(process.getFileId())) {
+				log.debug("file "+process.getFileId()+" is paused, ignoring async request.");
+				return;
+			}
+			
 			// get the model
 			StaticFileState fileState = staticStateManager.getEntityIfPresent().getFileStates().get(process.getFileId());
 			if (fileState == null) {
