@@ -12,13 +12,13 @@ Just define the maven dependencies:
 <dependency>
 	<groupId>com.am</groupId>
 	<artifactId>java-large-file-uploader-war</artifactId>
-	<version>1.1.5-SNAPSHOT</version>
+	<version>1.1.8-SNAPSHOT</version>
 	<type>war</type>
 </dependency>
 <dependency>
 	<groupId>com.am</groupId>
 	<artifactId>java-large-file-uploader-jar</artifactId>
-	<version>1.1.5-SNAPSHOT</version>
+	<version>1.1.8-SNAPSHOT</version>
 </dependency>
 }}}
 And the repository:
