@@ -355,5 +355,19 @@ public class UploadServletAsyncProcessor {
 		return min;
 	}
 
+	
+	/**
+	 * Checks if the file is paused.
+	 * @param fileId
+	 * @return 
+	 */
+	public boolean isFilePaused(UUID fileId) {
+		final RequestUploadProcessingConfiguration requestUploadProcessingConfiguration =
+				uploadProcessingConfigurationManager.getUploadProcessingConfiguration(fileId);
+		synchronized (requestUploadProcessingConfiguration) {
+			return requestUploadProcessingConfiguration.isPaused();
+		}
+	}
+
 
 }
