@@ -20,6 +20,7 @@ import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.context.support.HttpRequestHandlerServlet;
 
 import com.am.jlfu.authorizer.Authorizer;
+import com.am.jlfu.fileuploader.exception.UploadIsCurrentlyDisabled;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor;
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor.WriteChunkCompletionListener;
 import com.am.jlfu.fileuploader.web.utils.ExceptionCodeMappingHelper;
@@ -70,6 +71,11 @@ public class UploadServletAsync extends HttpRequestHandlerServlet
 		// process the request
 		try {
 
+			//check if uploads are allowed
+			if (!uploadServletAsyncProcessor.isEnabled()) {
+				throw new UploadIsCurrentlyDisabled();
+			}
+			
 			// extract stuff from request
 			final FileUploadConfiguration process = fileUploaderHelper.extractFileUploadConfiguration(request);
 

@@ -16,6 +16,7 @@ import com.am.jlfu.fileuploader.exception.FileStillProcessingException;
 import com.am.jlfu.fileuploader.exception.InvalidCrcException;
 import com.am.jlfu.fileuploader.exception.JavaFileUploaderException;
 import com.am.jlfu.fileuploader.exception.MissingParameterException;
+import com.am.jlfu.fileuploader.exception.UploadIsCurrentlyDisabled;
 
 
 
@@ -45,7 +46,8 @@ public class ExceptionCodeMappingHelper {
 		MissingParameterException (4, MissingParameterException.class),
 		AuthorizationException (12, AuthorizationException.class),
 		FileCorruptedException (14, FileCorruptedException.class),
-		FileStillProcessingException (15, FileStillProcessingException.class);
+		FileStillProcessingException (15, FileStillProcessingException.class),
+		UploadIsCurrentlyDisabled (16, UploadIsCurrentlyDisabled.class);
 
 		private int exceptionIdentifier;
 		private Class<? extends Exception> clazz;
