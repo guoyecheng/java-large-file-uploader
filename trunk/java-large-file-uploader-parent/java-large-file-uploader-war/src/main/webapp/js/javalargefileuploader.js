@@ -94,7 +94,7 @@ function JavaLargeFileUploader() {
 		startProgressPoller();
 		
 		//initialize the pause all file uploads on close
-		$(window).bind('beforeunload', function() {
+		$(window).bind('unload', function() {
 			pauseAllFileUploadsI(false);
 		});
 
