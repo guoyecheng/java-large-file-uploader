@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.am.jlfu.fileuploader.limiter.RateLimiterConfigurationManager;
 import com.am.jlfu.identifier.impl.DefaultIdentifierProvider;
+import com.am.jlfu.staticstate.JavaLargeFileUploaderService;
 import com.am.jlfu.staticstate.entities.FileProgressStatus;
 
 
@@ -117,5 +118,14 @@ public interface JLFUListener {
 	 */
 	void onFileUploadProgress(UUID clientId, UUID fileId, FileProgressStatus progress);
 
+	/**
+	 * Fired when the administration method {@link JavaLargeFileUploaderService#disableFileUploader()} is called.
+	 */ 
+	void onFileUploaderDisabled();
+	
+	/**
+	 * Fired when the administration method {@link JavaLargeFileUploaderService#enableFileUploader()} is called.
+	 */ 
+	void onFileUploaderEnabled();
 
 }

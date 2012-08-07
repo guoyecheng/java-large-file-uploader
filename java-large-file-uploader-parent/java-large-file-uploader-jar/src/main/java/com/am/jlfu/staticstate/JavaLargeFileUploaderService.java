@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import com.am.jlfu.fileuploader.logic.UploadServletAsyncProcessor;
 import com.am.jlfu.fileuploader.utils.ProgressManager;
+import com.am.jlfu.notifier.JLFUListenerPropagator;
 import com.am.jlfu.staticstate.entities.FileProgressStatus;
 import com.am.jlfu.staticstate.entities.StaticStatePersistedOnFileSystemEntity;
 import com.thoughtworks.xstream.XStream;
@@ -46,6 +47,9 @@ public class JavaLargeFileUploaderService<T extends StaticStatePersistedOnFileSy
 
 	@Autowired
 	UploadServletAsyncProcessor uploadServletAsyncProcessor;
+	
+	@Autowired
+	JLFUListenerPropagator jlfuListenerPropagator;
 	
 	private static final Logger log = LoggerFactory.getLogger(JavaLargeFileUploaderService.class);
 
@@ -180,6 +184,7 @@ public class JavaLargeFileUploaderService<T extends StaticStatePersistedOnFileSy
 	@ManagedOperation
 	public void enableFileUploader() {
 		uploadServletAsyncProcessor.setEnabled(true);
+		jlfuListenerPropagator.getPropagator().onFileUploaderEnabled();
 	}
 	
 	/**
@@ -189,6 +194,7 @@ public class JavaLargeFileUploaderService<T extends StaticStatePersistedOnFileSy
 	@ManagedOperation
 	public void disableFileUploader() {
 		uploadServletAsyncProcessor.setEnabled(false);
+		jlfuListenerPropagator.getPropagator().onFileUploaderDisabled();
 	}
 	
 }
