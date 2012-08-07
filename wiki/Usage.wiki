@@ -24,7 +24,7 @@ onFileUploadPaused(clientId, fileId)
 onFileUploadResumed(clientId, fileId)
 onFileUploadProgress(clientId, fileId, FileProgressStatus)
 onFileUploaderDisabled()
-void onFileUploaderEnabled()
+onFileUploaderEnabled()
 }}}
 
 You can register a [http://code.google.com/p/java-large-file-uploader/source/browse/trunk/java-large-file-uploader-parent/java-large-file-uploader-jar/src/main/java/com/am/jlfu/notifier/JLFUListener.java JLFUListener] (or an [http://code.google.com/p/java-large-file-uploader/source/browse/trunk/java-large-file-uploader-parent/java-large-file-uploader-jar/src/main/java/com/am/jlfu/notifier/JLFUListenerAdapter.java JLFUListenerAdapter]) to the [http://code.google.com/p/java-large-file-uploader/source/browse/trunk/java-large-file-uploader-parent/java-large-file-uploader-jar/src/main/java/com/am/jlfu/notifier/JLFUListenerPropagator.java JLFUListenerPropagator] which will propagates all the events to the registered listeners.
