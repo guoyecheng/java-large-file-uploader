@@ -76,4 +76,16 @@ public class JLFUListenerAdapter
 
 	}
 
+
+	@Override
+	public void onFileUploaderDisabled() {
+		
+	}
+
+
+	@Override
+	public void onFileUploaderEnabled() {
+		
+	}
+
 }
