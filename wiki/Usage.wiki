@@ -40,4 +40,6 @@ writeEntity(File, entity)
 getEntityIfPresent(clientId)
 clearFile(clientId, fileId)
 clearClient(clientId)
+enableFileUploader()
+disableFileUploader()
 }}}
