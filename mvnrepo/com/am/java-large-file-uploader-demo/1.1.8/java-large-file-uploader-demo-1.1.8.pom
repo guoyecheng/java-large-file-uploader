@@ -1,0 +1,97 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<packaging>war</packaging>
+	<name>Java Large File Uploader Demo</name>
+	<modelVersion>4.0.0</modelVersion>
+
+
+	<groupId>com.am</groupId>
+	<artifactId>java-large-file-uploader-demo</artifactId>
+	<version>1.1.8</version>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee-web-api</artifactId>
+			<version>6.0</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- the war overlay for js resources -->
+		<dependency>
+			<groupId>com.am</groupId>
+			<artifactId>java-large-file-uploader-war</artifactId>
+			<version>1.1.8</version>
+			<type>war</type>
+		</dependency>
+		
+		<!-- the jar for the server configuration -->
+		<dependency>
+			<groupId>com.am</groupId>
+			<artifactId>java-large-file-uploader-jar</artifactId>
+			<version>1.1.8</version>
+		</dependency>
+
+
+	</dependencies>
+
+	<build>
+		<finalName>demo</finalName>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.3.2</version>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<version>2.7</version>
+				<dependencies>
+					<dependency>
+						<groupId>com.google.code.maven-svn-wagon</groupId>
+						<artifactId>maven-svn-wagon</artifactId>
+						<version>1.4</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>2.3</version>
+			</plugin>
+		</plugins>
+
+		<extensions>
+			<extension>
+				<groupId>com.google.code.maven-svn-wagon</groupId>
+				<artifactId>maven-svn-wagon</artifactId>
+				<version>1.4</version>
+			</extension>
+		</extensions>
+
+	</build>
+
+
+	<distributionManagement>
+		<repository>
+			<id>googlecode</id>
+			<url>svn:https://java-large-file-uploader.googlecode.com/svn/mvnrepo</url>
+		</repository>
+	</distributionManagement>
+
+
+	<scm>
+		<connection>scm:svn:https://java-large-file-uploader.googlecode.com/svn/trunk</connection>
+	</scm>
+
+	<repositories>
+		<repository>
+			<id>java large file uploader repository</id>
+			<url>http://java-large-file-uploader.googlecode.com/svn/mvnrepo</url>
+		</repository>
+	</repositories>
+</project>
