@@ -1,0 +1,73 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<name>Java Large File Uploader Parent</name>
+
+	<groupId>com.am</groupId>
+	<artifactId>java-large-file-uploader-parent</artifactId>
+	<packaging>pom</packaging>
+	<version>1.1.8</version>
+
+	<modules>
+		<module>java-large-file-uploader-jar</module>
+		<module>java-large-file-uploader-war</module>
+	</modules>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>2.4</version>
+					<configuration>
+						<source>1.6</source>
+						<target>1.6</target>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-deploy-plugin</artifactId>
+					<version>2.7</version>
+					<dependencies>
+						<dependency>
+							<groupId>com.google.code.maven-svn-wagon</groupId>
+							<artifactId>maven-svn-wagon</artifactId>
+							<version>1.4</version>
+						</dependency>
+					</dependencies>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-release-plugin</artifactId>
+					<version>2.3</version>
+					<configuration>
+						<autoVersionSubmodules>true</autoVersionSubmodules>
+						<updateBranchVersions>true</updateBranchVersions>
+						<updateWorkingCopyVersions>false</updateWorkingCopyVersions>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+		<extensions>
+			<extension>
+				<groupId>com.google.code.maven-svn-wagon</groupId>
+				<artifactId>maven-svn-wagon</artifactId>
+				<version>1.4</version>
+			</extension>
+		</extensions>
+	</build>
+
+	<scm>
+		<connection>scm:svn:https://java-large-file-uploader.googlecode.com/svn/branches/1.0</connection>
+	</scm>
+
+
+	<distributionManagement>
+		<repository>
+			<id>googlecode</id>
+			<url>svn:https://java-large-file-uploader.googlecode.com/svn/mvnrepo</url>
+		</repository>
+	</distributionManagement>
+
+</project>
