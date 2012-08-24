@@ -10,6 +10,8 @@ It has to be first initialized using [JavaLargeFileUploader#initialize]  before 
 
 This object have a few attributes that are configurable, please see [ConfigurableProperties#javascript-attributes].
 
+You can find a complete working example in the demo project. The html/js file managing jlfu is [http://code.google.com/p/java-large-file-uploader/source/browse/trunk/java-large-file-uploader-demo/src/main/webapp/index.html here].
+
 This object provides the following interaction methods:
 <wiki:toc />
 ----
