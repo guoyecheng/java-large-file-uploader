@@ -262,7 +262,7 @@ jlfu.setAutoRetry(autoRetryBoolean, autoRetryDelay);
 }}}
 Specifies the auto retry configuration
   * autoRetryBoolean (boolean) :
-  true to enable auto retry.
+  true to enable auto retry, false to disable.
   * autoRetryDelay (int) :
   the amount of time in milliseconds between each retry.
   
