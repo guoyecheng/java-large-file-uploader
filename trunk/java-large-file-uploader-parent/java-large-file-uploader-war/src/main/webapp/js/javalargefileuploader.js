@@ -644,7 +644,10 @@ function JavaLargeFileUploader() {
 	}
 	
 	function slice(blob, start, end) {
-		if (blob.mozSlice) {
+		
+		if (blob.slice) {
+			return blob.slice(start, end);
+		} else if (blob.mozSlice) {
 			return blob.mozSlice(start, end);
 		} else {
 			return blob.webkitSlice(start, end);
