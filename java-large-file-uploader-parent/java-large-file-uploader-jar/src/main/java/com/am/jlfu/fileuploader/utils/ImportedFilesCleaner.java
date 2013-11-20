@@ -41,7 +41,7 @@ public class ImportedFilesCleaner {
 
 
 	public void clean() {
-		log.debug("Started file cleaner job.");
+		log.trace("Started file cleaner job.");
 		DateTime pastTime = new DateTime().minusHours(maximumInactivityInHoursBeforeDelete);
 		File[] listFiles = rootFolderProvider.getRootFolder().listFiles();
 		for (File file : listFiles) {
@@ -50,7 +50,7 @@ public class ImportedFilesCleaner {
 				fileDeleter.deleteFile(file);
 			}
 		}
-		log.debug("Finished file cleaner job.");
+		log.trace("Finished file cleaner job.");
 	}
 
 
