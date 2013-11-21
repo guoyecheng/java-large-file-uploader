@@ -10,6 +10,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -160,6 +161,20 @@ public class FileDeleter
 	public boolean deletionQueueContains(File file) {
 		synchronized (this.files) {
 			return files.contains(file);
+		}
+	}
+	
+	
+	@PreDestroy
+	private void destroy() throws InterruptedException {
+		log.debug("destroying executor");
+		executor.shutdown();
+		if (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
+			log.error("executor timed out");
+			List<Runnable> shutdownNow = executor.shutdownNow();
+			for (Runnable runnable : shutdownNow) {
+				log.error(runnable + "has not been terminated");
+			}
 		}
 	}
 
