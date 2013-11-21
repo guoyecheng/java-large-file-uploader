@@ -7,12 +7,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
+
+import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +64,20 @@ public class UploadServletAsyncProcessor {
 	/** The executor that process the stream */
 	private ScheduledThreadPoolExecutor uploadWorkersPool = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(10);
 
+	@PreDestroy
+	private void destroy() throws InterruptedException {
+		log.debug("destroying executor");
+		uploadWorkersPool.shutdown();
+		if (!uploadWorkersPool.awaitTermination(1, TimeUnit.MINUTES)) {
+			log.error("executor timed out");
+			List<Runnable> shutdownNow = uploadWorkersPool.shutdownNow();
+			for (Runnable runnable : shutdownNow) {
+				log.error(runnable + "has not been terminated");
+			}
+		}
+	}
+
+	
 	/** Specifies whether the uploads should be processed or not. */
 	private volatile boolean enabled = true;
 
